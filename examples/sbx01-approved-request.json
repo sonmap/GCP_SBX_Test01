@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "request_id": "REQ-20261105-001",
+  "approval": {
+    "status": "APPROVED",
+    "approval_id": "APR-20261105-001",
+    "approved_at": "2026-11-05T09:00:00+09:00"
+  },
+  "action": "CREATE",
+  "task": {
+    "name": "sbx01",
+    "display_name": "Sandbox assignment 01",
+    "expires_on": "2026-12-31"
+  },
+  "identity": {
+    "group_email": "pgrp-gcp-dev-sbx01@sonmap.net",
+    "members": [
+      "user01@sonmap.net",
+      "user02@sonmap.net"
+    ]
+  },
+  "project": {
+    "create_project": false,
+    "project_id": "pjt-net-hub-base",
+    "project_name": "Existing Sandbox sbx01"
+  },
+  "network": {
+    "required": true,
+    "create_subnet": false,
+    "host_project_id": "pjt-d-shared-base",
+    "network_name": "vpc-d-shared-base",
+    "region": "asia-northeast3",
+    "shared_vpc_join": true,
+    "subnet_name": "subnet-sbx01-an3",
+    "subnet_cidr": "172.31.110.0/24",
+    "private_google_access": true
+  },
+  "data": {
+    "bigquery_dataset": "sbx01_main",
+    "gcs_bucket": "pjt-net-hub-base-sbx01-data",
+    "adopt_existing_resources": true
+  },
+  "gke": {
+    "project_id": "pjt-d-host01",
+    "cluster_name": "gke-sbx-main-an3",
+    "location": "asia-northeast3",
+    "namespace": "sbx01",
+    "jupyter_domain": "jupyter-sbx01.sonmap.net"
+  },
+  "source": {
+    "release_id": "replace-after-release",
+    "archive_uri": "gs://prj-b-cicd-local-236d-sbxtest01-bundles/platform-releases/replace-after-release/sandbox-source.zip",
+    "generation": 1,
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}
