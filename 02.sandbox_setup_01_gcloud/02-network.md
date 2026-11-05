@@ -25,7 +25,7 @@ export RUN_CIDR=10.251.0.0/26
 export TASK_SUBNET=subnet-sbx01-an3
 export TASK_CIDR=172.31.110.0/24
 export PSA_NAME=prip-dev-cicd-cbp-01-an3-psa
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export PSA_ADDRESS="10.250.0.0"
 export PSA_PREFIX_LENGTH="24"
 # 이 값들은 1·2·3단계에서 동일하게 사용합니다.

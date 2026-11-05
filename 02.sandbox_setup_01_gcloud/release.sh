@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Run after bootstrap. No GCP calls occur unless --apply is supplied.
 set -euo pipefail
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
 cd "$(dirname "$0")/.."
 l2comn_PROJECT=prj-b-cicd-local-236d
 REGION=asia-northeast3
-BUILD_SA="projects/${l2comn_PROJECT}/serviceAccounts/tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+BUILD_SA="projects/${SBX_GKE_PROJECT}/serviceAccounts/tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 COMMIT="$(git rev-parse HEAD)"
 RELEASE_ID="git-${COMMIT:0:12}"
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -12,7 +13,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 2
 fi
 CMD=(gcloud builds submit . --project="$l2comn_PROJECT" --region="$REGION"
-  --impersonate-service-account="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+  --impersonate-service-account="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
   --service-account="$BUILD_SA"
   --gcs-source-staging-dir="gs://${l2comn_PROJECT}-sbxtest01-build-source/source"
   --config=03.cloudbuild/platform-release.yaml

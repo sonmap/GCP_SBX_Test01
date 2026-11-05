@@ -69,7 +69,8 @@ gcloud workflows run "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location
 ## 4. Deploy 결과 확인
 
 ```bash
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export SBX_GKE_PROJECT="pjt-d-host01"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 
 # 이번 요청의 실행 시각과 결과를 확인합니다.
 gcloud workflows executions list "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --limit=5

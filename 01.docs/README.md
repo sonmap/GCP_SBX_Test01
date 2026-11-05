@@ -1,5 +1,9 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
+## tf-manager 소속 프로젝트
+
+Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 계정 소속은 SBX_GKE_PROJECT이고, Build·Infrastructure Manager·AR·GCS·Run·Workflow 실행 자원은 l2comn_PROJECT에 유지합니다. [계정 위치 변경과 사전 권한](tf-manager-project.md)을 확인하세요.
+
 > **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 
 > **현재 작업 기준:** 공통 인프라는 작업자가 개별 gcloud 명령으로 구축합니다. 과제는 포털이 GCS에 저장한 승인 JSON을 대상으로 작업자가 [Deploy 명령](../02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다. GCS 이벤트 자동 시작·포털 결과 자동 전달은 추후 적용하며 현재 필수 구축 단계가 아닙니다. 기존 Deploy 내부의 API·Build·Terraform·GKE 처리 코드는 사용합니다.

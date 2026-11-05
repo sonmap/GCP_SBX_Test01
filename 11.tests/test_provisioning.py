@@ -14,7 +14,7 @@ from unittest import mock
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('provisioner',ROOT/'07.sandbox_request_api/main.py')
 p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
-ENV={'l2comn_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
+ENV={'SBX_GKE_PROJECT':'pjt-d-host01','l2comn_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
      'BUNDLE_BUCKET':'prj-b-cicd-local-236d-sbxtest01-bundles',
      'REQUEST_BUCKET':'prj-b-cicd-local-236d-sbxtest01-requests',
      'WORKER_POOL':'projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01',
@@ -64,7 +64,7 @@ class ProvisioningTests(unittest.TestCase):
             self.assertEqual(client.return_value.create_build.call_args.kwargs['parent'], 'projects/prj-b-cicd-local-236d/locations/asia-northeast3')
             build=client.return_value.create_build.call_args.kwargs['build']
         spec=json.loads(p.cloudbuild_v1.Build.to_json(build))
-        self.assertEqual(spec['serviceAccount'],f"projects/{ENV['l2comn_PROJECT']}/serviceAccounts/tf-manager@{ENV['l2comn_PROJECT']}.iam.gserviceaccount.com")
+        self.assertEqual(spec['serviceAccount'],f"projects/{ENV['SBX_GKE_PROJECT']}/serviceAccounts/tf-manager@{ENV['SBX_GKE_PROJECT']}.iam.gserviceaccount.com")
         self.assertEqual(len(spec['steps']),2)
         self.assertNotIn('WORKSPACE_ADMIN_SUBJECT',str(spec))
         commands=spec['steps'][0]['args'][1]
@@ -72,7 +72,12 @@ class ProvisioningTests(unittest.TestCase):
         self.assertLess(commands.index('sleep 60'),commands.index('/project.zip'))
         self.assertIn('deployments/sbxtest01-',commands)
         self.assertNotIn('sa-im-',commands)
-        self.assertEqual(commands.count('tf-manager@'),5)
+        self.assertEqual(commands.count('tf-manager@pjt-d-host01.iam.gserviceaccount.com'),5)
+        self.assertNotIn('serviceAccounts/tf-manager@prj-b-cicd-local-236d.',commands)
+        group_vars=p.stage_variables(payload())
+        self.assertEqual(group_vars['10-project']['project_iam_service_account'],'tf-manager@pjt-d-host01.iam.gserviceaccount.com')
+        child_config=spec['steps'][1]['args'][1]
+        self.assertIn('projects/pjt-d-host01/serviceAccounts/tf-manager@pjt-d-host01.iam.gserviceaccount.com',child_config)
         self.assertIn('pool-sbxtest01',spec['options']['pool']['name'])
 
     @mock.patch.dict(os.environ,ENV)

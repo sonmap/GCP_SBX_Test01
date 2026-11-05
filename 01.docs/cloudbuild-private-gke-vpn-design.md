@@ -7,11 +7,12 @@
 공통 기반 bootstrap 이미지가 빌드된 뒤 저장소 루트에서 실행합니다. 이 블록에 필요한 변수를 모두 포함했습니다.
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 
 gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${l2comn_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```

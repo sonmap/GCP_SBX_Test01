@@ -65,7 +65,12 @@ esac
             creates = [c for c in calls if c.startswith('iam service-accounts create ')]
             self.assertEqual(len(creates), 2)
             self.assertTrue(any('create sbx-manager ' in c for c in creates))
-            self.assertTrue(any('create tf-manager ' in c for c in creates))
+            self.assertTrue(any('create tf-manager ' in c and '--project=pjt-d-host01' in c for c in creates))
+            self.assertTrue(any('create sbx-manager ' in c and '--project=prj-b-cicd-local-236d' in c for c in creates))
+            account_calls=[c for c in calls if c.startswith('iam service-accounts ') and ' tf-manager@' in c]
+            self.assertTrue(account_calls)
+            self.assertTrue(all('--project=pjt-d-host01' in c for c in account_calls))
+            self.assertTrue(any('iam.disableCrossProjectServiceAccountUsage' in c and '--project=pjt-d-host01' in c for c in calls))
             self.assertIn('_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA', (ROOT / '02.sandbox_setup_01_gcloud/03-foundation.md').read_text())
             self.assertFalse(any('${' in c for c in calls))
             for call in calls:
@@ -77,6 +82,7 @@ esac
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
         self.assertEqual(env['l2comn_PROJECT'], 'prj-b-cicd-local-236d')
         self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')
+        self.assertEqual(env['SBX_GKE_PROJECT'], 'pjt-d-host01')
         build = yaml.safe_load((configs / 'bootstrap-build.yaml').read_text())
         self.assertEqual(build['options']['logging'], 'CLOUD_LOGGING_ONLY')
         self.assertEqual(len(build['images']), 2)

@@ -48,7 +48,7 @@ export PSA_CIDR=10.250.0.0/24
 export ADMIN_CIDR=172.31.10.0/24
 export SSL_CERTIFICATE=cert-jupyter-sbx01-self
 export BILLING_ACCOUNT=""
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_MANAGER="sbx-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
 export PSA_ADDRESS="10.250.0.0"
 export PSA_PREFIX_LENGTH="24"
@@ -59,6 +59,7 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 ## 조회 결과 확인
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 gcloud auth list
 gcloud projects describe "${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
 gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'

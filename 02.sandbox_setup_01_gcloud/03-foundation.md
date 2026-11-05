@@ -25,7 +25,7 @@ export RUN_SUBNET=subnet-dev-cicd-run-01-an3-egress
 export PSA_CIDR=10.250.0.0/24
 export ADMIN_CIDR=172.31.10.0/24
 export SSL_CERTIFICATE=cert-jupyter-sbx01-self
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_MANAGER="sbx-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
 export l2comn_PROJECT_NUMBER="$(gcloud projects describe "${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
 export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
@@ -123,7 +123,7 @@ gcloud container clusters create-auto "${MAIN_CLUSTER}" --project="${SBX_GKE_PRO
 # gcloud container clusters create-auto "${TEST_CLUSTER}" --project="${l2comn_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${TEST_SUBNET}" --cluster-secondary-range-name="${TEST_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${TEST_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 20. builds submit . ──
-gcloud builds submit . --project="${l2comn_PROJECT}" --region="${REGION}" --service-account="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${l2comn_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds submit . --project="${l2comn_PROJECT}" --region="${REGION}" --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${l2comn_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 21. run deploy run-sbxtest01-provisioner ──
 gcloud run deploy run-sbxtest01-provisioner --project="${l2comn_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${RUN_SUBNET}" --vpc-egress=private-ranges-only --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
@@ -205,7 +205,7 @@ gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https --project="
 # 기존 자원 확인
 # gcloud builds triggers describe trigger-sbxtest01-platform-release --project="${l2comn_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# gcloud builds triggers create github --name=trigger-sbxtest01-platform-release --project="${l2comn_PROJECT}" --region="${REGION}" --repo-owner=sonmap --repo-name=GCP_SBX_Test01 --branch-pattern="^main$" --build-config=03.cloudbuild/platform-release.yaml --service-account="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}" '--substitutions=_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA' --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# gcloud builds triggers create github --name=trigger-sbxtest01-platform-release --project="${l2comn_PROJECT}" --region="${REGION}" --repo-owner=sonmap --repo-name=GCP_SBX_Test01 --branch-pattern="^main$" --build-config=03.cloudbuild/platform-release.yaml --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" '--substitutions=_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA' --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # 다음: OAuth Secret 값 등록 → Workspace tf-manager 그룹 관리자 역할 부여 → 릴리스 → 이미지 미러링 → 과제 요청
 # Build/Run/Workflow 입력: 02.sandbox_setup_01_gcloud/configs/의 YAML 파일을 사용합니다. Python 실행기는 없습니다.

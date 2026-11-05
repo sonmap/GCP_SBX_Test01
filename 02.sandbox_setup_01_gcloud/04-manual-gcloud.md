@@ -15,12 +15,13 @@ OAuth 및 tf-manager 그룹 관리자 역할 준비 후 [Private GKE 접속 점�
 ## 4. OAuth 값 등록
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
@@ -45,12 +46,13 @@ unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 ## 5. 플랫폼 릴리스 게시
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
@@ -69,12 +71,13 @@ Build SUCCESS 후 bundles 버킷의 platform-releases/${RELEASE_ID}/release.json
 ## 6. Chart와 기본 이미지 미러링
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
@@ -93,12 +96,13 @@ gcloud builds submit --no-source --project="${l2comn_PROJECT}" --region="${REGIO
 ## 7. Notebook 표준 이미지 빌드
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 

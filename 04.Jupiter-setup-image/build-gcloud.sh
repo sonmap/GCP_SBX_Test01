@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -14,7 +15,7 @@ IMAGE_REPO="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/${REPOSITORY}/${IMAGE_NAM
 # Existing regional staging bucket reused by the validated manual build.
 # Override STAGING_BUCKET if a dedicated Jupyter build bucket is created later.
 STAGING_BUCKET="${STAGING_BUCKET:-prj-b-cicd-local-236d-sbxtest01-build-source}"
-BUILD_SA="${BUILD_SA:-tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com}"
+BUILD_SA="${BUILD_SA:-tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com}"
 
 BUCKET_LOCATION="$(gcloud storage buckets describe "gs://${STAGING_BUCKET}" --format='value(location)')"
 if [[ "${BUCKET_LOCATION,,}" != "${REGION,,}" ]]; then
@@ -34,7 +35,7 @@ echo "[2/4] Submit regional Cloud Build"
 gcloud builds submit "${SCRIPT_DIR}" \
   --project="${l2comn_PROJECT}" \
   --region="${REGION}" \
-  --service-account="projects/${l2comn_PROJECT}/serviceAccounts/${BUILD_SA}" \
+  --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${BUILD_SA}" \
   --gcs-source-staging-dir="gs://${STAGING_BUCKET}/jupyter-source" \
   --config="${SCRIPT_DIR}/cloudbuild.yaml" \
   --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"

@@ -22,9 +22,9 @@ export SBX_PROJECT="pjt-net-hub-base"
 export REGION="asia-northeast3"
 export MAIN_CLUSTER="gke-sbx-main-an3"
 export SBX_NAME="sbx01"
-export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_MANAGER="sbx-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
 export REQUEST_BUCKET="${l2comn_PROJECT}-sbxtest01-requests"
 export BUNDLE_BUCKET="${l2comn_PROJECT}-sbxtest01-bundles"
 export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
@@ -60,7 +60,7 @@ mkdir -p .local
 ```bash
 # 관리자 문서를 적용한 뒤 두 계정을 조회합니다.
 gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
 
 # 토큰을 출력하지 않고 tf-manager 위임으로 API 조회가 되는지 확인합니다.
 gcloud services list --enabled --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=3
@@ -75,6 +75,7 @@ gcloud services list --enabled --project="${l2comn_PROJECT}" --account="${ADMIN_
 [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. Main GKE·Cloud Run·과제 서브넷이 기본 대상입니다. Test GKE용 서브넷은 선택 항목입니다.
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 생성 후 실제 연결과 대역을 조회합니다.
 gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 gcloud compute shared-vpc get-host-project "${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
@@ -103,6 +104,7 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST
 기존 GKE/버킷/ALB 자원은 조회 결과를 비교하고 create를 건너뜁니다. Secret은 여기서 이름만 준비하고 실제 값은 4단계에서 등록합니다. SSL 인증서 `cert-jupyter-sbx01-self`가 없으면 HTTPS Proxy/443 명령 전에 인증서 담당자가 별도 등록해야 합니다. DNS/hosts 연결은 11단계에서 확인합니다.
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 # 공통 기반 적용 후 확인합니다.
 gcloud builds worker-pools describe pool-sbxtest01 --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(status,autopilot,network,subnetwork,privateClusterConfig,ipAllocationPolicy)'
@@ -150,7 +152,7 @@ gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --p
 
 ```bash
 # Workspace 최고 관리자에게 전달할 tf-manager의 Unique ID입니다.
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(uniqueId)'
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(uniqueId)'
 ```
 
 Workspace 최고 관리자는 이 서비스 계정에 Groups Administrator 역할을 직접 부여합니다. 이 최초 역할 부여는 GCP IAM 역할만으로 대체되지 않습니다. [공식 설정 절차](https://docs.cloud.google.com/identity/docs/how-to/setup#assigning_an_admin_role_to_the_service_account)를 따릅니다.
@@ -311,6 +313,7 @@ gcloud infra-manager deployments list --project="${l2comn_PROJECT}" --location="
 관리 VM에서도 GKE Private IP에 도달할 수 있어야 합니다. 아래 환경변수는 이 터미널의 kubectl 인증에도 tf-manager를 사용하게 합니다.
 
 ```bash
+export SBX_GKE_PROJECT="pjt-d-host01"
 export CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}"
 gcloud container clusters get-credentials "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --internal-ip
 kubectl -n "${SBX_NAME}" get pods,svc,pvc
