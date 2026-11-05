@@ -1,6 +1,18 @@
 # 폴더와 파일 관계
 
+실제 수동 수행은 [실행 절차](runbook-two-stage.md)를 따릅니다. 아래 그림의 API/IM/GKE 단계는 승인 요청 제출 후 자동 호출됩니다.
+
 실선은 실행/호출, 점선은 설정/소스 참조입니다. 1~3단계는 모두 gcloud입니다.
+
+```mermaid
+flowchart TD
+  A["운영자: 관리자·네트워크·공통 기반"] --> B["OAuth·DWD 승인·사설 접속 검사"]
+  B --> C["릴리스 → 미러링 → Notebook 이미지"]
+  C --> D["실제 JSON 수정·최종 승인"]
+  D --> E["운영자: Workflow 호출"]
+  E --> F["자동: Group → IM → Jupyter·ALB"]
+  F --> G["운영자·사용자: Build·로그인·BQ 확인"]
+```
 
 ```mermaid
 flowchart TD

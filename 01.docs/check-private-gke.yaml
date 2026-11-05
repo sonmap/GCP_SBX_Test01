@@ -1,0 +1,17 @@
+# Read-only connectivity check, executed by an explicitly specified tf-manager Build.
+# Run after bootstrap-build has published the :bootstrap runner image.
+steps:
+  - name: asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap
+    entrypoint: bash
+    env:
+      - KUBECONFIG=/workspace/kubeconfig
+    args:
+      - -ceu
+      - |
+        gcloud container clusters get-credentials gke-sbx-main-an3 --project=pjt-d-host01 --location=asia-northeast3 --internal-ip
+        kubectl --request-timeout=20s get namespaces
+options:
+  logging: CLOUD_LOGGING_ONLY
+  pool:
+    name: projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01
+timeout: 300s

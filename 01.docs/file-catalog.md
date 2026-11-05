@@ -1,5 +1,7 @@
 # 파일별 설명
 
+처음 실행할 때는 [시작 안내](README.md) → [실제 수행 절차](runbook-two-stage.md)를 따릅니다. 이 표는 실행 순서가 아니라 파일 찾기용입니다.
+
 최초 기반은 gcloud, 과제별 자원은 Infrastructure Manager입니다.
 
 | 파일 | 역할 |
@@ -66,3 +68,5 @@
 | `06.sandbox_json_rules/README.md` | JSON 입력 규칙과 런타임 규격 사본의 관계 |
 | `10.sandbox_deploy_tools/README.md` | 배포 보조 도구와 scripts 용어 설명 |
 | `11.tests/test_build_paths.py` | 빌드 Context·Docker COPY 경로·삭제 컴포넌트 참조 검사 |
+| `01.docs/README.md` | 실제 수행 단계·실행 계정·완료 기준의 시작 안내 |
+| `01.docs/check-private-gke.yaml` | 실제 Private Pool에서 GKE 사설 접속을 읽기 전용으로 검사 |
