@@ -1,8 +1,36 @@
 # 3. 공통 기반 — 주석으로 통합한 gcloud 명령
 
-먼저 [공통 변수](00-variables.md)를 같은 터미널에 설정합니다. `# 주석`을 보며 순서대로 실행하고, **기존 자원이 있으면 해당 생성 명령을 건너뜁니다.** 403·인증·연결 오류면 중단합니다. 선택 작업은 주석을 해제한 경우에만 실행합니다.
+필요한 변수 선언을 아래 코드 블록 맨 앞에 포함했습니다. 별도 문서에서 변수를 설정할 필요 없이, 이 문서의 선언부터 같은 터미널에서 실행합니다. `# 주석`을 보며 순서대로 실행하고, **기존 자원이 있으면 해당 생성 명령을 건너뜁니다.** 403·인증·연결 오류면 중단합니다. 선택 작업은 주석을 해제한 경우에만 실행합니다.
 
 ```bash
+# ── 이 문서에서 사용하는 변수 선언 ──
+# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
+unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
+export ADMIN_ACCOUNT=admin@sonmap.net
+export OPERATOR_MEMBER=user:admin@sonmap.net
+export CICD_PROJECT=prj-b-cicd-local-236d
+export HOST_PROJECT=pjt-d-shared-base
+export GKE_PROJECT=pjt-d-host01
+export REGION=asia-northeast3
+export NETWORK=vpc-d-shared-base
+export MAIN_CLUSTER=gke-sbx-main-an3
+export TEST_CLUSTER=gke-dev-cicd-01-an3
+export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
+export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
+export MAIN_CP_CIDR=10.253.0.0/28
+export TEST_SUBNET=subnet-dev-cicd-gke-01-an3-test
+export TEST_POD_RANGE=pods-dev-cicd-gke-01-an3-test
+export TEST_CP_CIDR=10.253.0.16/28
+export RUN_SUBNET=subnet-dev-cicd-run-01-an3-egress
+export PSA_CIDR=10.250.0.0/24
+export ADMIN_CIDR=172.31.10.0/24
+export SSL_CERTIFICATE=cert-jupyter-sbx01-self
+export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export SBX_MANAGER="sbx-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export CICD_PROJECT_NUMBER="$(gcloud projects describe "${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+export GKE_PROJECT_NUMBER="$(gcloud projects describe "${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+# 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
+
 # 2단계 완료 후 저장소 루트에서 실행합니다.
 # 기존 GKE는 Autopilot · Private Nodes/Endpoint · Subnet · Pod Range를 확인합니다.
 # Private Pool → GKE 사설 경로는 별도로 준비합니다.
