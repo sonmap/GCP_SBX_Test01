@@ -1,5 +1,7 @@
 # GCP_SBX_Test01
 
+> **[서브넷별 IAM](02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
+
 > **[내부 사설 ALB 설계](01.docs/internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](01.docs/minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.

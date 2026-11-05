@@ -17,3 +17,7 @@
 ## 그룹 생성이 첫 단계입니다
 
 05-group → 10-project → 선택적 20-network → 30-project-iam → 40-data 순서로 Infrastructure Manager가 적용합니다. 모든 단계는 tf-manager로 수행합니다. [권한 및 기존 그룹 편입](../01.docs/cloud-identity-group-terraform.md)을 먼저 확인합니다.
+
+## Host 네트워크 변경은 VPC Admin 수행
+
+현재 API는 Subnet 생성과 Shared VPC 연결 변경을 요청하면 거절합니다. 기본 network.required=false를 사용하며, 별도 승인된 기존 Subnet 조회가 필요한 경우에만 required=true / create_subnet=false / shared_vpc_join=false로 요청합니다. VPC Admin이 먼저 해당 Subnet을 구성·연결하고 사용 권한을 부여해야 합니다. 과거 네트워크 리소스를 소유한 state는 이 변경으로 자동 변경·삭제하지 않습니다.

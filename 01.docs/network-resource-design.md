@@ -106,7 +106,7 @@ no-public-egress는 Pool의 공용 인터넷 egress를 제한하는 설정입니
 |---|---|---|
 | 1 | 기존 SBX 프로젝트·기존 자원·실제 CIDR 인벤토리 확정 | 운영자·VPC Admin |
 | 2 | 유지하는 GKE 대역·PSA·공통 Shared VPC 연결 검증 | VPC Admin |
-| 3 | API·SA·권한 → 네트워크 → 공통 서비스 gcloud 개별 실행 | 인프라 작업자 |
+| 3 | API·SA·권한 → 네트워크 → 공통 서비스 gcloud 개별 실행 | 프로젝트 작업자·VPC Admin 분담 |
 | 4 | tf-manager 그룹 관리자 역할·실제 Customer ID·OAuth 준비 | Workspace/OAuth 담당자 |
 | 5 | 이미지·Chart·소스 릴리스 준비, Private Pool 사설 접속 확인 | 작업자·VPC Admin |
 | 6 | 기존 그룹·Dataset·GCS/state 편입 검토 후 Deploy | 작업자 |
@@ -125,3 +125,7 @@ no-public-egress는 Pool의 공용 인터넷 egress를 제한하는 설정입니
 ## 내부 ALB 추가 기준
 
 N10·N11·VIP 값은 신규 후보이며 실제 VPC·온프레미스 IPAM 조회 없이 확정한 값이 아닙니다. 기존 프록시 전용 Subnet이 있으면 N11을 추가 생성하지 않고 해당 이름·CIDR을 방화벽과 변수에 반영합니다. /28은 VIP용이고 프록시 전용은 최소 /26입니다. ALB·VIP 자원은 pjt-d-host01, Subnet은 Shared VPC Host pjt-d-shared-base에 생성합니다. [전환·구축 절차](internal-alb-design.md)를 따릅니다.
+
+## 서브넷 사용 계정과 관리 담당
+
+Main GKE Subnet은 tf-manager·GKE 서비스 에이전트·Google APIs 서비스 에이전트에, ALB VIP Subnet은 tf-manager에만 Network User를 부여합니다. 프록시 Subnet·PSA·방화벽은 VPC Admin이 관리하고, tf-manager는 Host에서 Network Viewer를 사용해 조회합니다. [정확한 계정·gcloud 명령](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)을 따릅니다.

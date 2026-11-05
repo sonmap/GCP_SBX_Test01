@@ -1,5 +1,7 @@
 # 작업 순서와 실행 링크
 
+> **[서브넷별 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
+
 > **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
@@ -18,7 +20,8 @@
 flowchart TD
     A["0. 소스·변수 준비"] --> B["1. API·SA·IAM"]
     B --> C["2. Shared VPC·Subnet·PSA"]
-    C --> D["3. 공통 실행 서비스·GKE·ALB"]
+    C --> S["2-1. VPC Admin: 서브넷별 IAM"]
+    S --> D["3. 공통 실행 서비스·GKE·ALB"]
     D --> E["4. 인증 준비·VPC Admin 요청 완료 확인"]
     E --> F{"5. Private Pool → GKE 점검"}
     F -->|실패| X["권한·라우팅 수정"]
@@ -33,7 +36,8 @@ flowchart TD
 |---|---|---|---|---|
 | 0 | 운영자: 소스 받기·도구·변수 확인 | [소스 준비](runbook-two-stage.md#0-소스-받기기본-변수-설정), [공통 변수](../02.sandbox_setup_01_gcloud/00-variables.md) | [01.docs](../01.docs), [02.gcloud](../02.sandbox_setup_01_gcloud) | 계정·프로젝트 조회 성공 |
 | 1 | 권한 관리자: API·sbx-manager·tf-manager·IAM | [01-admin.md](../02.sandbox_setup_01_gcloud/01-admin.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | 두 SA 조회·위임 성공 |
-| 2 | 인프라 관리자: VPC·Subnet·PSA·방화벽 | [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | 대역·연결 확인 |
+| 2 | VPC Admin: VPC·Subnet·PSA·방화벽 | [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | 대역·연결 확인 |
+| 2-1 | VPC Admin: 필요한 계정에 Subnet Network User | [02-subnet-iam.md](../02.sandbox_setup_01_gcloud/02-subnet-iam.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | GKE·VIP Subnet 정책 확인 |
 | 3 | 인프라 관리자: GCS·AR·Pool·GKE·Run·Workflow·ALB | [03-foundation.md](../02.sandbox_setup_01_gcloud/03-foundation.md) | [02.gcloud](../02.sandbox_setup_01_gcloud), [03.cloudbuild](../03.cloudbuild) | GKE RUNNING·API healthz 정상 |
 | 4 | Workspace·OAuth 담당자 인증 준비 / VPC Admin 사설 경로·BQ 권한 요청 / 인증서·DNS 별도 진행 | [OAuth 등록 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#4-oauth-값-등록), [그룹 관리자 역할 직접 부여](runbook-two-stage.md#4-2-cloud-identity-그룹-관리자-역할), [인증·도메인 안내](jupyterhub-internal-alb-oauth-runbook.md) | [01.docs](../01.docs), [02.gcloud](../02.sandbox_setup_01_gcloud) | OAuth Secret ENABLED·tf-manager 그룹 관리자 역할 부여·도메인/인증서 준비 |
 | 5 | 운영자: Private Pool에서 GKE API 조회 | [접속 점검 명령](runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인), [점검 YAML](check-private-gke.yaml) | [01.docs](../01.docs) | 점검 Build SUCCESS |

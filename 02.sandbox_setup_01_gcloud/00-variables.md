@@ -18,6 +18,8 @@ export SBX_PROJECT="pjt-net-hub-base"         # 과제 자원·Query Job
 ```bash
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT=admin@sonmap.net
+# VPC Admin 실제 계정으로 변경합니다. 같은 관리자가 겸임하면 아래 기본값을 사용합니다.
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export OPERATOR_MEMBER=user:admin@sonmap.net
 export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
@@ -59,4 +61,4 @@ gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --for
 
 프로젝트 번호가 숫자가 아니거나 조회가 실패하면 1단계로 진행하지 않습니다. 서비스 계정 표시 이름은 sbx_manager/tf_manager, 실제 ID는 sbx-manager/tf-manager입니다. 관리자는 여러 프로젝트와 Folder/Billing 범위에 필요한 기존 권한을 보유해야 합니다. Google 서비스 에이전트·노드 기본 SA와 Kubernetes KSA는 두 사용자 관리 계정과 별개입니다.
 
-실행 순서: [1 관리자](01-admin.md) → [2 네트워크](02-network.md) → [3 공통 기반](03-foundation.md).
+실행 순서: [1 관리자](01-admin.md) → [2 네트워크](02-network.md) → [2-1 서브넷별 IAM](02-subnet-iam.md) → [3 공통 기반](03-foundation.md).

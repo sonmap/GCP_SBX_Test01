@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-BOOKS = ['00-variables.md', '01-admin.md', '02-network.md', '03-foundation.md']
+BOOKS = ['00-variables.md', '01-admin.md', '02-network.md', '02-subnet-iam.md', '03-foundation.md']
 
 
 def blocks(name):
@@ -48,7 +48,7 @@ esac
 ''')
             stub.chmod(0o755)
             script = 'set -eu\n' + '\n'.join(block for name in BOOKS for block in blocks(name))
-            env = dict(os.environ, PATH=str(work / 'bin') + os.pathsep + os.environ['PATH'], GCLOUD_TEST_LOG=str(work / 'calls.log'))
+            env = dict(os.environ, PATH=str(work / 'bin') + os.pathsep + os.environ['PATH'], GCLOUD_TEST_LOG=str(work / 'calls.log'), VPC_ADMIN_ACCOUNT='vpc-admin@sonmap.net')
             env.pop('SHORT_SHA', None)
             env.pop('COMMIT_SHA', None)
             result = subprocess.run(['bash'], input=script, cwd=work, env=env, text=True, capture_output=True)
@@ -75,7 +75,27 @@ esac
             self.assertFalse(any('${' in c for c in calls))
             for call in calls:
                 if call.startswith(('compute ', 'storage ', 'builds ', 'run ', 'workflows ')):
-                    self.assertIn('--impersonate-service-account=tf-manager@', call)
+                    network_admin_call = call.startswith('compute ') and (('--project=pjt-d-shared-base' in call) or call.startswith('compute shared-vpc ')) and '--impersonate-service-account=' not in call
+                    pool_admin_call = call.startswith('builds worker-pools ')
+                    if network_admin_call or pool_admin_call:
+                        self.assertIn('--account=vpc-admin@sonmap.net', call)
+                        self.assertNotIn('--impersonate-service-account=', call)
+                    else:
+                        self.assertIn('--impersonate-service-account=tf-manager@', call)
+            subnet_grants=[c for c in calls if c.startswith('compute networks subnets add-iam-policy-binding ')]
+            self.assertEqual(len(subnet_grants),4)
+            self.assertTrue(all('--condition=' not in c for c in subnet_grants))
+            self.assertFalse(any(c.startswith('projects add-iam-policy-binding ') and 'serviceAccount:tf-manager@' in c and '--role=roles/cloudbuild.workerPoolOwner' in c for c in calls))
+            self.assertTrue(all('--project=pjt-d-shared-base' in c and '--role=roles/compute.networkUser' in c for c in subnet_grants))
+            self.assertEqual(sum('add-iam-policy-binding subnet-dev-sbx-gke-01-an3-main ' in c for c in subnet_grants),3)
+            vip_grants=[c for c in subnet_grants if 'add-iam-policy-binding subnet-sbx-ilb-vip-an3 ' in c]
+            self.assertEqual(len(vip_grants),1)
+            self.assertIn('tf-manager@pjt-d-host01.iam.gserviceaccount.com',vip_grants[0])
+            host_grants=[c for c in calls if c.startswith('projects add-iam-policy-binding pjt-d-shared-base ')]
+            self.assertFalse(any('--role=roles/compute.networkUser ' in c for c in host_grants))
+            for role in ['compute.networkAdmin','compute.securityAdmin','servicenetworking.networksAdmin']:
+                self.assertFalse(any('serviceAccount:tf-manager@' in c and '--role=roles/'+role+' ' in c for c in host_grants))
+            self.assertTrue(any('--role=roles/container.hostServiceAgentUser ' in c for c in host_grants))
 
     def test_static_configs_match_runtime_targets_and_reference_files_exist(self):
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'

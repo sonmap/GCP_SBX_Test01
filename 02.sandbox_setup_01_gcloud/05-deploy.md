@@ -13,6 +13,7 @@
 | 0 | [공통 변수](00-variables.md) | 프로젝트·계정·대역 확인 |
 | 1 | [관리자 준비](01-admin.md) | API·서비스 계정·IAM |
 | 2 | [네트워크](02-network.md) | Shared VPC·Subnet·PSA·방화벽 |
+| 2-1 | [서브넷별 IAM](02-subnet-iam.md) | GKE·ALB VIP 사용 계정 부여 |
 | 3 | [공통 실행 기반](03-foundation.md) | GCS·AR·Private Pool·GKE·Cloud Run·Workflow·ALB |
 | 4 | [관리자 개별 명령](04-manual-gcloud.md) 및 [인증 안내](../01.docs/jupyterhub-internal-alb-oauth-runbook.md) | OAuth 등록·그룹 관리자 역할 직접 부여·인증서·DNS 준비 |
 | 5 | [Private Pool 접속 점검](../01.docs/runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인) | GKE 사설 API 조회 Build 성공 확인 |

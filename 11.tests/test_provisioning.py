@@ -26,7 +26,7 @@ def payload():
     data=json.loads((ROOT/'05.sandbox_json/sbx01-approved-request.json').read_text())
     data['source']['sha256']='a'*64
     data['source']['release_id']='git-test123'
-    data['network'].update(required=True,shared_vpc_join=True,subnet_name='subnet-sbx01-an3',subnet_cidr='172.31.110.0/24')
+    data['network'].update(required=True,shared_vpc_join=False,subnet_name='subnet-sbx01-an3',subnet_cidr='172.31.110.0/24')
     return data
 
 
@@ -165,6 +165,18 @@ class ProvisioningTests(unittest.TestCase):
         module=(ROOT/'08.sandbox_setup_02_terraform/deployments/05-group/main.tf').read_text()
         self.assertIn('google_cloud_identity_group_membership',module)
         self.assertIn('prevent_destroy = true',module)
+
+    @mock.patch.dict(os.environ,ENV)
+    def test_runtime_rejects_host_network_mutations(self):
+        data=payload()
+        data['network']['create_subnet']=False
+        data['network']['shared_vpc_join']=False
+        p.validate_semantics(data)
+        for field in ['create_subnet','shared_vpc_join']:
+            invalid=copy.deepcopy(data)
+            invalid['network'][field]=True
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError,'managed by VPC Admin'):
+                p.validate_semantics(invalid)
 
 
 if __name__=='__main__': unittest.main()

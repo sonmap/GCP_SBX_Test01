@@ -58,3 +58,7 @@ VPC Admin 요청과 인증서·DNS 별도 준비를 먼저 착수합니다. 작�
 ## VPC Admin 요청 3 — 내부 ALB
 
 VIP용 172.31.111.0/28과 VIP 172.31.111.5는 중복 확인 전 후보입니다. 같은 VPC·리전의 ACTIVE REGIONAL_MANAGED_PROXY가 있으면 재사용하고, 없으면 172.31.111.64/26 후보를 검증합니다. Subnet 소유는 pjt-d-shared-base, ALB·VIP 소유는 pjt-d-host01입니다. 프록시 CIDR → GKE Pod CIDR TCP 8000과 Google Health Check 소스 → Pod TCP 8000을 허용하고 사내망·VPN/Interconnect에서 VIP로의 경로를 확인합니다. [내부 ALB 설계](internal-alb-design.md)
+
+## VPC Admin 요청 4 — 서브넷 IAM·Pool 초기 준비
+
+[02-network](../02.sandbox_setup_01_gcloud/02-network.md)로 생성·재사용 범위를 확정한 뒤 [02-subnet-iam](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)의 네 개 바인딩을 적용합니다. 프록시 전용 Subnet의 사용자 Network User는 만들지 않습니다. Host Service Agent User는 프로젝트 범위로 유지합니다. 03-foundation의 Private Pool 초기 생성 절은 VPC_ADMIN_ACCOUNT로 수행하며 배포 계정 tf-manager는 준비된 Pool을 사용합니다. VPC Admin은 Host 네트워크·방화벽·PSA·Shared VPC·Subnet IAM 관리 권한을 사전에 보유해야 하며, 해당 권한을 tf-manager에 일괄 위임하지 않습니다.

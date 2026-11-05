@@ -71,3 +71,6 @@
 
 | `08.sandbox_setup_02_terraform/deployments/05-group/` | tf-manager가 Cloud Identity Group·구성원을 Terraform으로 관리 |
 | `01.docs/cloud-identity-group-terraform.md` | 그룹 관리자 역할·Customer ID·기존 그룹 import 안내 |
+
+| `02.sandbox_setup_01_gcloud/02-subnet-iam.md` | Subnet별 계정 사용 권한, VPC Admin 수행 |
+| `02.sandbox_setup_01_gcloud/06-iam-migration.md` | 기존 Host 광역 바인딩의 검토·정리 명령, 신규 설치 필수 아님 |

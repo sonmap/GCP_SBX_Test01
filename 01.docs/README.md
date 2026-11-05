@@ -1,5 +1,7 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
+> **[서브넷별 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
+
 > **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
@@ -24,7 +26,8 @@ Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.
 |---|---|---|---|
 | 0 | 소스 받기·변수·도구 확인 | 운영자 | 계정/프로젝트 조회 성공 |
 | 1 | API·두 SA·IAM 준비 | 기존 권한 관리자 | 두 SA 조회·tf-manager 위임 성공 |
-| 2 | Shared VPC·Subnet·PSA·방화벽 | tf-manager | CIDR/연결/방화벽 확인 |
+| 2 | Shared VPC·Subnet·PSA·방화벽 | VPC Admin | CIDR/연결/방화벽 확인 |
+| 2-1 | GKE·ALB VIP Subnet별 IAM | VPC Admin | 필요한 네 개 Network User 바인딩 확인 |
 | 3 | Bucket·AR·Private Pool·GKE·Run·Workflow·ALB | tf-manager | 각 서비스 조회·Run healthz 성공 |
 | 4 | Jupyter OAuth·tf-manager 그룹 관리자 역할 | GCP 운영자·Workspace 관리자 | Secret ENABLED·그룹 관리자 역할·Customer ID 준비 |
 | 5 | Private Pool → GKE API 접속 점검 | tf-manager Build | 접속 점검 Build SUCCESS |

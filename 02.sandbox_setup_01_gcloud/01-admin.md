@@ -7,6 +7,8 @@
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT=admin@sonmap.net
+# VPC Admin 실제 계정으로 변경합니다. 같은 관리자가 겸임하면 아래 기본값을 사용합니다.
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export OPERATOR_MEMBER=user:admin@sonmap.net
 export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
@@ -19,17 +21,21 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
-gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable servicenetworking.googleapis.com serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 gcloud services enable container.googleapis.com compute.googleapis.com iam.googleapis.com iamcredentials.googleapis.com cloudresourcemanager.googleapis.com orgpolicy.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 
 # ── 2. Google 서비스 에이전트 준비 — API별로 필요한 시스템 계정 ──
 gcloud beta services identity create --service=cloudbuild.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=config.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=run.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=workflows.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=container.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud beta services identity create --service=container.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
+
+# Service Networking 시스템 계정의 역할은 사용자 계정에 부여하지 않습니다.
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${ADMIN_ACCOUNT}"
 
 # ── 3. 사용자 관리 서비스 계정 — sbx-manager · tf-manager ──
 
@@ -51,7 +57,6 @@ gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAcc
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.admin --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/artifactregistry.admin --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.builds.editor --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.workerPoolOwner --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.workerPoolUser --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.admin --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.agent --condition=None --account="${ADMIN_ACCOUNT}"
@@ -69,12 +74,15 @@ gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAcc
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
 
-# ── 6. tf-manager 권한 — Shared VPC 네트워크 · 방화벽 · PSA ──
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.networkAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.securityAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.networkUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/servicenetworking.networksAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
+# ── 6. Shared VPC 조회와 VPC Admin의 Pool 초기 구성 권한 ──
+# tf-manager에는 Host 전체 Network User/Network Admin/Security Admin을 부여하지 않습니다.
+# 서브넷 사용 권한은 서브넷 생성 후 02-subnet-iam.md에서 부여합니다.
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.networkViewer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
+# VPC Admin은 Host 네트워크 관리 권한을 이미 보유한 계정입니다.
+# Pool 자원은 pjt-d-host01에 생성하므로 해당 프로젝트의 초기 Pool 관리 권한을 부여합니다.
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/cloudbuild.workerPoolOwner --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
 
 # ── 7. tf-manager 권한 — GKE · 공통 로드밸런서 ──
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.loadBalancerAdmin --condition=None --account="${ADMIN_ACCOUNT}"
@@ -97,15 +105,12 @@ gcloud projects add-iam-policy-binding "${SBX_PROJECT}" --member="serviceAccount
 gcloud projects add-iam-policy-binding "${SBX_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/bigquery.admin --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.admin --condition=None --account="${ADMIN_ACCOUNT}"
 
-# ── 10. tf-manager 권한 — 지정 Folder의 프로젝트 생성 · IAM · Shared VPC ──
+# ── 10. tf-manager 권한 — 지정 Folder의 프로젝트 생성 · IAM ──
 gcloud resource-manager folders add-iam-policy-binding "${FOLDER_ID}" --member="serviceAccount:${TF_MANAGER}" --role=roles/resourcemanager.projectCreator --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud resource-manager folders add-iam-policy-binding "${FOLDER_ID}" --member="serviceAccount:${TF_MANAGER}" --role=roles/resourcemanager.projectIamAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud resource-manager folders add-iam-policy-binding "${FOLDER_ID}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.xpnAdmin --condition=None --account="${ADMIN_ACCOUNT}"
 
 # ── 11. GCP 서비스 에이전트 권한 — Shared VPC 사용 ──
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/container.hostServiceAgentUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/compute.networkUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}@cloudservices.gserviceaccount.com" --role=roles/compute.networkUser --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/container.hostServiceAgentUser --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 
 # ── 12. GKE 노드 기본 계정 권한 — 노드 실행 · tf-manager의 계정 사용 ──
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/container.defaultNodeServiceAccount --condition=None --account="${ADMIN_ACCOUNT}"

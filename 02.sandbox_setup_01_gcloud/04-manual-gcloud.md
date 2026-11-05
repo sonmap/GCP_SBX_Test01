@@ -8,7 +8,8 @@ Bash shell 파일을 실행하지 않고 아래 명령을 순서대로 복사해
 
 1. [API·SA·IAM](01-admin.md)
 2. [네트워크](02-network.md)
-3. [공통 서비스](03-foundation.md)
+3. [서브넷별 IAM](02-subnet-iam.md) — VPC Admin, 서브넷 생성 후
+4. [공통 서비스](03-foundation.md) — Pool 초기 구성은 VPC Admin, 나머지는 tf-manager
 
 OAuth 및 tf-manager 그룹 관리자 역할 준비 후 [Private GKE 접속 점검](../01.docs/runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인)을 통과해야 과제 배포를 시작합니다. Workspace tf-manager 그룹 관리자 역할 부여·DNS·인증서·기존 BQ 데이터 조회 권한은 담당자가 별도로 준비합니다.
 

@@ -7,7 +7,7 @@
 | 구간 | 누가 실행 | 실제 입력/프로그램 | 실제 결과 |
 |---|---|---|---|
 | 최초 관리자 준비 | 기존 권한 관리자 | 02 폴더의 01-admin.md | API·sbx-manager·tf-manager·IAM |
-| 공통 네트워크/기반 | tf-manager 위임 운영자 | 02-network.md → 03-foundation.md | Subnet/PSA/Pool/GKE/Run/Workflow/ALB |
+| 공통 네트워크/기반 | VPC Admin 네트워크·Subnet IAM 후 tf-manager 기반 구축 | 02-network.md → 02-subnet-iam.md → 03-foundation.md | Subnet/PSA/Pool/GKE/Run/Workflow/ALB |
 | 로그인/그룹 준비 | 운영자·Workspace/OAuth 관리자 | Secret 등록·OAuth Callback·tf-manager 그룹 관리자 역할 부여 | 로그인·Terraform Group 생성 사전 조건 |
 | 플랫폼/사용자 이미지 | tf-manager Build | 04-manual-gcloud.md의 개별 gcloud 빌드 명령 | 버전 이미지·소스 ZIP·Chart |
 | 최종 신청/승인 | 승인 담당자·운영자 | 실제 신청 JSON·release.json | .local/request.json |
@@ -82,3 +82,7 @@
 소스 ZIP의 Root는 `08.sandbox_setup_02_terraform/deployments/`입니다. 폴더 변경 후 새 API 이미지와 새 ZIP을 같은 릴리스로 게시합니다. 이전 경로의 ZIP을 새 API와 섞지 않습니다. 릴리스/미러링은 외부 패키지를 받는 완전관리형 Build, 과제 배포와 GKE 접속 점검은 외부 IP 없는 Private Pool을 사용합니다.
 
 별도 데이터레이크 권한 자동화 서비스는 제거되었습니다. 현재 소스 변경만으로 이전에 생성된 GCP 서비스·기존 BQ를 삭제하지 않습니다. 실제 클라우드 배포 여부는 Build/IM/Kubernetes 조회로 확인합니다.
+
+## Host IAM과 ALB 배포 경계
+
+VPC Admin이 네트워크·서브넷·방화벽·PSA와 Private Pool 초기 연결을 준비합니다. tf-manager에는 Host Network Viewer와 지정한 GKE·VIP 서브넷 Network User를 부여하며, Host 전체 Network User·Network Admin·Security Admin·Service Networking Admin은 기본 부여하지 않습니다. ALB·VIP·Backend의 생성 권한은 pjt-d-host01에서 유지합니다. [서브넷 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)과 [기존 권한 정리](../02.sandbox_setup_01_gcloud/06-iam-migration.md)를 확인합니다.

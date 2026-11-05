@@ -7,6 +7,8 @@
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT=admin@sonmap.net
+# VPC Admin 실제 계정으로 변경합니다. 같은 관리자가 겸임하면 아래 기본값을 사용합니다.
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export OPERATOR_MEMBER=user:admin@sonmap.net
 export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
@@ -30,7 +32,7 @@ export SBX_MANAGER="sbx-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
-# 2단계 완료 후 저장소 루트에서 실행합니다.
+# 02-network.md와 02-subnet-iam.md 완료 후 저장소 루트에서 실행합니다.
 # 기존 GKE는 Autopilot · Private Nodes/Endpoint · Subnet · Pod Range를 확인합니다.
 # Private Pool → GKE 사설 경로는 별도로 준비합니다.
 
@@ -99,11 +101,12 @@ gcloud secrets create jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}"
 # ── 16. secrets add-iam-policy-binding jupyter-oauth-client-secret · roles/secretmanager.secretAccessor ──
 gcloud secrets add-iam-policy-binding jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 17. builds worker-pools create pool-sbxtest01 ──
+# ── 17. VPC Admin: Private Pool 초기 구성 ──
+# 이 절만 VPC_ADMIN_ACCOUNT로 실행합니다. 이후 GKE·ALB 등은 tf-manager 위임입니다.
 # 기존 자원 확인
-gcloud builds worker-pools describe pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds worker-pools describe pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud builds worker-pools create pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --worker-machine-type=e2-standard-4 --worker-disk-size=100 --no-public-egress --peered-network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --peered-network-ip-range="${PSA_CIDR}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds worker-pools create pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --worker-machine-type=e2-standard-4 --worker-disk-size=100 --no-public-egress --peered-network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --peered-network-ip-range="${PSA_CIDR}" --account="${VPC_ADMIN_ACCOUNT}"
 
 # ── 18. container clusters create-auto gke-sbx-main-an3 ──
 # 기존 자원 확인
@@ -142,6 +145,11 @@ gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01
 
 # ── 26. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-bundles · roles/storage.objectViewer ──
 gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+
+# ── ALB 사전 확인: tf-manager로 VIP Subnet 조회 ──
+gcloud compute networks subnets describe "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 조회는 Network Viewer로도 성공할 수 있습니다. 실제 사용 권한은 02-subnet-iam.md의 바인딩을 확인합니다.
+# 조회 실패 또는 바인딩 미확인 상태에서는 VPC Admin에게 요청하고 ALB 생성을 중단합니다.
 
 # ── 27. Regional Internal ALB: 사설 VIP 예약 ──
 # 서브넷·프록시 전용 Subnet·방화벽 준비가 완료된 뒤 실행합니다.

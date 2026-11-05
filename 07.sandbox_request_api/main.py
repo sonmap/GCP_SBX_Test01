@@ -84,6 +84,8 @@ def validate_semantics(payload: dict) -> None:
 
     network = payload["network"]
     if network["required"]:
+        if network.get("create_subnet", True) or network["shared_vpc_join"]:
+            raise ValueError("Host network changes are managed by VPC Admin; use an existing subnet with create_subnet=false and shared_vpc_join=false")
         if network.get("subnet_name") != f"subnet-{task}-an3":
             raise ValueError("subnet_name must match the approved task name")
         try:

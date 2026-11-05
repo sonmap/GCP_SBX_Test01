@@ -15,6 +15,7 @@ cd GCP_SBX_Test01
 
 # 아래 계정·프로젝트는 현재 PoC 코드의 실제 대상입니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
 export SBX_PROJECT="pjt-net-hub-base"
@@ -68,24 +69,28 @@ gcloud services list --enabled --project="${SBX_GKE_PROJECT}" --account="${ADMIN
 
 ## 2. Shared VPC·서브넷·PSA·방화벽 준비
 
-실행 계정: tf-manager impersonation.
+실행 계정: 실제 VPC Admin. Host 네트워크·방화벽·PSA 관리 권한이 있는 계정으로 수행합니다.
 
 [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. 기존 Main GKE 대역과 Private Pool PSA만 기본 대상으로 유지합니다. Cloud Run 전용·과제별 서브넷은 생성하지 않습니다.
 
 ```bash
 export SBX_GKE_PROJECT="pjt-d-host01"
 # 생성 후 실제 연결과 대역을 조회합니다.
-gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
-gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network=vpc-d-shared-base --service=servicenetworking.googleapis.com --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
-gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
+gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
+gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format=json
+gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network=vpc-d-shared-base --service=servicenetworking.googleapis.com --account="${VPC_ADMIN_ACCOUNT}" --format=json
+gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format=json
 ```
 
 완료 기준: GKE/CI-CD 프로젝트의 Host가 pjt-d-shared-base이고, Primary·Secondary·Control Plane·PSA 대역에 중복이 없으며 설정한 Pod Range와 방화벽이 확인됩니다. **PSA 연결 성공만으로 Private Pool에서 GKE API 접속이 보장되지는 않습니다.**
 
+## 2-1. 서브넷별 사용 권한 부여
+
+VPC Admin이 [02-subnet-iam.md](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)를 수행합니다. Main GKE Subnet에는 tf-manager·GKE 서비스 에이전트·Google APIs 서비스 에이전트, ALB VIP Subnet에는 tf-manager의 Network User를 부여합니다. Pod Secondary와 프록시 전용 대역에는 별도 사용자 바인딩을 넣지 않습니다. 기존 광역 권한 정리는 새 바인딩·실제 동작 확인 후 별도 수행합니다.
+
 ## 3. 공통 실행 기반 구축
 
-실행 계정: tf-manager. [03-foundation.md](../02.sandbox_setup_01_gcloud/03-foundation.md)를 열어 다음 순서로 명령을 실행합니다.
+실행 계정: tf-manager. 단 Private Pool 초기 구성 절은 VPC_ADMIN_ACCOUNT로 수행합니다. 2-1단계 완료 후 [03-foundation.md](../02.sandbox_setup_01_gcloud/03-foundation.md)를 열어 다음 순서로 명령을 실행합니다.
 
 | 문서 안 순서 | 실제 작업 |
 |---|---|
