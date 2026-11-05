@@ -10,10 +10,10 @@ fi
 
 REQUEST_ID="$1"
 APPROVED_JSON_FILE="$2"
-CICD_PROJECT_ID="prj-b-cicd-local-236d"
+l2comn_PROJECT="prj-b-cicd-local-236d"
 REGION="asia-northeast3"
 WORKFLOW_NAME="workflow-sbxtest01-provision"
-REQUEST_BUCKET="${CICD_PROJECT_ID}-sbxtest01-requests"
+REQUEST_BUCKET="${l2comn_PROJECT}-sbxtest01-requests"
 REQUEST_URI="gs://${REQUEST_BUCKET}/approved/${REQUEST_ID}/request.json"
 
 if ! [[ "${REQUEST_ID}" =~ ^REQ-[0-9]{8}-[0-9]{3}$ ]]; then
@@ -43,7 +43,7 @@ if [ -z "${REQUEST_GENERATION}" ] || [ -z "${REQUEST_SHA256}" ]; then
 fi
 
 gcloud workflows run "${WORKFLOW_NAME}" \
-  --project="${CICD_PROJECT_ID}" \
+  --project="${l2comn_PROJECT}" \
   --location="${REGION}" \
   --data="$(jq -nc \
     --arg request_id "${REQUEST_ID}" \

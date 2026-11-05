@@ -14,7 +14,7 @@ from unittest import mock
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('provisioner',ROOT/'07.sandbox_request_api/main.py')
 p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
-ENV={'GCP_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
+ENV={'l2comn_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
      'BUNDLE_BUCKET':'prj-b-cicd-local-236d-sbxtest01-bundles',
      'REQUEST_BUCKET':'prj-b-cicd-local-236d-sbxtest01-requests',
      'WORKER_POOL':'projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01',
@@ -58,7 +58,7 @@ class ProvisioningTests(unittest.TestCase):
             self.assertEqual(client.return_value.create_build.call_args.kwargs['parent'], 'projects/prj-b-cicd-local-236d/locations/asia-northeast3')
             build=client.return_value.create_build.call_args.kwargs['build']
         spec=json.loads(p.cloudbuild_v1.Build.to_json(build))
-        self.assertEqual(spec['serviceAccount'],f"projects/{ENV['GCP_PROJECT']}/serviceAccounts/tf-manager@{ENV['GCP_PROJECT']}.iam.gserviceaccount.com")
+        self.assertEqual(spec['serviceAccount'],f"projects/{ENV['l2comn_PROJECT']}/serviceAccounts/tf-manager@{ENV['l2comn_PROJECT']}.iam.gserviceaccount.com")
         self.assertIn('group_upsert.py',spec['steps'][0]['args'][0])
         commands=spec['steps'][2]['args'][1]
         self.assertIn('deployments/sbxtest01-',commands)

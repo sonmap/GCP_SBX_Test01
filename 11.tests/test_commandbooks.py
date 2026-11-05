@@ -75,7 +75,7 @@ esac
     def test_static_configs_match_runtime_targets_and_reference_files_exist(self):
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
-        self.assertEqual(env['GCP_PROJECT'], 'prj-b-cicd-local-236d')
+        self.assertEqual(env['l2comn_PROJECT'], 'prj-b-cicd-local-236d')
         self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')
         build = yaml.safe_load((configs / 'bootstrap-build.yaml').read_text())
         self.assertEqual(build['options']['logging'], 'CLOUD_LOGGING_ONLY')

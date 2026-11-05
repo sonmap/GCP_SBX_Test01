@@ -8,12 +8,12 @@
 
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
 
-gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${CICD_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${l2comn_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 `check-private-gke.yaml`은 Private Pool에서 `get-credentials --internal-ip` 후 `kubectl get namespaces`만 실행합니다. 성공 기준은 Build SUCCESS와 Namespace 목록입니다. 사용자 환경을 설치하거나 네트워크를 변경하지 않습니다.

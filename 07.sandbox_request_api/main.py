@@ -115,8 +115,8 @@ def stage_variables(payload: dict) -> dict[str, dict]:
     gke = payload["gke"]
     task_name = task["name"]
     jupyter_ksa = f"ksa-jupyter-{task_name}"
-    jupyter_gsa = f"sbx-manager@{os.environ['GCP_PROJECT']}.iam.gserviceaccount.com"
-    cicd_project = os.environ["GCP_PROJECT"]
+    jupyter_gsa = f"sbx-manager@{os.environ['l2comn_PROJECT']}.iam.gserviceaccount.com"
+    cicd_project = os.environ["l2comn_PROJECT"]
 
     return {
         "10-project": {
@@ -236,7 +236,7 @@ def assemble_bundles(payload: dict, raw_request: bytes) -> tuple[str, dict]:
 
 
 def start_build(payload: dict, request_uri: str, bundle_prefix: str):
-    project = os.environ["GCP_PROJECT"]
+    project = os.environ["l2comn_PROJECT"]
     region = os.environ["GCP_REGION"]
     task = payload["task"]["name"]
     request_id = payload["request_id"]
@@ -278,7 +278,7 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
         f"sbxtest01-automation-runner:{release_id}"
     )
     common_env = [
-        f"CICD_PROJECT_ID={project}",
+        f"l2comn_PROJECT={project}",
         f"GCP_REGION={region}",
         f"GKE_ADMIN_SA=tf-manager@{project}.iam.gserviceaccount.com",
         f"LB_ADMIN_SA=tf-manager@{project}.iam.gserviceaccount.com",

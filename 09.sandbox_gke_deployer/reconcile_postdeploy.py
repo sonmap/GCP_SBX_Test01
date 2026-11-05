@@ -65,7 +65,7 @@ def verify_workload_identity(request, env):
     task = request["task"]["name"]
     namespace = request["gke"]["namespace"]
     ksa = f"ksa-jupyter-{task}"
-    expected_gsa = f"sbx-manager@{os.environ['CICD_PROJECT_ID']}.iam.gserviceaccount.com"
+    expected_gsa = f"sbx-manager@{os.environ['l2comn_PROJECT']}.iam.gserviceaccount.com"
     actual_gsa = run([
         "kubectl", "get", "serviceaccount", ksa,
         f"--namespace={namespace}",
@@ -371,7 +371,7 @@ def main():
     request = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     task = request["task"]["name"]
     gke = request["gke"]
-    cicd_project = os.environ["CICD_PROJECT_ID"]
+    cicd_project = os.environ["l2comn_PROJECT"]
     url_map_name = os.environ.get(
         "SHARED_URL_MAP_NAME", "urlmap-alb-sbxtest01-shared"
     )

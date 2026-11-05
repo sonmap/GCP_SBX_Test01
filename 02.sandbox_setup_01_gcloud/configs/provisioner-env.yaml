@@ -1,4 +1,4 @@
-GCP_PROJECT: prj-b-cicd-local-236d
+l2comn_PROJECT: prj-b-cicd-local-236d
 GCP_REGION: asia-northeast3
 REQUEST_BUCKET: prj-b-cicd-local-236d-sbxtest01-requests
 BUNDLE_BUCKET: prj-b-cicd-local-236d-sbxtest01-bundles

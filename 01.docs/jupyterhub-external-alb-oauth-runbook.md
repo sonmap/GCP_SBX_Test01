@@ -15,11 +15,11 @@ OAuth Client 등록·정책은 담당자가 설정합니다. Google Group용 Wor
 
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
-export GKE_PROJECT="pjt-d-host01"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
+export SBX_GKE_PROJECT="pjt-d-host01"
 export REGION="asia-northeast3"
-export TASK_NAME="sbx01"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export SBX_NAME="sbx01"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
 export CLOUDSDK_CORE_ACCOUNT="${ADMIN_ACCOUNT}"
 
 # 03-foundation에서 Secret 이름을 만든 후 실제 값을 입력합니다.
@@ -33,14 +33,14 @@ test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
 
 # 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
 if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
-  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
-  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
 fi
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 # 값 자체를 출력하지 않고 버전 상태만 확인합니다.
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
 ```
 
 성공 기준: 두 latest 버전 ENABLED. Runner는 JupyterHub 설치 전에 이 값을 읽습니다.
@@ -50,8 +50,8 @@ gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --p
 03-foundation의 인증서 조회 명령으로 `cert-jupyter-sbx01-self` 존재를 먼저 확인합니다. 인증서 담당자가 실제 도메인에 맞는 인증서를 별도 등록한 뒤 HTTPS Proxy/443 구성을 진행합니다. PEM/개인키는 저장소에 넣지 않습니다.
 
 ```bash
-gcloud compute ssl-certificates describe cert-jupyter-sbx01-self --project="${GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(address)'
+gcloud compute ssl-certificates describe cert-jupyter-sbx01-self --project="${SBX_GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(address)'
 ```
 
 DNS 담당자가 Jupyter 도메인의 A 레코드를 위 IP로 연결합니다. PoC hosts 파일을 사용해도 동일한 도메인과 인증서를 사용합니다. self-managed 인증서의 클라이언트 신뢰 등록은 해당 PoC 정책에 따라 처리합니다.
@@ -59,8 +59,8 @@ DNS 담당자가 Jupyter 도메인의 A 레코드를 위 IP로 연결합니다. 
 ## 3. 과제 배포 후 Backend 확인
 
 ```bash
-gcloud compute backend-services get-health "bes-jupyter-${TASK_NAME}" --project="${GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(hostRules,pathMatchers)'
+gcloud compute backend-services get-health "bes-jupyter-${SBX_NAME}" --project="${SBX_GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(hostRules,pathMatchers)'
 ```
 
 성공 기준: Backend HEALTHY, 요청 도메인이 해당 과제 Backend로 연결됩니다. 공통 ALB는 기반 단계가 준비하고, 과제 배포 후 Reconciler가 Health Check/Backend/NEG/Host 경로를 연결합니다. GKE Service는 ClusterIP이며 사용자 접속은 Classic External ALB 경로입니다.

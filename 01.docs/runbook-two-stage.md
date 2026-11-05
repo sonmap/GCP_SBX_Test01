@@ -13,19 +13,19 @@ cd GCP_SBX_Test01
 
 # 아래 계정·프로젝트는 현재 PoC 코드의 실제 대상입니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
-export HOST_PROJECT="pjt-d-shared-base"
-export GKE_PROJECT="pjt-d-host01"
-export TASK_PROJECT="pjt-net-hub-base"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
+export VPC_HOST_PROJECT="pjt-d-shared-base"
+export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_PROJECT="pjt-net-hub-base"
 export REGION="asia-northeast3"
 export MAIN_CLUSTER="gke-sbx-main-an3"
-export TASK_NAME="sbx01"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export SBX_MANAGER="sbx-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
-export REQUEST_BUCKET="${CICD_PROJECT}-sbxtest01-requests"
-export BUNDLE_BUCKET="${CICD_PROJECT}-sbxtest01-bundles"
-export BUILD_STAGING_BUCKET="${CICD_PROJECT}-sbxtest01-build-source"
+export SBX_NAME="sbx01"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export SBX_MANAGER="sbx-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export REQUEST_BUCKET="${l2comn_PROJECT}-sbxtest01-requests"
+export BUNDLE_BUCKET="${l2comn_PROJECT}-sbxtest01-bundles"
+export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 export RUN_SERVICE="run-sbxtest01-provisioner"
 export WORKFLOW_NAME="workflow-sbxtest01-provision"
 export JUPYTER_DOMAIN="jupyter-sbx01.sonmap.net"
@@ -42,8 +42,8 @@ jq --version
 curl --version
 python3 --version
 gcloud auth list
-gcloud projects describe "${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
-gcloud projects describe "${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
+gcloud projects describe "${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
+gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
 mkdir -p .local
 ```
 
@@ -57,11 +57,11 @@ mkdir -p .local
 
 ```bash
 # 관리자 문서를 적용한 뒤 두 계정을 조회합니다.
-gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
+gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,disabled)'
 
 # 토큰을 출력하지 않고 tf-manager 위임으로 API 조회가 되는지 확인합니다.
-gcloud services list --enabled --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=3
+gcloud services list --enabled --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=3
 ```
 
 완료 기준: 두 SA가 비활성 상태가 아니고 tf-manager를 사용한 조회가 성공합니다. 403·인증 실패를 미존재로 취급하지 않습니다.
@@ -74,11 +74,11 @@ gcloud services list --enabled --project="${CICD_PROJECT}" --account="${ADMIN_AC
 
 ```bash
 # 생성 후 실제 연결과 대역을 조회합니다.
-gcloud compute shared-vpc get-host-project "${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute shared-vpc get-host-project "${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute networks subnets list --project="${HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
-gcloud services vpc-peerings list --project="${HOST_PROJECT}" --network=vpc-d-shared-base --service=servicenetworking.googleapis.com --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
-gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
+gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute shared-vpc get-host-project "${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
+gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network=vpc-d-shared-base --service=servicenetworking.googleapis.com --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
+gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format=json
 ```
 
 완료 기준: GKE/CI-CD 프로젝트의 Host가 pjt-d-shared-base이고, Primary·Secondary·Control Plane·PSA 대역에 중복이 없으며 설정한 Pod Range와 방화벽이 확인됩니다. **PSA 연결 성공만으로 Private Pool에서 GKE API 접속이 보장되지는 않습니다.**
@@ -102,10 +102,10 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${HOST_PRO
 
 ```bash
 # 공통 기반 적용 후 확인합니다.
-gcloud builds worker-pools describe pool-sbxtest01 --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud container clusters describe "${MAIN_CLUSTER}" --project="${GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(status,autopilot,network,subnetwork,privateClusterConfig,ipAllocationPolicy)'
-gcloud workflows describe "${WORKFLOW_NAME}" --project="${CICD_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(state,serviceAccount,sourceContents)'
-export RUN_URL="$(gcloud run services describe "${RUN_SERVICE}" --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(status.url)')"
+gcloud builds worker-pools describe pool-sbxtest01 --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(status,autopilot,network,subnetwork,privateClusterConfig,ipAllocationPolicy)'
+gcloud workflows describe "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(state,serviceAccount,sourceContents)'
+export RUN_URL="$(gcloud run services describe "${RUN_SERVICE}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(status.url)')"
 
 # Run invoker인 sbx-manager로 인증합니다. 토큰을 파일에 저장하지 않습니다.
 curl --fail --silent --show-error -H "Authorization: Bearer $(gcloud auth print-identity-token --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${SBX_MANAGER}" --audiences="${RUN_URL}")" "${RUN_URL}/healthz"
@@ -130,14 +130,14 @@ test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
 
 # 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
 if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
-  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
-  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
 fi
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 # 비밀값을 출력하지 않고 등록 상태만 확인합니다.
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
 ```
 
 완료 기준: 두 latest 버전이 ENABLED이고 OAuth Callback URL이 실제 접속 도메인과 일치합니다.
@@ -146,7 +146,7 @@ gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --p
 
 ```bash
 # 이 값은 Workspace 관리자가 등록할 OAuth Client ID입니다. SA 이메일과 다릅니다.
-gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(oauth2ClientId)'
+gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(oauth2ClientId)'
 ```
 
 Workspace 관리자가 위 Client ID를 Domain-wide Delegation에 승인하고 다음 두 Scope를 허용합니다.
@@ -163,7 +163,7 @@ Workspace 관리자가 위 Client ID를 Domain-wide Delegation에 승인하고 �
 실행 계정: tf-manager Build. 3단계가 만든 bootstrap 이미지를 사용해 Namespace 목록만 조회합니다. 아래 YAML은 GKE 자원을 생성하지 않습니다.
 
 ```bash
-gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${CICD_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${l2comn_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준: Build가 SUCCESS이고 로그에 Namespace 목록이 나옵니다. 실패하면 [사설 접속 점검 문서](cloudbuild-private-gke-vpn-design.md)에서 인증 실패와 라우팅 실패를 구분합니다. **이 확인이 통과하기 전에는 과제 신청을 제출하지 않습니다.** 현재 기본은 internal IP이며, 이 저장소는 HA VPN/BGP 경로를 자동 구축하지 않습니다.
@@ -181,7 +181,7 @@ export RELEASE_ID="git-$(git rev-parse HEAD | cut -c1-12)"
 export COMMIT_SHA="$(git rev-parse HEAD)"
 export RELEASE_ID="git-$(git rev-parse HEAD | cut -c1-12)"
 if [ -z "$(git status --porcelain)" ]; then
-  gcloud builds submit . --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" --config=03.cloudbuild/platform-release.yaml --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT_SHA}"
+  gcloud builds submit . --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" --config=03.cloudbuild/platform-release.yaml --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT_SHA}"
 else
   echo "로컬 변경을 커밋하거나 정리한 뒤 다시 실행하세요."
 fi
@@ -198,16 +198,16 @@ jq '{release_id,git_commit,archive_uri,generation,sha256,runner_image,provisione
 실행 계정: tf-manager Build. 아래 두 gcloud 명령은 bootstrap Runner로 외부 Chart/이미지를 받아 내부 AR에 저장하는 Build를 각각 제출합니다.
 
 ```bash
-export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
+export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
 # 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
 # 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
 # 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
-gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
-gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform" --include-tags --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform" --include-tags --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준: 두 Build SUCCESS. JupyterHub Chart 4.2.0, Hub 4.2.0, CHP 4.6.3, SingleUser sample 4.2.0이 내부 AR에 게시됩니다. 이 미러링은 외부 다운로드가 가능한 완전관리형 Build를 사용합니다. Private Pool에 외부 IP를 추가하는 작업이 아닙니다.
@@ -215,20 +215,20 @@ gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar
 ## 8. 사용자 Notebook 표준 이미지 빌드
 
 ```bash
-export IMAGE_REPO="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
+export IMAGE_REPO="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
 export IMAGE_TAG="4.2.0-r1-test"
-export BASE_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
+export BASE_IMAGE="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
 
 # 버킷 location이 asia-northeast3인지 확인합니다. 다르면 중단합니다.
-gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
+gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
 
 # Build 실행 계정의 소스 읽기 권한을 준비합니다.
 gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # Notebook 이미지를 빌드합니다. 성공한 뒤 이미지 조회로 확인합니다.
-gcloud builds submit 04.Jupiter-setup-image --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
+gcloud builds submit 04.Jupiter-setup-image --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
 
-gcloud artifacts docker images describe "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts docker images describe "${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준: Build SUCCESS이고 이미지 describe가 성공합니다. 이 이미지는 이후 새 사용자 Notebook Pod에 설정됩니다. 기존 사용자 PVC는 삭제하지 않습니다.
@@ -275,7 +275,7 @@ export REQUEST_GENERATION="$(gcloud storage objects describe "${REQUEST_URI}" --
 gcloud storage cp "${REQUEST_URI}#${REQUEST_GENERATION}" .local/uploaded-request.json --account="${ADMIN_ACCOUNT}"
 export REQUEST_SHA256="$(sha256sum .local/uploaded-request.json | cut -d ' ' -f1)"
 jq -n --arg id "${REQUEST_ID}" --arg uri "${REQUEST_URI}" --arg gen "${REQUEST_GENERATION}" --arg sha "${REQUEST_SHA256}" '{request_id:$id,approved_json_uri:$uri,generation:($gen|tonumber),sha256:$sha}' > .local/workflow-input.json
-gcloud workflows run "${WORKFLOW_NAME}" --project="${CICD_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --data="$(cat .local/workflow-input.json)"
+gcloud workflows run "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --data="$(cat .local/workflow-input.json)"
 ```
 
 완료 기준: Workflow 응답에 ACCEPTED와 operation/bundle_prefix가 표시됩니다. **이는 요청 접수 성공입니다. 최종 배포 결과는 다음 단계에서 확인합니다.**
@@ -292,15 +292,15 @@ gcloud workflows run "${WORKFLOW_NAME}" --project="${CICD_PROJECT}" --location="
 
 ```bash
 # 실행 시각과 Workflow 응답을 대조해 이번 요청의 실행을 찾습니다.
-gcloud workflows executions list "${WORKFLOW_NAME}" --project="${CICD_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --limit=5
+gcloud workflows executions list "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --limit=5
 
-gcloud builds list --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=10 --sort-by='~createTime' --format='table(id,status,createTime)'
-gcloud infra-manager deployments list --project="${CICD_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --filter='name:sbxtest01-' --format='table(name,state,latestRevision)'
+gcloud builds list --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=10 --sort-by='~createTime' --format='table(id,status,createTime)'
+gcloud infra-manager deployments list --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --filter='name:sbxtest01-' --format='table(name,state,latestRevision)'
 
 # 위 목록에서 확인한 실제 Build ID를 입력한 뒤 아래 두 줄을 실행합니다.
 # export BUILD_ID="실제_BUILD_ID"
-# gcloud builds describe "${BUILD_ID}" --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(id,status,steps)'
-# gcloud builds log "${BUILD_ID}" --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# gcloud builds describe "${BUILD_ID}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(id,status,steps)'
+# gcloud builds log "${BUILD_ID}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준: 이번 요청의 부모/자식 Build SUCCESS, 해당 과제 IM Deployment가 ACTIVE입니다. 최신 Revision은 APPLIED 상태를 확인합니다. 여러 과제의 Build가 섞여 있으면 생성 시각·로그의 request_id/배포 이름을 대조합니다. 예제는 Network를 포함한 네 Deployment이며 network.required=false면 세 Deployment입니다.
@@ -311,12 +311,12 @@ gcloud infra-manager deployments list --project="${CICD_PROJECT}" --location="${
 
 ```bash
 export CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}"
-gcloud container clusters get-credentials "${MAIN_CLUSTER}" --project="${GKE_PROJECT}" --location="${REGION}" --internal-ip
-kubectl -n "${TASK_NAME}" get pods,svc,pvc
-kubectl -n "${TASK_NAME}" get serviceaccount "ksa-jupyter-${TASK_NAME}" -o yaml
-kubectl -n "${TASK_NAME}" get service proxy-public -o yaml
-gcloud compute backend-services get-health "bes-jupyter-${TASK_NAME}" --project="${GKE_PROJECT}" --global
-gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${GKE_PROJECT}" --global --format='value(address)'
+gcloud container clusters get-credentials "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --internal-ip
+kubectl -n "${SBX_NAME}" get pods,svc,pvc
+kubectl -n "${SBX_NAME}" get serviceaccount "ksa-jupyter-${SBX_NAME}" -o yaml
+kubectl -n "${SBX_NAME}" get service proxy-public -o yaml
+gcloud compute backend-services get-health "bes-jupyter-${SBX_NAME}" --project="${SBX_GKE_PROJECT}" --global
+gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format='value(address)'
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 ```
 

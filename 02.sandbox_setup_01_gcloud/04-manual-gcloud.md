@@ -17,11 +17,11 @@ OAuth 및 Workspace 승인 후 [Private GKE 접속 점검](../01.docs/runbook-tw
 ```bash
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
-export BUILD_STAGING_BUCKET="${CICD_PROJECT}-sbxtest01-build-source"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
 # 입력값은 화면에 표시하지 않습니다. set -x를 사용하지 않습니다.
@@ -34,8 +34,8 @@ test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
 
 # 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
 if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
-  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
-  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
 fi
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 ```
@@ -47,18 +47,18 @@ unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 ```bash
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
-export BUILD_STAGING_BUCKET="${CICD_PROJECT}-sbxtest01-build-source"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
 # 로컬 수정이 있으면 아래 Build 제출을 실행하지 않습니다.
 export COMMIT_SHA="$(git rev-parse HEAD)"
 export RELEASE_ID="git-$(git rev-parse HEAD | cut -c1-12)"
 if [ -z "$(git status --porcelain)" ]; then
-  gcloud builds submit . --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" --config=03.cloudbuild/platform-release.yaml --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT_SHA}"
+  gcloud builds submit . --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" --config=03.cloudbuild/platform-release.yaml --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT_SHA}"
 else
   echo "로컬 변경을 커밋하거나 정리한 뒤 다시 실행하세요."
 fi
@@ -71,21 +71,21 @@ Build SUCCESS 후 bundles 버킷의 platform-releases/${RELEASE_ID}/release.json
 ```bash
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
-export BUILD_STAGING_BUCKET="${CICD_PROJECT}-sbxtest01-build-source"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
-export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
+export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
 # 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
 # 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
 # 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
-gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 ```
 
 두 Build 모두 SUCCESS여야 합니다. 외부 다운로드가 가능한 관리형 Build에서 실행합니다.
@@ -95,31 +95,31 @@ gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}
 ```bash
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export CICD_PROJECT="prj-b-cicd-local-236d"
+export l2comn_PROJECT="prj-b-cicd-local-236d"
 export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${CICD_PROJECT}/serviceAccounts/${TF_MANAGER}"
-export BUILD_STAGING_BUCKET="${CICD_PROJECT}-sbxtest01-build-source"
+export TF_MANAGER="tf-manager@${l2comn_PROJECT}.iam.gserviceaccount.com"
+export TF_MANAGER_RESOURCE="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}"
+export BUILD_STAGING_BUCKET="${l2comn_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
-export IMAGE_REPO="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
+export IMAGE_REPO="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
 export IMAGE_TAG="4.2.0-r1-test"
-export BASE_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
+export BASE_IMAGE="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
 
 # 버킷 location이 asia-northeast3인지 확인합니다. 다르면 중단합니다.
-gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
+gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
 
 # Build 실행 계정의 소스 읽기 권한을 준비합니다.
 gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # Notebook 이미지를 빌드합니다. 성공한 뒤 이미지 조회로 확인합니다.
-gcloud builds submit 04.Jupiter-setup-image --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
+gcloud builds submit 04.Jupiter-setup-image --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
 ```
 
 Build SUCCESS 후 아래 이미지 조회가 성공해야 합니다.
 
 ```bash
-gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 ## 운영 자동화 경계

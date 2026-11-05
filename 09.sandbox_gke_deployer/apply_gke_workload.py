@@ -42,7 +42,7 @@ def main():
     task = request["task"]["name"]
     group = request["identity"]["group_email"]
     gke = request["gke"]
-    project = os.environ["CICD_PROJECT_ID"]
+    project = os.environ["l2comn_PROJECT"]
     region = os.environ["GCP_REGION"]
 
     # The shared ALB itself is Foundation-owned. This step owns only the
