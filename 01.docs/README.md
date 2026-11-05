@@ -1,8 +1,10 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
+
 ## tf-manager 소속 프로젝트
 
-Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 계정 소속은 SBX_GKE_PROJECT이고, Build·Infrastructure Manager·AR·GCS·Run·Workflow 실행 자원은 l2comn_PROJECT에 유지합니다. [계정 위치 변경과 사전 권한](tf-manager-project.md)을 확인하세요.
+Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](tf-manager-project.md)을 확인하세요.
 
 > **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 

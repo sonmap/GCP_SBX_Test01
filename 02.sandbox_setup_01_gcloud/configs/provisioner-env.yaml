@@ -1,11 +1,10 @@
 SBX_GKE_PROJECT: pjt-d-host01
-l2comn_PROJECT: prj-b-cicd-local-236d
 GCP_REGION: asia-northeast3
-REQUEST_BUCKET: prj-b-cicd-local-236d-sbxtest01-requests
-BUNDLE_BUCKET: prj-b-cicd-local-236d-sbxtest01-bundles
+REQUEST_BUCKET: pjt-d-host01-sbxtest01-requests
+BUNDLE_BUCKET: pjt-d-host01-sbxtest01-bundles
 GITHUB_REPOSITORY: sonmap/GCP_SBX_Test01
-WORKER_POOL: projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01
+WORKER_POOL: projects/pjt-d-host01/locations/asia-northeast3/workerPools/pool-sbxtest01
 CLOUD_IDENTITY_CUSTOMER_ID: __SET_CUSTOMER_ID__
-JUPYTER_CHART_URI: oci://asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/jupyterhub
+JUPYTER_CHART_URI: oci://asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/jupyterhub
 JUPYTER_CHART_VERSION: 4.2.0
 GKE_ENDPOINT_MODE: internal

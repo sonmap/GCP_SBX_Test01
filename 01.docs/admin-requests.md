@@ -16,7 +16,7 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 
 ## VPC Admin 요청 1 — Private Pool → GKE
 
-- 자동화 실행 프로젝트: l2comn_PROJECT = prj-b-cicd-local-236d
+- 자동화 실행 프로젝트: SBX_GKE_PROJECT = pjt-d-host01
 - Private Pool: pool-sbxtest01, 리전 asia-northeast3
 - VPC Host: VPC_HOST_PROJECT = pjt-d-shared-base
 - VPC: vpc-d-shared-base
@@ -27,7 +27,7 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 
 ## VPC Admin 요청 2 — 기존 BigQuery 데이터 조회
 
-- 조회 주체: sbx-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com
+- 조회 주체: sbx-manager@pjt-d-host01.iam.gserviceaccount.com
 - 데이터 프로젝트: pjt-c-admin. 실제 승인 Dataset·Table 범위를 데이터 담당자와 확정합니다.
 - 요청 권한: 승인 Dataset 범위의 roles/bigquery.dataViewer 등 필요한 최소 조회 권한. 특수한 뷰·정책 태그·행 수준 접근 제한은 데이터 관리자와 별도 확인합니다.
 - Query Job 프로젝트: SBX_PROJECT = pjt-net-hub-base. 데이터 조회 권한과 Query Job 실행 권한은 별개입니다.

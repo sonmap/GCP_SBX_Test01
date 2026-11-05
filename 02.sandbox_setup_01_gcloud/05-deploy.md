@@ -31,13 +31,12 @@ tf-manager 그룹 관리자 역할 준비·DNS·인증서와 기존 BQ 데이터
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export SBX_GKE_PROJECT="pjt-d-host01"
 export SBX_NAME="sbx01"
-export l2comn_PROJECT="prj-b-cicd-local-236d"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
 export SBX_PROJECT="pjt-net-hub-base"
 export REGION="asia-northeast3"
 export WORKFLOW_NAME="workflow-sbxtest01-provision"
 export REQUEST_ID="REQ-20261105-001"
-export REQUEST_URI="gs://${l2comn_PROJECT}-sbxtest01-requests/approved/${REQUEST_ID}/request.json"
+export REQUEST_URI="gs://${SBX_GKE_PROJECT}-sbxtest01-requests/approved/${REQUEST_ID}/request.json"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 mkdir -p .local
 
@@ -61,7 +60,7 @@ jq -n --arg id "${REQUEST_ID}" --arg uri "${REQUEST_URI}" --arg gen "${REQUEST_G
 ## 3. Deploy 시작 — gcloud 명령 하나
 
 ```bash
-gcloud workflows run "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --data="$(cat .local/deploy-input.json)"
+gcloud workflows run "${WORKFLOW_NAME}" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --data="$(cat .local/deploy-input.json)"
 ```
 
 이 명령은 기존 Workflow → Cloud Run → Cloud Build 배포 경로를 시작합니다. **ACCEPTED 또는 Workflow 성공은 배포 접수 결과**입니다. GKE 생성·공통 네트워크 재구축·이미지 빌드는 이 명령에서 반복하지 않습니다. 과제 요청에 따른 그룹·Project/IAM/Data·선택 Network 구성과 GKE 워크로드 배포는 수행됩니다.
@@ -73,13 +72,13 @@ export SBX_GKE_PROJECT="pjt-d-host01"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 
 # 이번 요청의 실행 시각과 결과를 확인합니다.
-gcloud workflows executions list "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --limit=5
-gcloud builds list --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=10 --sort-by='~createTime' --format='table(id,status,createTime)'
+gcloud workflows executions list "${WORKFLOW_NAME}" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --limit=5
+gcloud builds list --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --limit=10 --sort-by='~createTime' --format='table(id,status,createTime)'
 
 # 위 목록과 요청 로그로 이번 부모·자식 Build를 식별한 후 실제 ID를 입력합니다.
 # export BUILD_ID="실제_BUILD_ID"
-# gcloud builds describe "${BUILD_ID}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(id,status,steps)'
-# gcloud builds log "${BUILD_ID}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# gcloud builds describe "${BUILD_ID}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(id,status,steps)'
+# gcloud builds log "${BUILD_ID}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준은 부모·자식 Build SUCCESS와 [GKE·ALB·로그인·BQ 확인](../01.docs/runbook-two-stage.md#11-최종-배포와-사용자-동작-확인)입니다. 최신 Build 하나만 보고 다른 과제의 성공을 이번 요청의 성공으로 판단하지 않습니다.

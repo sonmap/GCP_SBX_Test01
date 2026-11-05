@@ -15,7 +15,6 @@ OAuth Client 등록·정책은 담당자가 설정합니다. Google Group 관리
 
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export l2comn_PROJECT="prj-b-cicd-local-236d"
 export SBX_GKE_PROJECT="pjt-d-host01"
 export REGION="asia-northeast3"
 export SBX_NAME="sbx01"
@@ -33,14 +32,14 @@ test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
 
 # 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
 if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
-  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
-  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
 fi
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 # 값 자체를 출력하지 않고 버전 상태만 확인합니다.
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
-gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
+gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
 ```
 
 성공 기준: 두 latest 버전 ENABLED. Runner는 JupyterHub 설치 전에 이 값을 읽습니다.

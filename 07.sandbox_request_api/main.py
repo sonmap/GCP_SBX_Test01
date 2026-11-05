@@ -129,13 +129,12 @@ def stage_variables(payload: dict) -> dict[str, dict]:
     gke = payload["gke"]
     task_name = task["name"]
     jupyter_ksa = f"ksa-jupyter-{task_name}"
-    jupyter_gsa = f"sbx-manager@{os.environ['l2comn_PROJECT']}.iam.gserviceaccount.com"
-    cicd_project = os.environ["l2comn_PROJECT"]
-    tf_project = os.environ["SBX_GKE_PROJECT"]
+    jupyter_gsa = f"sbx-manager@{os.environ['SBX_GKE_PROJECT']}.iam.gserviceaccount.com"
+    sandbox_project = os.environ["SBX_GKE_PROJECT"]
 
     return {
         "05-group": {
-            "identity_project_id": cicd_project,
+            "identity_project_id": sandbox_project,
             "customer_id": os.environ["CLOUD_IDENTITY_CUSTOMER_ID"],
             "group_email": payload["identity"]["group_email"],
             "display_name": task["display_name"],
@@ -146,8 +145,8 @@ def stage_variables(payload: dict) -> dict[str, dict]:
             "project_id": project["project_id"], "project_name": project["project_name"],
             "folder_id": project.get("folder_id"), "billing_account": project.get("billing_account"),
             "task_name": task_name, "expires_on": task["expires_on"], "region": network["region"],
-            "project_iam_service_account": f"tf-manager@{tf_project}.iam.gserviceaccount.com",
-            "data_admin_service_account": f"tf-manager@{tf_project}.iam.gserviceaccount.com",
+            "project_iam_service_account": f"tf-manager@{sandbox_project}.iam.gserviceaccount.com",
+            "data_admin_service_account": f"tf-manager@{sandbox_project}.iam.gserviceaccount.com",
         },
         "20-network": {
             "network_required": network["required"], "create_subnet": network.get("create_subnet", True),
@@ -168,7 +167,7 @@ def stage_variables(payload: dict) -> dict[str, dict]:
             "gke_project_id": gke["project_id"], "gke_namespace": gke["namespace"],
             "jupyter_ksa_name": jupyter_ksa,
             "jupyter_gsa_email": jupyter_gsa,
-            "identity_project_id": cicd_project,
+            "identity_project_id": sandbox_project,
         },
     }
 
@@ -279,15 +278,14 @@ def assemble_bundles(payload: dict, raw_request: bytes) -> tuple[str, dict]:
 
 
 def start_build(payload: dict, request_uri: str, bundle_prefix: str):
-    project = os.environ["l2comn_PROJECT"]
+    project = os.environ["SBX_GKE_PROJECT"]
     region = os.environ["GCP_REGION"]
     task = payload["task"]["name"]
     request_id = payload["request_id"]
     release_id = payload["source"]["release_id"]
     deployment_key = hashlib.sha256(payload["project"]["project_id"].encode()).hexdigest()[:8]
     worker_pool = os.environ["WORKER_POOL"]
-    tf_project = os.environ["SBX_GKE_PROJECT"]
-    service_account = f"projects/{tf_project}/serviceAccounts/tf-manager@{tf_project}.iam.gserviceaccount.com"
+    service_account = f"projects/{project}/serviceAccounts/tf-manager@{project}.iam.gserviceaccount.com"
 
     # Infrastructure Manager manages Google Cloud resources only. Kubernetes
     # objects are applied by a separate Cloud Build running in the private pool.
@@ -304,11 +302,11 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
 
     commands = ["set -euo pipefail"]
     for name, archive, account_id in stages:
-        account_email = f"{account_id}@{tf_project}.iam.gserviceaccount.com"
+        account_email = f"{account_id}@{project}.iam.gserviceaccount.com"
         commands.append(
             "gcloud infra-manager deployments apply "
             f"\"projects/{project}/locations/{region}/deployments/sbxtest01-{task}-{deployment_key}-{name}\" "
-            f"--service-account=\"projects/{tf_project}/serviceAccounts/{account_email}\" "
+            f"--service-account=\"projects/{project}/serviceAccounts/{account_email}\" "
             f"--gcs-source=\"{bundle_prefix}/{archive}\" "
             f"--worker-pool=\"{worker_pool}\" "
             "--provider-source=SERVICE_MAINTAINED "
@@ -326,10 +324,10 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
         f"sbxtest01-automation-runner:{release_id}"
     )
     common_env = [
-        f"l2comn_PROJECT={project}",
+        f"SBX_GKE_PROJECT={project}",
         f"GCP_REGION={region}",
-        f"GKE_ADMIN_SA=tf-manager@{tf_project}.iam.gserviceaccount.com",
-        f"LB_ADMIN_SA=tf-manager@{tf_project}.iam.gserviceaccount.com",
+        f"GKE_ADMIN_SA=tf-manager@{project}.iam.gserviceaccount.com",
+        f"LB_ADMIN_SA=tf-manager@{project}.iam.gserviceaccount.com",
         f"JUPYTER_CHART_URI={os.environ['JUPYTER_CHART_URI']}",
         f"JUPYTER_CHART_VERSION={os.environ['JUPYTER_CHART_VERSION']}",
         f"WORKER_POOL={worker_pool}",

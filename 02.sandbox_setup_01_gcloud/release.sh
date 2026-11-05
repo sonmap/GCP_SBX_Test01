@@ -3,7 +3,6 @@
 set -euo pipefail
 SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
 cd "$(dirname "$0")/.."
-l2comn_PROJECT=prj-b-cicd-local-236d
 REGION=asia-northeast3
 BUILD_SA="projects/${SBX_GKE_PROJECT}/serviceAccounts/tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 COMMIT="$(git rev-parse HEAD)"
@@ -12,15 +11,15 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo 'Commit local changes before publishing an immutable release.' >&2
   exit 2
 fi
-CMD=(gcloud builds submit . --project="$l2comn_PROJECT" --region="$REGION"
+CMD=(gcloud builds submit . --project="$SBX_GKE_PROJECT" --region="$REGION"
   --impersonate-service-account="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
   --service-account="$BUILD_SA"
-  --gcs-source-staging-dir="gs://${l2comn_PROJECT}-sbxtest01-build-source/source"
+  --gcs-source-staging-dir="gs://${SBX_GKE_PROJECT}-sbxtest01-build-source/source"
   --config=03.cloudbuild/platform-release.yaml
   --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT}")
 if [[ "${1:-}" == '--apply' ]]; then
   "${CMD[@]}"
-  echo "gs://${l2comn_PROJECT}-sbxtest01-bundles/platform-releases/${RELEASE_ID}/release.json"
+  echo "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles/platform-releases/${RELEASE_ID}/release.json"
 else
   printf '%q ' "${CMD[@]}"
   printf '\nAdd --apply to execute.\n'

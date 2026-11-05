@@ -66,11 +66,11 @@ esac
             self.assertEqual(len(creates), 2)
             self.assertTrue(any('create sbx-manager ' in c for c in creates))
             self.assertTrue(any('create tf-manager ' in c and '--project=pjt-d-host01' in c for c in creates))
-            self.assertTrue(any('create sbx-manager ' in c and '--project=prj-b-cicd-local-236d' in c for c in creates))
+            self.assertTrue(any('create sbx-manager ' in c and '--project=pjt-d-host01' in c for c in creates))
             account_calls=[c for c in calls if c.startswith('iam service-accounts ') and ' tf-manager@' in c]
             self.assertTrue(account_calls)
             self.assertTrue(all('--project=pjt-d-host01' in c for c in account_calls))
-            self.assertTrue(any('iam.disableCrossProjectServiceAccountUsage' in c and '--project=pjt-d-host01' in c for c in calls))
+            self.assertFalse(any('iam.disableCrossProjectServiceAccountUsage' in c for c in calls))
             self.assertIn('_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA', (ROOT / '02.sandbox_setup_01_gcloud/03-foundation.md').read_text())
             self.assertFalse(any('${' in c for c in calls))
             for call in calls:
@@ -80,7 +80,7 @@ esac
     def test_static_configs_match_runtime_targets_and_reference_files_exist(self):
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
-        self.assertEqual(env['l2comn_PROJECT'], 'prj-b-cicd-local-236d')
+        self.assertEqual(env['SBX_GKE_PROJECT'], 'pjt-d-host01')
         self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')
         self.assertEqual(env['SBX_GKE_PROJECT'], 'pjt-d-host01')
         build = yaml.safe_load((configs / 'bootstrap-build.yaml').read_text())
@@ -89,6 +89,22 @@ esac
         for name in BOOKS:
             for target in re.findall(r'--(?:config|env-vars-file)=([^\s"\']+)', '\n'.join(blocks(name))):
                 self.assertTrue((ROOT / target).is_file(), target)
+
+    def test_unified_platform_endpoints(self):
+        configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
+        env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
+        project = env['SBX_GKE_PROJECT']
+        self.assertEqual(project, 'pjt-d-host01')
+        self.assertEqual(env['REQUEST_BUCKET'], project + '-sbxtest01-requests')
+        self.assertEqual(env['BUNDLE_BUCKET'], project + '-sbxtest01-bundles')
+        self.assertEqual(env['WORKER_POOL'], f'projects/{project}/locations/asia-northeast3/workerPools/pool-sbxtest01')
+        self.assertTrue(env['JUPYTER_CHART_URI'].startswith(f'oci://asia-northeast3-docker.pkg.dev/{project}/'))
+        release = yaml.safe_load((ROOT / '03.cloudbuild/platform-release.yaml').read_text())
+        self.assertEqual(release['substitutions']['_SBX_GKE_PROJECT'], project)
+        self.assertEqual(release['substitutions']['_BUNDLE_BUCKET'], env['BUNDLE_BUCKET'])
+        sample = json.loads((ROOT / '05.sandbox_json/sbx01-approved-request.json').read_text())
+        self.assertEqual(sample['gke']['project_id'], project)
+        self.assertTrue(sample['source']['archive_uri'].startswith('gs://' + env['BUNDLE_BUCKET'] + '/'))
 
 
 if __name__ == '__main__':

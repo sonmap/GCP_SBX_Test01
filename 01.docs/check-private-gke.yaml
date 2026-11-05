@@ -1,7 +1,7 @@
 # Read-only connectivity check, executed by an explicitly specified tf-manager Build.
 # Run after bootstrap-build has published the :bootstrap runner image.
 steps:
-  - name: asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap
+  - name: asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap
     entrypoint: bash
     env:
       - KUBECONFIG=/workspace/kubeconfig
@@ -13,5 +13,5 @@ steps:
 options:
   logging: CLOUD_LOGGING_ONLY
   pool:
-    name: projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01
+    name: projects/pjt-d-host01/locations/asia-northeast3/workerPools/pool-sbxtest01
 timeout: 300s

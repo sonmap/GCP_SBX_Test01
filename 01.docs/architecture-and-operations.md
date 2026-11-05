@@ -21,7 +21,7 @@
 
 | 프로젝트 | 코드에서 쓰는 역할 |
 |---|---|
-| prj-b-cicd-local-236d | SA·AR·Cloud Build·Private Pool·Run·Workflow·승인/Bundle/Source 버킷 |
+| pjt-d-host01 | SA·AR·Cloud Build·Private Pool·Run·Workflow·승인/Bundle/Source 버킷 |
 | pjt-d-shared-base | Shared VPC·서브넷·PSA·방화벽 |
 | pjt-d-host01 | 기존/신규 Main Autopilot GKE·공통 ALB |
 | pjt-net-hub-base | 예제의 기존 과제 프로젝트·Dataset·GCS·Query Job |
@@ -46,7 +46,7 @@
 | 시점 | 현재 리소스/이름 |
 |---|---|
 | 최초 기반 | ar-sbxtest01-platform, pool-sbxtest01, run-sbxtest01-provisioner, workflow-sbxtest01-provision |
-| 최초 기반 GCS | <l2comn_PROJECT>-sbxtest01-requests / -sbxtest01-bundles / -sbxtest01-build-source |
+| 최초 기반 GCS | <SBX_GKE_PROJECT>-sbxtest01-requests / -sbxtest01-bundles / -sbxtest01-build-source |
 | 최초 Build | sbxtest01-automation-runner:bootstrap, run-sbxtest01-provisioner:bootstrap |
 | 플랫폼 릴리스 | git-<커밋12자리>의 Runner/API 이미지·platform-releases/<release>/sandbox-source.zip·release.json |
 | 요청 접수 | requests/<request_id>/<release_id>/ 단계별 ZIP·manifest·dispatch 기록 |

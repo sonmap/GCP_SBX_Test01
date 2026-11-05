@@ -3,12 +3,12 @@
 # secret values to Git, Terraform variables, plan files, or Terraform state.
 set -euo pipefail
 
-l2comn_PROJECT="${l2comn_PROJECT:-prj-b-cicd-local-236d}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
 CLIENT_ID_SECRET="jupyter-oauth-client-id"
 CLIENT_SECRET_SECRET="jupyter-oauth-client-secret"
 
 for secret_name in "${CLIENT_ID_SECRET}" "${CLIENT_SECRET_SECRET}"; do
-  if ! gcloud secrets describe "${secret_name}"     --project="${l2comn_PROJECT}" >/dev/null 2>&1; then
+  if ! gcloud secrets describe "${secret_name}"     --project="${SBX_GKE_PROJECT}" >/dev/null 2>&1; then
     echo "Secret metadata is missing: ${secret_name}" >&2
     echo "Create Secret metadata using 02.sandbox_setup_01_gcloud/03-foundation.md first." >&2
     exit 1
@@ -25,15 +25,15 @@ if [ -z "${OAUTH_CLIENT_ID}" ] || [ -z "${OAUTH_CLIENT_SECRET}" ]; then
 fi
 
 printf '%s' "${OAUTH_CLIENT_ID}" |
-  gcloud secrets versions add "${CLIENT_ID_SECRET}"     --project="${l2comn_PROJECT}"     --data-file=-
+  gcloud secrets versions add "${CLIENT_ID_SECRET}"     --project="${SBX_GKE_PROJECT}"     --data-file=-
 
 printf '%s' "${OAUTH_CLIENT_SECRET}" |
-  gcloud secrets versions add "${CLIENT_SECRET_SECRET}"     --project="${l2comn_PROJECT}"     --data-file=-
+  gcloud secrets versions add "${CLIENT_SECRET_SECRET}"     --project="${SBX_GKE_PROJECT}"     --data-file=-
 
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 for secret_name in "${CLIENT_ID_SECRET}" "${CLIENT_SECRET_SECRET}"; do
-  latest_state="$(gcloud secrets versions describe latest     --secret="${secret_name}"     --project="${l2comn_PROJECT}"     --format='value(state)')"
+  latest_state="$(gcloud secrets versions describe latest     --secret="${secret_name}"     --project="${SBX_GKE_PROJECT}"     --format='value(state)')"
   if [ "${latest_state}" != "ENABLED" ]; then
     echo "Latest version is not ENABLED for ${secret_name}: ${latest_state}" >&2
     exit 1

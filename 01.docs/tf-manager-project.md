@@ -1,43 +1,42 @@
-# tf-manager 소속 — pjt-d-host01
+# 통합 프로젝트 — pjt-d-host01
 
-| 구분 | 프로젝트 / 계정 |
+GKE와 자동화 자원을 **SBX_GKE_PROJECT=pjt-d-host01**에 함께 구성합니다. 별도의 CI/CD 프로젝트 변수는 제거했습니다.
+
+| 자원 | 대상 |
 |---|---|
-| tf-manager 소속 | SBX_GKE_PROJECT = pjt-d-host01 |
-| Terraform·부모/자식 Build 실행 계정 | tf-manager@pjt-d-host01.iam.gserviceaccount.com |
-| 계정 리소스 경로 | projects/pjt-d-host01/serviceAccounts/tf-manager@pjt-d-host01.iam.gserviceaccount.com |
-| Build·IM·Run·Workflow·AR·GCS 실행 자원 | l2comn_PROJECT = prj-b-cicd-local-236d |
-| sbx-manager 소속 | prj-b-cicd-local-236d — 이번 변경 대상 아님 |
+| GKE·Cloud Run·Cloud Build·Private Pool | pjt-d-host01 |
+| Workflows·Infrastructure Manager·Secret Manager | pjt-d-host01 |
+| Artifact Registry | asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform |
+| 요청·번들·빌드 소스 GCS | pjt-d-host01-sbxtest01-requests / -bundles / -build-source |
+| Terraform·Build 실행 계정 | tf-manager@pjt-d-host01.iam.gserviceaccount.com |
+| API·Workflow·Notebook 계정 | sbx-manager@pjt-d-host01.iam.gserviceaccount.com |
+| Shared VPC Host | VPC_HOST_PROJECT=pjt-d-shared-base |
+| 과제 자원·Query Job | SBX_PROJECT=pjt-net-hub-base |
+| 기존 데이터레이크 | pjt-c-admin — 기존 별도 데이터 프로젝트 |
 
-## 관리자가 수행할 순서
+## 작업 순서
 
-[01-admin.md](../02.sandbox_setup_01_gcloud/01-admin.md)의 개별 명령을 기준으로 다음 작업을 수행합니다.
+1. [공통 변수](../02.sandbox_setup_01_gcloud/00-variables.md)에서 SBX_GKE_PROJECT=pjt-d-host01을 설정합니다.
+2. [01-admin](../02.sandbox_setup_01_gcloud/01-admin.md)의 개별 gcloud 명령으로 API와 두 서비스 계정·권한을 준비합니다. 자동화와 서비스 계정 소속이 같으므로 프로젝트 간 SA 사용을 위한 조직 정책 예외 명령은 제거했습니다.
+3. [02-network](../02.sandbox_setup_01_gcloud/02-network.md)에서 pjt-d-host01의 Shared VPC 연결·Subnet·PSA·방화벽을 준비합니다. GKE와 자동화가 같은 프로젝트이므로 같은 연결·권한은 중복 실행하지 않습니다.
+4. [03-foundation](../02.sandbox_setup_01_gcloud/03-foundation.md)에서 버킷·AR·Private Pool·Run·Workflow 등 공통 기반을 준비합니다. 기존 GKE는 조회해 설정이 맞으면 생성을 건너뜁니다.
+5. 실제 Customer ID를 provisioner-env.yaml에 설정합니다. tf-manager의 Cloud Identity 그룹 관리자 역할을 확인하고, 새 Secret Manager에 Jupyter OAuth 값을 등록합니다. 인증서·DNS는 별도 진행합니다.
+6. [04-manual-gcloud](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md)의 명령으로 플랫폼 릴리스·기본 이미지 미러링·Notebook 이미지 빌드를 수행합니다. [Private Pool 접속 점검](cloudbuild-private-gke-vpn-design.md)을 통과해야 합니다.
+7. 포털 JSON에 새 버킷·이미지와 새 release.json의 소스 주소·generation·SHA256을 반영한 뒤 [Deploy](../02.sandbox_setup_01_gcloud/05-deploy.md)를 수행합니다.
 
-1. pjt-d-host01에서 IAM·IAM Credentials 등 필요한 API를 활성화합니다.
-2. 조직 정책 관리자는 pjt-d-host01의 iam.disableCrossProjectServiceAccountUsage 유효 정책을 확인하고, 프로젝트 간 사용을 허용합니다. 403은 미설정으로 처리하지 않습니다.
-3. pjt-d-host01에 tf-manager를 생성하거나 기존 계정을 확인합니다.
-4. 새 계정에 자동화 실행 프로젝트·VPC Host·GKE·과제 프로젝트·Folder/Billing 범위의 기존 배포 권한을 부여합니다.
-5. 운영자와 기존 sbx-manager에는 새 tf-manager의 사용 권한을, 자동화 프로젝트의 Infrastructure Manager 서비스 에이전트에는 새 계정의 Service Account User를 부여합니다. Cloud Build 서비스 에이전트에는 새 계정의 Token Creator를 부여합니다. 해당 명령은 계정 리소스 범위로 작성했습니다.
-6. Cloud Identity 그룹 관리자 역할도 새 tf-manager의 **Unique ID**를 대상으로 확인·부여합니다. Customer ID와 Jupyter OAuth는 별개 설정입니다.
-7. 변경된 provisioner-env.yaml로 플랫폼 릴리스를 게시합니다. GCS·이미지·Private Pool 위치를 이동하지 않습니다. 새 요청은 새 release.json을 사용합니다.
-8. Private Pool 접속 점검과 과제 Deploy를 수행하고 Build·IM·GKE 결과를 확인합니다.
+## 기존 운영 자원이 있는 경우
 
-서비스 계정은 소속 프로젝트를 직접 이동할 수 없으므로 pjt-d-host01의 계정을 생성·사용하도록 소스를 변경한 것입니다. 기존 계정의 IAM/Workspace 권한은 새 계정으로 자동 이전되지 않습니다. 저장소 수정 과정에서 실제 계정을 생성하거나 기존 계정을 삭제하지 않았습니다. 기존 배포가 사용하는 이전 계정은 의존성을 확인하기 전에 삭제하지 않습니다.
+이 변경은 새 통합 프로젝트를 사용하는 소스·명령 변경입니다. 기존 프로젝트의 자원·데이터·Secret 값·이미지·Infrastructure Manager state는 자동 이동하지 않습니다. 실제 GCP 자원을 생성·이전·삭제한 것은 아닙니다.
 
-## 직접 확인
+기존 배포를 새 IM Deployment로 이어받을 경우 기존 state의 관리 대상과 새 배포의 소유권을 먼저 확인합니다. 같은 그룹·Dataset·Bucket 등을 두 state가 동시에 관리하지 않게 기존 실행을 중지하고 이전 절차를 정해야 합니다. [그룹·멤버 import](cloud-identity-group-terraform.md)와 data.adopt_existing_resources는 편입 수단이며 전체 state 이전을 대신하지 않습니다. 사용자 PVC나 기존 데이터를 삭제해서 충돌을 해결하지 않습니다.
+
+VPC Admin은 새 Private Pool 경로와 **sbx-manager@pjt-d-host01.iam.gserviceaccount.com**의 기존 BQ Dataset 조회 권한을 확인해야 합니다. 이전 서비스 계정에 준 권한이 새 계정으로 자동 이전되지는 않습니다. 기존 프로젝트의 폐기·삭제는 이 작업에 포함하지 않습니다.
 
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export SBX_GKE_PROJECT="pjt-d-host01"
-export l2comn_PROJECT="prj-b-cicd-local-236d"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
-
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(email,uniqueId,disabled)'
-gcloud iam service-accounts get-iam-policy "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud resource-manager org-policies describe iam.disableCrossProjectServiceAccountUsage --effective --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+export SBX_MANAGER="sbx-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 ```
-
-## 공식 참고
-
-- [Cloud Build 프로젝트 간 서비스 계정 사용](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts#cross-project_setup)
-- [Infrastructure Manager 프로젝트 간 권한](https://docs.cloud.google.com/infrastructure-manager/docs/configure-service-account#grant_access_across_multiple_projects)

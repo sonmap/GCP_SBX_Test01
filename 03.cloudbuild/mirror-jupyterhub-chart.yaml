@@ -15,7 +15,7 @@ substitutions:
   _REGION: asia-northeast3
   _REPOSITORY: ar-sbxtest01-platform
   _CHART_VERSION: "4.2.0"
-  _AUTOMATION_IMAGE: asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/sbxtest01-automation-runner:latest
+  _AUTOMATION_IMAGE: asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/sbxtest01-automation-runner:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY

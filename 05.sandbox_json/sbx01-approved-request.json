@@ -49,7 +49,7 @@
   },
   "source": {
     "release_id": "replace-after-release",
-    "archive_uri": "gs://prj-b-cicd-local-236d-sbxtest01-bundles/platform-releases/replace-after-release/sandbox-source.zip",
+    "archive_uri": "gs://pjt-d-host01-sbxtest01-bundles/platform-releases/replace-after-release/sandbox-source.zip",
     "generation": 1,
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }

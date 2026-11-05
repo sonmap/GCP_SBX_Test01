@@ -1,8 +1,10 @@
 # GCP_SBX_Test01
 
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](01.docs/tf-manager-project.md)
+
 ## tf-manager 소속 프로젝트
 
-Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 계정 소속은 SBX_GKE_PROJECT이고, Build·Infrastructure Manager·AR·GCS·Run·Workflow 실행 자원은 l2comn_PROJECT에 유지합니다. [계정 위치 변경과 사전 권한](01.docs/tf-manager-project.md)을 확인하세요.
+Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](01.docs/tf-manager-project.md)을 확인하세요.
 
 > **현재 작업 기준:** 공통 인프라는 작업자가 개별 gcloud 명령으로 구축합니다. 과제는 포털이 GCS에 저장한 승인 JSON을 대상으로 작업자가 [Deploy 명령](02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다. GCS 이벤트 자동 시작·포털 결과 자동 전달은 추후 적용하며 현재 필수 구축 단계가 아닙니다. 기존 Deploy 내부의 API·Build·Terraform·GKE 처리 코드는 사용합니다.
 
@@ -10,17 +12,16 @@ Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.
 
 ## 프로젝트 기준과 변수명
 
-이 작업의 주 대상은 **SBX_GKE_PROJECT=pjt-d-host01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 l2comn_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
+이 작업의 주 대상은 **SBX_GKE_PROJECT=pjt-d-host01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 SBX_GKE_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
 
 ```bash
 export SBX_GKE_PROJECT="pjt-d-host01"          # 주 대상: Sandbox GKE
 export SBX_NAME="sbx01"                      # 과제·Namespace 이름
-export l2comn_PROJECT="prj-b-cicd-local-236d"  # 자동화 실행·이미지 저장
 export VPC_HOST_PROJECT="pjt-d-shared-base"   # Shared VPC
 export SBX_PROJECT="pjt-net-hub-base"         # 과제 자원·Query Job
 ```
 
-변수명은 대소문자를 구분합니다. l2comn_PROJECT의 소문자를 그대로 사용합니다. Cloud Run API와 Build 배포 코드 사이의 실행 환경변수도 l2comn_PROJECT로 통일했습니다. Cloud Build 사용자 치환 변수는 형식 제약에 맞춰 _L2COMN_PROJECT를 사용합니다. Cloud Run 설정과 API·배포 도구 이미지는 함께 갱신해야 합니다. JSON의 project.project_id·gke.project_id와 Terraform 입력 필드명은 포털 요청 규격이므로 유지합니다.
+변수명은 대소문자를 구분합니다. SBX_GKE_PROJECT를 모든 자동화·GKE 자원의 공통 프로젝트 변수로 사용합니다. Cloud Run API와 Build 배포 코드 사이의 실행 환경변수도 SBX_GKE_PROJECT로 통일했습니다. Cloud Build 사용자 치환 변수는 형식 제약에 맞춰 _SBX_GKE_PROJECT를 사용합니다. Cloud Run 설정과 API·배포 도구 이미지는 함께 갱신해야 합니다. JSON의 project.project_id·gke.project_id와 Terraform 입력 필드명은 포털 요청 규격이므로 유지합니다.
 
 승인 JSON으로 GKE Jupyter Sandbox를 만드는 테스트 저장소입니다. **최초 구축 1~3단계는 Terraform 대신 gcloud**, 사용자 관리 서비스 계정은 **두 개**를 사용합니다.
 

@@ -7,9 +7,8 @@
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT=admin@sonmap.net
-export l2comn_PROJECT="prj-b-cicd-local-236d"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
 export SBX_GKE_PROJECT="pjt-d-host01"
+export VPC_HOST_PROJECT="pjt-d-shared-base"
 export REGION=asia-northeast3
 export NETWORK=vpc-d-shared-base
 export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
@@ -59,13 +58,11 @@ gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --format=json --
 # 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
 gcloud compute shared-vpc associated-projects add "${SBX_GKE_PROJECT}" --host-project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 6. compute shared-vpc get-host-project prj-b-cicd-local-236d ──
+# ── 6. compute shared-vpc get-host-project pjt-d-host01 ──
 # 기존 자원 확인
-gcloud compute shared-vpc get-host-project "${l2comn_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 7. compute shared-vpc associated-projects add prj-b-cicd-local-236d ──
+# ── 7. compute shared-vpc associated-projects add pjt-d-host01 ──
 # 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
-gcloud compute shared-vpc associated-projects add "${l2comn_PROJECT}" --host-project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 8. compute networks subnets create subnet-dev-sbx-gke-01-an3-main ──
 # 기존 자원 확인

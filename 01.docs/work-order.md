@@ -1,5 +1,7 @@
 # 작업 순서와 실행 링크
 
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
+
 > **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 
 주 대상은 **SBX_GKE_PROJECT="pjt-d-host01"**입니다. 아래 Mermaid 번호와 표의 번호를 맞춰 작업합니다. **표의 실행 문서 링크를 눌러 명령을 확인하고, 관리 VM의 저장소 루트 GCP_SBX_Test01에서 한 단계씩 실행합니다.** 폴더 링크는 소스 확인용이며 링크 클릭만으로 GCP 작업이 실행되지는 않습니다. 하위 폴더로 이동해서 명령을 실행하면 상대경로가 달라질 수 있습니다.

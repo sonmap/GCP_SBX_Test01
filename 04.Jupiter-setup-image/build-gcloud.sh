@@ -4,17 +4,16 @@ SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-l2comn_PROJECT="${l2comn_PROJECT:-prj-b-cicd-local-236d}"
 REGION="${REGION:-asia-northeast3}"
 REPOSITORY="${REPOSITORY:-ar-sbxtest01-platform}"
 IMAGE_NAME="${IMAGE_NAME:-jupyterhub-k8s-singleuser-standard}"
 IMAGE_TAG="${IMAGE_TAG:-4.2.0-r1-test}"
-BASE_IMAGE="${BASE_IMAGE:-${REGION}-docker.pkg.dev/${l2comn_PROJECT}/${REPOSITORY}/jupyterhub-k8s-singleuser-sample:4.2.0}"
-IMAGE_REPO="${REGION}-docker.pkg.dev/${l2comn_PROJECT}/${REPOSITORY}/${IMAGE_NAME}"
+BASE_IMAGE="${BASE_IMAGE:-${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/${REPOSITORY}/jupyterhub-k8s-singleuser-sample:4.2.0}"
+IMAGE_REPO="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/${REPOSITORY}/${IMAGE_NAME}"
 
 # Existing regional staging bucket reused by the validated manual build.
 # Override STAGING_BUCKET if a dedicated Jupyter build bucket is created later.
-STAGING_BUCKET="${STAGING_BUCKET:-prj-b-cicd-local-236d-sbxtest01-build-source}"
+STAGING_BUCKET="${STAGING_BUCKET:-pjt-d-host01-sbxtest01-build-source}"
 BUILD_SA="${BUILD_SA:-tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com}"
 
 BUCKET_LOCATION="$(gcloud storage buckets describe "gs://${STAGING_BUCKET}" --format='value(location)')"
@@ -33,7 +32,7 @@ gcloud storage buckets add-iam-policy-binding \
 
 echo "[2/4] Submit regional Cloud Build"
 gcloud builds submit "${SCRIPT_DIR}" \
-  --project="${l2comn_PROJECT}" \
+  --project="${SBX_GKE_PROJECT}" \
   --region="${REGION}" \
   --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${BUILD_SA}" \
   --gcs-source-staging-dir="gs://${STAGING_BUCKET}/jupyter-source" \
@@ -43,7 +42,7 @@ gcloud builds submit "${SCRIPT_DIR}" \
 echo "[3/4] Verify image"
 gcloud artifacts docker images describe \
   "${IMAGE_REPO}:${IMAGE_TAG}" \
-  --project="${l2comn_PROJECT}"
+  --project="${SBX_GKE_PROJECT}"
 
 echo "[4/4] Done"
 echo "IMAGE=${IMAGE_REPO}:${IMAGE_TAG}"

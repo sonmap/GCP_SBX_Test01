@@ -21,7 +21,7 @@ substitutions:
   _HUB_TAG: "4.2.0"
   _CHP_TAG: "4.6.3"
   _SINGLEUSER_TAG: "4.2.0"
-  _AUTOMATION_IMAGE: asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/sbxtest01-automation-runner:latest
+  _AUTOMATION_IMAGE: asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/sbxtest01-automation-runner:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY
