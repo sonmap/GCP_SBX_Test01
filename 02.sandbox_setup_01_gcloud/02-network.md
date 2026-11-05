@@ -60,7 +60,7 @@ gcloud compute networks subnets create "${MAIN_SUBNET}" --project="${VPC_HOST_PR
 # ── 7. compute networks subnets update subnet-dev-sbx-gke-01-an3-main ──
 gcloud compute networks subnets update "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# IP 최소화: Cloud Run·테스트 GKE·과제 전용 Subnet을 생성하지 않습니다.
+# IP 최소화: Cloud Run·과제 전용 Subnet을 생성하지 않습니다.
 # 과제 Namespace는 기존 Main GKE Pod 대역을 공유합니다.
 
 # ── 8. compute addresses create prip-dev-cicd-cbp-01-an3-psa ──

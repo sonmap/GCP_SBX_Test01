@@ -108,7 +108,7 @@ esac
 
     def test_minimal_ip_setup_keeps_private_deployment_without_run_subnet(self):
         network='\n'.join(blocks('02-network.md'))
-        for marker in ['RUN_SUBNET','TEST_SUBNET','TASK_SUBNET']:
+        for marker in ['RUN_SUBNET','TASK_SUBNET']:
             self.assertNotIn(marker,network)
         self.assertIn('services vpc-peerings connect',network)
         foundation='\n'.join(blocks('03-foundation.md'))

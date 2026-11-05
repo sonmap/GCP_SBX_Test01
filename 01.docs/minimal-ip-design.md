@@ -8,7 +8,6 @@
 | Workflows·AR·GCS·Secret Manager | 전용 Subnet 없이 관리형 API 사용 | 전용 Subnet 0 |
 | 과제 프로젝트 | 기존 프로젝트 사용, network.required=false | 과제별 Subnet 0 |
 | 과제 JupyterHub·Notebook | 중앙 GKE Namespace와 기존 Pod 대역 사용 | 과제별 Pod CIDR 별도 예약 0, 실제 Pod IP는 소비 |
-| 테스트 GKE | 별도 클러스터·Node·Pod·제어 영역 생성 제외 | 테스트 대역 0 |
 | Main GKE | Node 10.252.0.0/24·Pod 10.240.0.0/20·제어 영역 10.253.0.0/28 유지·재사용 | 기존 사용이면 새 대역 추가 없음 |
 | Private Pool | 기존 호환 PSA 할당에 여유가 있으면 재사용, 없으면 현재 10.250.0.0/24 설계 검증 | 신규 PSA는 최소 /24 단위 |
 
@@ -26,7 +25,7 @@
 2. [03-foundation](../02.sandbox_setup_01_gcloud/03-foundation.md)의 Cloud Run deploy와 플랫폼 릴리스 update에는 --clear-network가 포함되어 있습니다. 새 서비스는 Direct VPC 없이 구성되고, 기존 서비스는 다음 적용 시 VPC 연결을 해제합니다.
 3. [승인 요청 샘플](../05.sandbox_json/sbx01-approved-request.json)은 기존 SBX 프로젝트를 사용하고 과제 Network 단계를 생략합니다. 포털 요청에도 동일한 기준을 반영합니다. 별도 승인 시에만 선택적 20-network 모듈을 사용할 수 있습니다.
 4. API의 요청 검증·GCS 다운로드·Build 시작이 성공하는지 확인한 후 Private Pool·GKE Deploy 및 사용자 접속을 확인합니다.
-5. 이미 만들어진 Cloud Run Subnet·테스트 클러스터·과제 Subnet이 있다면 실제 사용과 이전 Revision 등 의존성을 조회합니다. 다른 사용자가 없다는 확인 후 VPC Admin이 별도 IP 회수 여부를 결정합니다. 이 변경에는 실제 자원 삭제 명령이 없습니다.
+5. 이미 만들어진 Cloud Run Subnet·과제 Subnet이 있다면 실제 사용과 이전 Revision 등 의존성을 조회합니다. 다른 사용자가 없다는 확인 후 VPC Admin이 별도 IP 회수 여부를 결정합니다. 이 변경에는 실제 자원 삭제 명령이 없습니다.
 
 현재 API가 사설 내부 서비스에 직접 접속하지 않는다는 기준입니다. Google API 접근을 반드시 특정 VPC 경로로 제한하는 기존 조직 정책이 있다면 해당 정책과 연결 해제의 적합성을 적용 전에 확인합니다.
 

@@ -70,7 +70,7 @@ gcloud services list --enabled --project="${SBX_GKE_PROJECT}" --account="${ADMIN
 
 실행 계정: tf-manager impersonation.
 
-[02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. 기존 Main GKE 대역과 Private Pool PSA만 기본 대상으로 유지합니다. Cloud Run 전용·과제별·테스트 GKE 서브넷은 생성하지 않습니다.
+[02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. 기존 Main GKE 대역과 Private Pool PSA만 기본 대상으로 유지합니다. Cloud Run 전용·과제별 서브넷은 생성하지 않습니다.
 
 ```bash
 export SBX_GKE_PROJECT="pjt-d-host01"
@@ -92,11 +92,11 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST
 | 1~9 | 승인 요청·배포 ZIP·Build Source 버킷과 접근 권한 |
 | 10~12 | 내부 Artifact Registry와 GKE 노드 읽기 권한 |
 | 13~16 | Jupyter OAuth Secret 메타데이터와 읽기 권한 |
-| 17~19 | Private Pool·Main GKE, 테스트 GKE는 제외 |
-| 20 | bootstrap 이미지 두 개 빌드: 요청 API·GKE 배포 도구 |
-| 21~27 | Cloud Run 배포·실제 URL 치환·Workflow 배포·호출 권한 |
-| 28~35 | 공통 Classic External ALB와 기존 SSL 인증서 연결 |
-| 36 | 선택: GitHub 자동 릴리스 Trigger |
+| 17~18 | Private Pool·Main GKE |
+| 19 | bootstrap 이미지 두 개 빌드: 요청 API·GKE 배포 도구 |
+| 20~26 | Cloud Run 배포·실제 URL 치환·Workflow 배포·호출 권한 |
+| 27~34 | 공통 Classic External ALB와 기존 SSL 인증서 연결 |
+| 35 | 선택: GitHub 자동 릴리스 Trigger |
 
 기존 GKE/버킷/ALB 자원은 조회 결과를 비교하고 create를 건너뜁니다. Secret은 여기서 이름만 준비하고 실제 값은 4단계에서 등록합니다. SSL 인증서 `cert-jupyter-sbx01-self`가 없으면 HTTPS Proxy/443 명령 전에 인증서 담당자가 별도 등록해야 합니다. DNS/hosts 연결은 11단계에서 확인합니다.
 

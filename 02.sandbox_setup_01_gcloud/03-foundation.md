@@ -106,18 +106,16 @@ gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJEC
 # 기존 자원 확인값: {"autopilot.enabled": true, "privateClusterConfig.enablePrivateNodes": true, "privateClusterConfig.enablePrivateEndpoint": true, "ipAllocationPolicy.clusterSecondaryRangeName": "pods-dev-sbx-gke-01-an3-main"} — 다르면 중단합니다.
 gcloud container clusters create-auto "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${MAIN_SUBNET}" --cluster-secondary-range-name="${MAIN_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${MAIN_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 19. IP 최소화: 별도 테스트 GKE를 생성하지 않습니다. ──
-
-# ── 20. builds submit . ──
+# ── 19. builds submit . ──
 gcloud builds submit . --project="${SBX_GKE_PROJECT}" --region="${REGION}" --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${SBX_GKE_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 21. run deploy run-sbxtest01-provisioner ──
+# ── 20. run deploy run-sbxtest01-provisioner ──
 gcloud run deploy run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --clear-network --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 22. run services add-iam-policy-binding run-sbxtest01-provisioner · roles/run.invoker ──
+# ── 21. run services add-iam-policy-binding run-sbxtest01-provisioner · roles/run.invoker ──
 gcloud run services add-iam-policy-binding run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/run.invoker --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 23. run services describe run-sbxtest01-provisioner ──
+# ── 22. run services describe run-sbxtest01-provisioner ──
 gcloud run services describe run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" '--format=value(status.url)' --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── Workflow 입력 파일 준비 ──
@@ -127,66 +125,66 @@ export PROVISIONER_URL="$(gcloud run services describe run-sbxtest01-provisioner
 mkdir -p .local
 sed "s|__PROVISIONER_URL__|${PROVISIONER_URL}|g" 02.sandbox_setup_01_gcloud/configs/workflow.template.yaml > .local/workflow.yaml
 
-# ── 24. workflows deploy workflow-sbxtest01-provision ──
+# ── 23. workflows deploy workflow-sbxtest01-provision ──
 gcloud workflows deploy workflow-sbxtest01-provision --project="${SBX_GKE_PROJECT}" --location="${REGION}" --service-account="${SBX_MANAGER}" --source=.local/workflow.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 25. projects add-iam-policy-binding pjt-d-host01 · roles/workflows.invoker ──
+# ── 24. projects add-iam-policy-binding pjt-d-host01 · roles/workflows.invoker ──
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/workflows.invoker --condition=None --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 26. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-requests · roles/storage.objectAdmin ──
+# ── 25. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-requests · roles/storage.objectAdmin ──
 gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectAdmin --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 27. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-bundles · roles/storage.objectViewer ──
+# ── 26. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-bundles · roles/storage.objectViewer ──
 gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 28. compute addresses create ip-alb-sbxtest01-shared ──
+# ── 27. compute addresses create ip-alb-sbxtest01-shared ──
 # 기존 자원 확인
 gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute addresses create ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --ip-version=IPV4 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 29. compute backend-services create bes-alb-sbxtest01-shared-default ──
+# ── 28. compute backend-services create bes-alb-sbxtest01-shared-default ──
 # 기존 자원 확인
 gcloud compute backend-services describe bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute backend-services create bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --global --protocol=HTTP --load-balancing-scheme=EXTERNAL --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 30. compute url-maps create urlmap-alb-sbxtest01-shared ──
+# ── 29. compute url-maps create urlmap-alb-sbxtest01-shared ──
 # 기존 자원 확인
 gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --default-service=bes-alb-sbxtest01-shared-default --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 31. compute target-http-proxies create http-proxy-alb-sbxtest01-shared ──
+# ── 30. compute target-http-proxies create http-proxy-alb-sbxtest01-shared ──
 # 기존 자원 확인
 gcloud compute target-http-proxies describe http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute target-http-proxies create http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --url-map=urlmap-alb-sbxtest01-shared --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 32. compute forwarding-rules create fr-alb-sbxtest01-shared-http ──
+# ── 31. compute forwarding-rules create fr-alb-sbxtest01-shared-http ──
 # 기존 자원 확인
 gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --global --load-balancing-scheme=EXTERNAL --address=ip-alb-sbxtest01-shared --target-http-proxy=http-proxy-alb-sbxtest01-shared --ports=80 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 33. compute ssl-certificates describe cert-jupyter-sbx01-self ──
+# ── 32. compute ssl-certificates describe cert-jupyter-sbx01-self ──
 # 인증서가 없으면 이후 HTTPS Proxy/443 명령을 실행하지 말고 인증서를 별도 등록합니다.
 # 기존 자원 확인
 gcloud compute ssl-certificates describe "${SSL_CERTIFICATE}" --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 34. compute target-https-proxies create https-proxy-alb-sbxtest01-shared ──
+# ── 33. compute target-https-proxies create https-proxy-alb-sbxtest01-shared ──
 # 기존 자원 확인
 gcloud compute target-https-proxies describe https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute target-https-proxies create https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --url-map=urlmap-alb-sbxtest01-shared --ssl-certificates="${SSL_CERTIFICATE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 35. compute forwarding-rules create fr-alb-sbxtest01-shared-https ──
+# ── 34. compute forwarding-rules create fr-alb-sbxtest01-shared-https ──
 # 기존 자원 확인
 gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --global --load-balancing-scheme=EXTERNAL --address=ip-alb-sbxtest01-shared --target-https-proxy=https-proxy-alb-sbxtest01-shared --ports=443 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 36. 선택 · builds triggers create github ──
+# ── 35. 선택 · builds triggers create github ──
 # 선택 작업: 필요한 경우에만 아래 명령의 주석을 해제합니다.
 # 기존 자원 확인
 # gcloud builds triggers describe trigger-sbxtest01-platform-release --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"

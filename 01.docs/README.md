@@ -1,6 +1,6 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
-> **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·테스트 GKE·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
+> **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
 

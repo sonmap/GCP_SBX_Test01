@@ -1,6 +1,6 @@
 # Sandbox 자동 배포 기반 설계서 — 프로젝트·서브넷·GCP 자원
 
-> **IP 최소화 적용:** Cloud Run 전용 Subnet·별도 테스트 GKE·과제별 새 Subnet을 기본 구축에서 제외했습니다. 기존 GKE 대역과 Private Pool PSA는 유지·재사용합니다. [최소 IP 구성 및 기존 자원 확인](minimal-ip-design.md)
+> **IP 최소화 적용:** Cloud Run 전용 Subnet·과제별 새 Subnet을 기본 구축에서 제외했습니다. 기존 GKE 대역과 Private Pool PSA는 유지·재사용합니다. [최소 IP 구성 및 기존 자원 확인](minimal-ip-design.md)
 
 작성 기준: 현재 저장소 소스, 리전 asia-northeast3. **실제 GCP 인벤토리 조회 결과가 아니라 소스 기반 설계값**입니다. 기존 자원은 조회·비교 후 재사용하고, 새 CIDR은 VPC Admin의 전체 사내망 중복 검증 후 확정합니다.
 
@@ -42,9 +42,6 @@ Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니�
 | 제외 대상 | 종전 설계값 | 현재 처리 |
 |---|---|---|
 | Cloud Run Direct VPC | 10.251.0.0/26 | Subnet 생성·VPC 연결 제거 |
-| Test GKE Node | 10.252.1.0/26 | 테스트 클러스터·Subnet 생성 명령 제거 |
-| Test GKE Pod | 10.240.32.0/22 | 별도 Secondary 예약 제외 |
-| Test GKE 제어 영역 | 10.253.0.16/28 | 별도 제어 영역 예약 제외 |
 | 과제별 Subnet | 172.31.110.0/24 샘플 | 기본 예약·생성 제외, 기존 자원 삭제 아님 |
 
 기존 운영 자원이 위 대역을 사용하고 있다면 소스 변경만으로 IP가 회수되지 않습니다. 실사용·이전 Revision·연결·의존성을 확인한 뒤 VPC Admin이 별도 회수 여부를 판단합니다.

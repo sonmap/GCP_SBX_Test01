@@ -1,6 +1,6 @@
 # 작업 순서와 실행 링크
 
-> **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·테스트 GKE·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
+> **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 > **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
 
