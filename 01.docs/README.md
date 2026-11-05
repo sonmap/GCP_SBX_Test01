@@ -1,5 +1,7 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
+**[프로젝트·서브넷·Private Pool·GCP 자원 설계표](network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
+
 > **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
 
 ## tf-manager 소속 프로젝트

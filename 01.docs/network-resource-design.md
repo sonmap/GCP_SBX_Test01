@@ -1,0 +1,119 @@
+# Sandbox 자동 배포 기반 설계서 — 프로젝트·서브넷·GCP 자원
+
+작성 기준: 현재 저장소 소스, 리전 asia-northeast3. **실제 GCP 인벤토리 조회 결과가 아니라 소스 기반 설계값**입니다. 기존 자원은 조회·비교 후 재사용하고, 새 CIDR은 VPC Admin의 전체 사내망 중복 검증 후 확정합니다.
+
+과제용 SBX 프로젝트는 별도로 존재하는 기존 프로젝트를 사용하며 신규 프로젝트 생성을 기본 작업에 포함하지 않습니다. 현재 샘플은 pjt-net-hub-base이고 실제 운영 SBX 프로젝트가 다르면 승인 JSON의 project와 해당 권한을 맞춥니다.
+
+## 1. 프로젝트 배치
+
+| 변수 / 범위 | 프로젝트 | 역할 | 구축 구분 |
+|---|---|---|---|
+| SBX_GKE_PROJECT | pjt-d-host01 | GKE·Cloud Build·Private Pool·Run·Workflow·IM·AR·Secret·공통 GCS·두 SA | 공통 실행 기반 구성 / 기존 GKE 재사용 가능 |
+| VPC_HOST_PROJECT | pjt-d-shared-base | Shared VPC·Subnet·Secondary Range·PSA·방화벽·라우팅 | VPC Admin 확인·구성 |
+| SBX_PROJECT | pjt-net-hub-base — 현재 샘플 | 기존 과제 Dataset·과제 GCS·BQ Query Job | **기존 프로젝트 사용**, create_project=false |
+| 기존 데이터레이크 | pjt-c-admin — 현재 예시 | 기존 BigQuery 데이터 | 기존 사용·승인 범위 조회 권한 |
+
+공통 VPC는 vpc-d-shared-base입니다. GKE와 Cloud Run은 pjt-d-host01의 서비스 자원이지만 사용하는 Shared VPC 서브넷은 pjt-d-shared-base 소유입니다. Private Pool 작업자는 Google 관리 서비스 제공자 네트워크에서 실행되며 사용자 VPC와 PSA/Peering으로 연결합니다.
+
+## 2. 필수·기존 네트워크 대역
+
+주소 수는 CIDR의 전체 주소 수이며 실제 할당 가능한 수·Pod 수·동시 Build 수가 아닙니다.
+
+| No. | 용도 | 이름 / 설정 변수 | CIDR | 전체 주소 | 종류 / 소유·관리 | 사용 자원 / 처리 |
+|---|---|---|---|---:|---|---|
+| N1 | Main GKE Node | subnet-dev-sbx-gke-01-an3-main / MAIN_NODE_CIDR | 10.252.0.0/24 | 256 | Shared VPC 일반 Subnet Primary / VPC Host | gke-sbx-main-an3, 기존 설정 확인 후 재사용 또는 생성 |
+| N2 | Main GKE Pod | pods-dev-sbx-gke-01-an3-main / MAIN_POD_CIDR | 10.240.0.0/20 | 4,096 | N1의 Secondary Range / VPC Host | Hub·Proxy·Notebook·시스템 Pod |
+| N3 | Main GKE 제어 영역 | MAIN_CP_CIDR | 10.253.0.0/28 | 16 | 관리형 제어 영역 대역, 일반 사용자 Subnet 아님 | 소스의 master-ipv4-cidr 값, 기존 클러스터 설정과 대조 |
+| N4 | Cloud Run Direct VPC | subnet-dev-cicd-run-01-an3-egress / RUN_CIDR | 10.251.0.0/26 | 64 | Shared VPC Subnet Primary / VPC Host | 요청 API의 private-ranges-only egress |
+| N5 | Private Pool PSA 할당 | prip-dev-cicd-cbp-01-an3-psa / PSA_CIDR | 10.250.0.0/24 | 256 | VPC_PEERING 전용 할당 범위, 일반 Subnet 아님 | Pool 작업자 통신용, 다른 PSA 서비스와 중복 사용 검토 |
+| N6 | 기존 과제용 서브넷 | subnet-sbx01-an3 / TASK_CIDR | 172.31.110.0/24 | 256 | 기존 Shared VPC Subnet / VPC Host | 샘플 network.create_subnet=false, 필요할 때만 기존 연결 사용 |
+| N7 | 기존 관리자망 | ADMIN_CIDR, Subnet 이름 미지정 | 172.31.10.0/24 | 256 | 기존 관리자 접속 대역 | 관리 PC/VM 위치는 실제 환경 확인 |
+| N8 | GKE Service ClusterIP | 명시적 Service CIDR 설정 없음 | 실제 클러스터 조회 후 기록 | 미확정 | GKE 관리 Service 범위 | 사용자 Subnet 추가 생성 대상으로 보지 않음 |
+| N9 | 사용자 ALB VIP | ip-alb-sbxtest01-shared | 생성·조회 후 기록 | 1 VIP | 현재 소스는 Global Classic External ALB | DNS·인증서 별도, 사설 ALB로 전환된 상태 아님 |
+
+Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니다. 이는 N5와 별개의 256주소 서브넷을 추가하는 의미가 아닙니다. 실제 Pool이 배정받은 IP와 예약 범위 사용 현황은 생성 후 확인합니다. Cloud Run의 /26은 현재 소스값이며 Direct VPC egress용입니다. Workflows 전용 Subnet은 생성하지 않습니다.
+
+과제별 Jupyter 환경은 중앙 GKE의 Namespace와 N2의 Pod IP를 사용합니다. **기존 과제 프로젝트가 있다는 이유만으로 과제마다 새 Subnet을 만들 필요는 없습니다.** 과제에서 VPC 자원이 불필요하면 승인 요청의 network.required=false / shared_vpc_join=false로 선택적 Network 단계를 생략할 수 있습니다. 현재 샘플은 기존 N6를 사용하는 network.required=true / create_subnet=false입니다.
+
+## 3. 선택적 테스트 클러스터 — 필요한 경우에만
+
+| 용도 | 이름 | CIDR | 전체 주소 | 처리 |
+|---|---|---|---:|---|
+| Test GKE Node | subnet-dev-cicd-gke-01-an3-test | 10.252.1.0/26 | 64 | 기본 필수 아님 |
+| Test GKE Pod Secondary | pods-dev-cicd-gke-01-an3-test | 10.240.32.0/22 | 1,024 | 위 Subnet의 Secondary |
+| Test GKE 제어 영역 | TEST_CP_CIDR | 10.253.0.16/28 | 16 | 일반 Subnet 아님 |
+
+위 소스 정의 CIDR 상호 간에는 중복이 없지만, 실제 VPC의 다른 Subnet·온프레미스·VPN·다른 PSA 할당과의 중복 검증을 대신하지 않습니다.
+
+## 4. GCP 자원 설계
+
+| 자원 | 이름 / 기준 | 프로젝트 | Subnet 필요 여부 | 실행·관리 |
+|---|---|---|---|---|
+| GKE Autopilot | gke-sbx-main-an3 | pjt-d-host01 | N1·N2, N3 제어 영역 설정 | 공통 기반 최초 구성·기존 재사용 |
+| Cloud Build 기본 Pool | 이미지 빌드·릴리스·외부 Chart/이미지 미러링 | pjt-d-host01 | 사용자 Subnet 불필요 | tf-manager, 작업자가 빌드 명령 실행 |
+| Cloud Build Private Pool | pool-sbxtest01 | pjt-d-host01 | N5 PSA 연결 사용, 일반 Subnet 생성 아님 | e2-standard-4 / disk 100GB / no-public-egress |
+| Infrastructure Manager | 과제별 group/project/network/project-iam/data Deployment | pjt-d-host01 | 자체 전용 Subnet 없음, 현재 Terraform 실행에 Private Pool 사용 | tf-manager |
+| Cloud Run | run-sbxtest01-provisioner | pjt-d-host01 | N4 Direct VPC 연결 | sbx-manager, 요청 검증·Build 시작 |
+| Workflows | workflow-sbxtest01-provision | pjt-d-host01 | 전용 Subnet 없음 | sbx-manager, OIDC로 API 호출 |
+| Artifact Registry | ar-sbxtest01-platform | pjt-d-host01 | 전용 Subnet 없음, API 접근 경로 필요 | Docker 이미지·Helm Chart 보관 |
+| 요청 GCS | pjt-d-host01-sbxtest01-requests | pjt-d-host01 | 전용 Subnet 없음 | 포털 승인 JSON 저장 |
+| 배포 번들 GCS | pjt-d-host01-sbxtest01-bundles | pjt-d-host01 | 전용 Subnet 없음 | 릴리스·요청별 Terraform ZIP |
+| Build 소스 GCS | pjt-d-host01-sbxtest01-build-source | pjt-d-host01 | 전용 Subnet 없음 | Build 입력 소스 |
+| Secret Manager | jupyter-oauth-client-id / jupyter-oauth-client-secret | pjt-d-host01 | 전용 Subnet 없음 | Jupyter 로그인용 OAuth 값 |
+| 공통 ALB | alb-sbxtest01-shared, URL Map·HTTP/HTTPS Proxy·VIP | pjt-d-host01 | 현 Classic External 방식은 proxy-only Subnet 없음 | tf-manager, 인증서·DNS 별도 |
+| 과제 Backend·NEG·Health Check | bes-jupyter-sbx01 / hc-jupyter-sbx01 / proxy-public NEG | pjt-d-host01 | Backend는 N2 Pod IP에 연결 | 과제 Deploy에서 구성 |
+| Namespace·KSA·Hub·Proxy | sbx01 / ksa-jupyter-sbx01 | pjt-d-host01의 GKE | N2 | 자동 Deploy |
+| 사용자 Notebook·PVC | 로그인·서버 시작 시 생성 | pjt-d-host01의 GKE | Pod는 N2, PVC는 별도 디스크 자원 | JupyterHub |
+| 과제 Dataset·GCS | sbx01_main / pjt-net-hub-base-sbx01-data | 기존 SBX_PROJECT | 전용 Subnet 없음 | 기존 자원 편입 또는 승인 범위 구성 |
+| 기존 BQ 데이터 | 승인 Dataset·Table | pjt-c-admin 등 | 전용 Subnet 없음 | 데이터 관리자 / VPC Admin 요청 |
+| Cloud Identity Group | pgrp-gcp-dev-sbx01@sonmap.net | Workspace/Cloud Identity 조직 자원 | Subnet 없음 | tf-manager의 Terraform 05-group |
+
+## 5. 통신·담당 요청사항
+
+| 출발 | 목적지 | 포트 / 방식 | 담당 / 완료 기준 |
+|---|---|---|---|
+| Private Pool 작업자 N5 | GKE Private API N3의 실제 endpoint | TCP 443 | **VPC Admin**: 왕복 경로·방화벽·GKE 접근 허용 범위 확인, 점검 Build 성공 |
+| 관리 PC/VM N7 | GKE Private API | TCP 443 | VPC Admin / 운영자: 관리 경로·IAM·Kubernetes 권한 확인 |
+| Workflow | Cloud Run API | HTTPS 443 + OIDC | 플랫폼 관리자: sbx-manager의 Run Invoker |
+| API·Build·Notebook | GCS·AR·IAM·BQ 등 Google API | HTTPS 443 | VPC Admin·플랫폼 관리자: DNS·Private Google Access/승인된 API 접근 경로 |
+| ALB/Health Check | GKE Proxy Pod N2 | TCP 8000 | VPC Admin: 소스 35.191.0.0/16·130.211.0.0/22, 현재 소스 방화벽 기준 |
+| 사용자 | Jupyter ALB 도메인 | HTTPS 443 | 인증서·DNS 별도 진행 |
+| Notebook GSA | 기존 BQ Dataset | IAM·Dataset 조회 권한 | **VPC Admin 요청·완료 확인**, 데이터 IAM 권한 보유자가 실제 부여 |
+| 기본 Cloud Build | 외부 이미지·패키지 저장소 | HTTPS 443 등 | 플랫폼 관리자: 외부 다운로드가 필요한 이미지 빌드·미러링 |
+
+Private Pool과 GKE가 같은 프로젝트라도 N5에서 GKE Private API로의 라우팅이 자동 완성되는 것은 아닙니다. Peering 경유 제한을 고려해 VPN/BGP 등 실제 연결 방식과 추가 주소는 VPC Admin이 확정합니다. 해당 VPN 터널·BGP 주소는 현재 소스에서 정의하지 않으므로 임의 CIDR을 기재하지 않았습니다.
+
+no-public-egress는 Pool의 공용 인터넷 egress를 제한하는 설정입니다. API·AR·GCS·Terraform Provider 다운로드까지 자동으로 해결하는 설정이 아니므로, 각 목적지의 사설/승인된 접근 경로를 실제 Build에서 검증해야 합니다.
+
+## 6. 서비스 계정·초기 준비
+
+| 주체 | 소속 / 값 | 용도 | 사전 준비 |
+|---|---|---|---|
+| tf-manager | tf-manager@pjt-d-host01.iam.gserviceaccount.com | 공통 구축·Build·IM·그룹·GKE·ALB | 프로젝트·VPC·과제 IAM 및 Cloud Identity Groups Administrator 역할 |
+| sbx-manager | sbx-manager@pjt-d-host01.iam.gserviceaccount.com | Workflow·Run·Notebook의 Google API 접근 | KSA Workload Identity, 과제·기존 BQ 승인 권한 |
+| KSA | sbx01 / ksa-jupyter-sbx01 | Notebook Pod의 Kubernetes 계정 | sbx-manager 연결 |
+| Google 서비스 에이전트·노드 SA | 실제 pjt-d-host01 프로젝트 번호로 결정 | 관리형 서비스·노드 실행 | 사용자 관리 SA 두 개와 별도 |
+
+현재는 포털이 승인 JSON을 저장한 뒤 작업자가 Deploy 명령을 실행하면 이후 배포 작업이 자동 처리됩니다. GCS 이벤트 자동 시작과 포털 완료 전달은 향후 작업입니다. 실행 계정 두 개를 공유하는 현재 PoC 구조에서는 Namespace만으로 과제별 GCP IAM이 격리되지 않습니다.
+
+## 7. 실행·확정 순서
+
+| 순서 | 수행 내용 | 담당 |
+|---|---|---|
+| 1 | 기존 SBX 프로젝트·기존 자원·실제 CIDR 인벤토리 확정 | 운영자·VPC Admin |
+| 2 | N1~N7 필요 대역·PSA·공통 Shared VPC 연결 검증 | VPC Admin |
+| 3 | API·SA·권한 → 네트워크 → 공통 서비스 gcloud 개별 실행 | 인프라 작업자 |
+| 4 | tf-manager 그룹 관리자 역할·실제 Customer ID·OAuth 준비 | Workspace/OAuth 담당자 |
+| 5 | 이미지·Chart·소스 릴리스 준비, Private Pool 사설 접속 확인 | 작업자·VPC Admin |
+| 6 | 기존 그룹·Dataset·GCS/state 편입 검토 후 Deploy | 작업자 |
+| 7 | Build·IM·GKE·ALB·로그인·기존 BQ 실제 조회 검증 | 운영자·사용자 |
+
+[실행 순서·명령 링크](work-order.md) / [개별 gcloud](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md) / [Deploy](../02.sandbox_setup_01_gcloud/05-deploy.md)
+
+## 공식 기준
+
+- [Private Pool 네트워크](https://docs.cloud.google.com/build/docs/private-pools/set-up-private-pool-to-use-in-vpc-network)
+- [Private Pool IP 범위 설정](https://docs.cloud.google.com/build/docs/private-pools/private-pool-config-file-schema)
+- [Private GKE 접속](https://docs.cloud.google.com/build/docs/private-pools/accessing-private-gke-clusters-with-cloud-build-private-pools)
+- [Cloud Run Direct VPC](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc)
+- [GKE IP 범위](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/alias-ips)
