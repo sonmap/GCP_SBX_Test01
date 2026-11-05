@@ -1,8 +1,35 @@
 # 2. 공통 네트워크 — 주석으로 통합한 gcloud 명령
 
-먼저 [공통 변수](00-variables.md)를 같은 터미널에 설정합니다. `# 주석`을 보며 순서대로 실행하고, **기존 자원이 있으면 해당 생성 명령을 건너뜁니다.** 403·인증·연결 오류면 중단합니다. 선택 작업은 주석을 해제한 경우에만 실행합니다.
+필요한 변수 선언을 아래 코드 블록 맨 앞에 포함했습니다. 별도 문서에서 변수를 설정할 필요 없이, 이 문서의 선언부터 같은 터미널에서 실행합니다. `# 주석`을 보며 순서대로 실행하고, **기존 자원이 있으면 해당 생성 명령을 건너뜁니다.** 403·인증·연결 오류면 중단합니다. 선택 작업은 주석을 해제한 경우에만 실행합니다.
 
 ```bash
+# ── 이 문서에서 사용하는 변수 선언 ──
+# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
+unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
+export ADMIN_ACCOUNT=admin@sonmap.net
+export CICD_PROJECT=prj-b-cicd-local-236d
+export HOST_PROJECT=pjt-d-shared-base
+export GKE_PROJECT=pjt-d-host01
+export REGION=asia-northeast3
+export NETWORK=vpc-d-shared-base
+export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
+export MAIN_NODE_CIDR=10.252.0.0/24
+export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
+export MAIN_POD_CIDR=10.240.0.0/20
+export TEST_SUBNET=subnet-dev-cicd-gke-01-an3-test
+export TEST_NODE_CIDR=10.252.1.0/26
+export TEST_POD_RANGE=pods-dev-cicd-gke-01-an3-test
+export TEST_POD_CIDR=10.240.32.0/22
+export RUN_SUBNET=subnet-dev-cicd-run-01-an3-egress
+export RUN_CIDR=10.251.0.0/26
+export TASK_SUBNET=subnet-sbx01-an3
+export TASK_CIDR=172.31.110.0/24
+export PSA_NAME=prip-dev-cicd-cbp-01-an3-psa
+export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export PSA_ADDRESS="10.250.0.0"
+export PSA_PREFIX_LENGTH="24"
+# 이 값들은 1·2·3단계에서 동일하게 사용합니다.
+
 # 먼저 기존 Primary/Secondary 대역을 확인합니다.
 # Node · Pod · Control Plane · PSA 대역이 겹치거나 기존 설정과 다르면 중단합니다.
 
