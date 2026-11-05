@@ -26,6 +26,7 @@ def payload():
     data=json.loads((ROOT/'05.sandbox_json/sbx01-approved-request.json').read_text())
     data['source']['sha256']='a'*64
     data['source']['release_id']='git-test123'
+    data['network'].update(required=True,shared_vpc_join=True,subnet_name='subnet-sbx01-an3',subnet_cidr='172.31.110.0/24')
     return data
 
 
@@ -81,7 +82,10 @@ class ProvisioningTests(unittest.TestCase):
 
     @mock.patch.dict(os.environ,ENV)
     def test_optional_network_is_not_applied(self):
-        data=payload();data['network']['required']=False;data['network']['shared_vpc_join']=False
+        data=json.loads((ROOT/'05.sandbox_json/sbx01-approved-request.json').read_text())
+        self.assertFalse(data['network']['required'])
+        self.assertFalse(data['network']['shared_vpc_join'])
+        p.VALIDATOR.validate(data)
         with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient') as client:
             p.start_build(data,'gs://example/request.json','gs://example/bundle')
         build=client.return_value.create_build.call_args.kwargs['build']

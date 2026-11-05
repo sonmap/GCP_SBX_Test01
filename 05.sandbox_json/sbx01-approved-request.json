@@ -25,14 +25,12 @@
     "project_name": "Existing Sandbox sbx01"
   },
   "network": {
-    "required": true,
+    "required": false,
     "create_subnet": false,
     "host_project_id": "pjt-d-shared-base",
     "network_name": "vpc-d-shared-base",
     "region": "asia-northeast3",
-    "shared_vpc_join": true,
-    "subnet_name": "subnet-sbx01-an3",
-    "subnet_cidr": "172.31.110.0/24",
+    "shared_vpc_join": false,
     "private_google_access": true
   },
   "data": {

@@ -13,14 +13,9 @@ export VPC_HOST_PROJECT="pjt-d-shared-base"
 export REGION=asia-northeast3
 export NETWORK=vpc-d-shared-base
 export MAIN_CLUSTER=gke-sbx-main-an3
-export TEST_CLUSTER=gke-dev-cicd-01-an3
 export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
 export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
 export MAIN_CP_CIDR=10.253.0.0/28
-export TEST_SUBNET=subnet-dev-cicd-gke-01-an3-test
-export TEST_POD_RANGE=pods-dev-cicd-gke-01-an3-test
-export TEST_CP_CIDR=10.253.0.16/28
-export RUN_SUBNET=subnet-dev-cicd-run-01-an3-egress
 export PSA_CIDR=10.250.0.0/24
 export ADMIN_CIDR=172.31.10.0/24
 export SSL_CERTIFICATE=cert-jupyter-sbx01-self
@@ -111,19 +106,13 @@ gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJEC
 # 기존 자원 확인값: {"autopilot.enabled": true, "privateClusterConfig.enablePrivateNodes": true, "privateClusterConfig.enablePrivateEndpoint": true, "ipAllocationPolicy.clusterSecondaryRangeName": "pods-dev-sbx-gke-01-an3-main"} — 다르면 중단합니다.
 gcloud container clusters create-auto "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${MAIN_SUBNET}" --cluster-secondary-range-name="${MAIN_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${MAIN_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 19. 선택 · container clusters create-auto gke-dev-cicd-01-an3 ──
-# 선택 작업: 필요한 경우에만 아래 명령의 주석을 해제합니다.
-# 기존 자원 확인
-# gcloud container clusters describe "${TEST_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"autopilot.enabled": true, "privateClusterConfig.enablePrivateNodes": true, "privateClusterConfig.enablePrivateEndpoint": true, "ipAllocationPolicy.clusterSecondaryRangeName": "pods-dev-cicd-gke-01-an3-test"} — 다르면 중단합니다.
-# gcloud container clusters create-auto "${TEST_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${TEST_SUBNET}" --cluster-secondary-range-name="${TEST_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${TEST_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 19. IP 최소화: 별도 테스트 GKE를 생성하지 않습니다. ──
 
 # ── 20. builds submit . ──
 gcloud builds submit . --project="${SBX_GKE_PROJECT}" --region="${REGION}" --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${SBX_GKE_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 21. run deploy run-sbxtest01-provisioner ──
-gcloud run deploy run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${RUN_SUBNET}" --vpc-egress=private-ranges-only --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud run deploy run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --clear-network --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 22. run services add-iam-policy-binding run-sbxtest01-provisioner · roles/run.invoker ──
 gcloud run services add-iam-policy-binding run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/run.invoker --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"

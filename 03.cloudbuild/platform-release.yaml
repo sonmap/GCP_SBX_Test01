@@ -106,6 +106,7 @@ steps:
           --region="${_REGION}" \
           --image="${_PROVISIONER_IMAGE_REPO}:${_RELEASE_ID}" \
           --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml \
+          --clear-network \
           --quiet
 
 substitutions:

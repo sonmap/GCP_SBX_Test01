@@ -1,5 +1,7 @@
 # Sandbox 자동 배포 기반 설계서 — 프로젝트·서브넷·GCP 자원
 
+> **IP 최소화 적용:** Cloud Run 전용 Subnet·별도 테스트 GKE·과제별 새 Subnet을 기본 구축에서 제외했습니다. 기존 GKE 대역과 Private Pool PSA는 유지·재사용합니다. [최소 IP 구성 및 기존 자원 확인](minimal-ip-design.md)
+
 작성 기준: 현재 저장소 소스, 리전 asia-northeast3. **실제 GCP 인벤토리 조회 결과가 아니라 소스 기반 설계값**입니다. 기존 자원은 조회·비교 후 재사용하고, 새 CIDR은 VPC Admin의 전체 사내망 중복 검증 후 확정합니다.
 
 과제용 SBX 프로젝트는 별도로 존재하는 기존 프로젝트를 사용하며 신규 프로젝트 생성을 기본 작업에 포함하지 않습니다. 현재 샘플은 pjt-net-hub-base이고 실제 운영 SBX 프로젝트가 다르면 승인 JSON의 project와 해당 권한을 맞춥니다.
@@ -13,7 +15,7 @@
 | SBX_PROJECT | pjt-net-hub-base — 현재 샘플 | 기존 과제 Dataset·과제 GCS·BQ Query Job | **기존 프로젝트 사용**, create_project=false |
 | 기존 데이터레이크 | pjt-c-admin — 현재 예시 | 기존 BigQuery 데이터 | 기존 사용·승인 범위 조회 권한 |
 
-공통 VPC는 vpc-d-shared-base입니다. GKE와 Cloud Run은 pjt-d-host01의 서비스 자원이지만 사용하는 Shared VPC 서브넷은 pjt-d-shared-base 소유입니다. Private Pool 작업자는 Google 관리 서비스 제공자 네트워크에서 실행되며 사용자 VPC와 PSA/Peering으로 연결합니다.
+공통 VPC는 vpc-d-shared-base입니다. GKE는 pjt-d-host01의 서비스 자원이며 사용하는 Shared VPC 서브넷은 pjt-d-shared-base 소유입니다. Cloud Run은 VPC에 연결하지 않고 Google API를 호출합니다. Private Pool 작업자는 Google 관리 서비스 제공자 네트워크에서 실행되며 사용자 VPC와 PSA/Peering으로 연결합니다.
 
 ## 2. 필수·기존 네트워크 대역
 
@@ -24,26 +26,28 @@
 | N1 | Main GKE Node | subnet-dev-sbx-gke-01-an3-main / MAIN_NODE_CIDR | 10.252.0.0/24 | 256 | Shared VPC 일반 Subnet Primary / VPC Host | gke-sbx-main-an3, 기존 설정 확인 후 재사용 또는 생성 |
 | N2 | Main GKE Pod | pods-dev-sbx-gke-01-an3-main / MAIN_POD_CIDR | 10.240.0.0/20 | 4,096 | N1의 Secondary Range / VPC Host | Hub·Proxy·Notebook·시스템 Pod |
 | N3 | Main GKE 제어 영역 | MAIN_CP_CIDR | 10.253.0.0/28 | 16 | 관리형 제어 영역 대역, 일반 사용자 Subnet 아님 | 소스의 master-ipv4-cidr 값, 기존 클러스터 설정과 대조 |
-| N4 | Cloud Run Direct VPC | subnet-dev-cicd-run-01-an3-egress / RUN_CIDR | 10.251.0.0/26 | 64 | Shared VPC Subnet Primary / VPC Host | 요청 API의 private-ranges-only egress |
+| N4 | Cloud Run 전용 Subnet | 기본 구성에서 제거 | 예약 없음 | 0 | Direct VPC 연결 없음 | Google API 호출만 수행, GKE 배포는 Private Pool 담당 |
 | N5 | Private Pool PSA 할당 | prip-dev-cicd-cbp-01-an3-psa / PSA_CIDR | 10.250.0.0/24 | 256 | VPC_PEERING 전용 할당 범위, 일반 Subnet 아님 | Pool 작업자 통신용, 다른 PSA 서비스와 중복 사용 검토 |
-| N6 | 기존 과제용 서브넷 | subnet-sbx01-an3 / TASK_CIDR | 172.31.110.0/24 | 256 | 기존 Shared VPC Subnet / VPC Host | 샘플 network.create_subnet=false, 필요할 때만 기존 연결 사용 |
+| N6 | 과제 전용 Subnet | 기본 구성에서 제외 | 신규 예약 없음 | 0 추가 | 기존 자원이 있으면 그대로 유지 | 샘플 network.required=false, 과제 Namespace는 N2 공유 |
 | N7 | 기존 관리자망 | ADMIN_CIDR, Subnet 이름 미지정 | 172.31.10.0/24 | 256 | 기존 관리자 접속 대역 | 관리 PC/VM 위치는 실제 환경 확인 |
 | N8 | GKE Service ClusterIP | 명시적 Service CIDR 설정 없음 | 실제 클러스터 조회 후 기록 | 미확정 | GKE 관리 Service 범위 | 사용자 Subnet 추가 생성 대상으로 보지 않음 |
 | N9 | 사용자 ALB VIP | ip-alb-sbxtest01-shared | 생성·조회 후 기록 | 1 VIP | 현재 소스는 Global Classic External ALB | DNS·인증서 별도, 사설 ALB로 전환된 상태 아님 |
 
-Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니다. 이는 N5와 별개의 256주소 서브넷을 추가하는 의미가 아닙니다. 실제 Pool이 배정받은 IP와 예약 범위 사용 현황은 생성 후 확인합니다. Cloud Run의 /26은 현재 소스값이며 Direct VPC egress용입니다. Workflows 전용 Subnet은 생성하지 않습니다.
+Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니다. 이는 N5와 별개의 256주소 서브넷을 추가하는 의미가 아닙니다. 실제 Pool이 배정받은 IP와 예약 범위 사용 현황은 생성 후 확인합니다. Cloud Run의 기존 /26 예약·생성 명령은 제거했습니다. Workflows 전용 Subnet은 생성하지 않습니다.
 
-과제별 Jupyter 환경은 중앙 GKE의 Namespace와 N2의 Pod IP를 사용합니다. **기존 과제 프로젝트가 있다는 이유만으로 과제마다 새 Subnet을 만들 필요는 없습니다.** 과제에서 VPC 자원이 불필요하면 승인 요청의 network.required=false / shared_vpc_join=false로 선택적 Network 단계를 생략할 수 있습니다. 현재 샘플은 기존 N6를 사용하는 network.required=true / create_subnet=false입니다.
+과제별 Jupyter 환경은 중앙 GKE의 Namespace와 N2의 Pod IP를 사용합니다. **기존 과제 프로젝트가 있다는 이유만으로 과제마다 새 Subnet을 만들 필요는 없습니다.** 과제에서 VPC 자원이 불필요하면 승인 요청의 network.required=false / shared_vpc_join=false로 선택적 Network 단계를 생략할 수 있습니다. 현재 샘플은 network.required=false / shared_vpc_join=false / create_subnet=false이며 과제 전용 서브넷을 사용하지 않습니다.
 
-## 3. 선택적 테스트 클러스터 — 필요한 경우에만
+## 3. 기본 구성에서 제외한 대역
 
-| 용도 | 이름 | CIDR | 전체 주소 | 처리 |
-|---|---|---|---:|---|
-| Test GKE Node | subnet-dev-cicd-gke-01-an3-test | 10.252.1.0/26 | 64 | 기본 필수 아님 |
-| Test GKE Pod Secondary | pods-dev-cicd-gke-01-an3-test | 10.240.32.0/22 | 1,024 | 위 Subnet의 Secondary |
-| Test GKE 제어 영역 | TEST_CP_CIDR | 10.253.0.16/28 | 16 | 일반 Subnet 아님 |
+| 제외 대상 | 종전 설계값 | 현재 처리 |
+|---|---|---|
+| Cloud Run Direct VPC | 10.251.0.0/26 | Subnet 생성·VPC 연결 제거 |
+| Test GKE Node | 10.252.1.0/26 | 테스트 클러스터·Subnet 생성 명령 제거 |
+| Test GKE Pod | 10.240.32.0/22 | 별도 Secondary 예약 제외 |
+| Test GKE 제어 영역 | 10.253.0.16/28 | 별도 제어 영역 예약 제외 |
+| 과제별 Subnet | 172.31.110.0/24 샘플 | 기본 예약·생성 제외, 기존 자원 삭제 아님 |
 
-위 소스 정의 CIDR 상호 간에는 중복이 없지만, 실제 VPC의 다른 Subnet·온프레미스·VPN·다른 PSA 할당과의 중복 검증을 대신하지 않습니다.
+기존 운영 자원이 위 대역을 사용하고 있다면 소스 변경만으로 IP가 회수되지 않습니다. 실사용·이전 Revision·연결·의존성을 확인한 뒤 VPC Admin이 별도 회수 여부를 판단합니다.
 
 ## 4. GCP 자원 설계
 
@@ -53,7 +57,7 @@ Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니�
 | Cloud Build 기본 Pool | 이미지 빌드·릴리스·외부 Chart/이미지 미러링 | pjt-d-host01 | 사용자 Subnet 불필요 | tf-manager, 작업자가 빌드 명령 실행 |
 | Cloud Build Private Pool | pool-sbxtest01 | pjt-d-host01 | N5 PSA 연결 사용, 일반 Subnet 생성 아님 | e2-standard-4 / disk 100GB / no-public-egress |
 | Infrastructure Manager | 과제별 group/project/network/project-iam/data Deployment | pjt-d-host01 | 자체 전용 Subnet 없음, 현재 Terraform 실행에 Private Pool 사용 | tf-manager |
-| Cloud Run | run-sbxtest01-provisioner | pjt-d-host01 | N4 Direct VPC 연결 | sbx-manager, 요청 검증·Build 시작 |
+| Cloud Run | run-sbxtest01-provisioner | pjt-d-host01 | 전용 Subnet 없음 | sbx-manager, 요청 검증·Build 시작 |
 | Workflows | workflow-sbxtest01-provision | pjt-d-host01 | 전용 Subnet 없음 | sbx-manager, OIDC로 API 호출 |
 | Artifact Registry | ar-sbxtest01-platform | pjt-d-host01 | 전용 Subnet 없음, API 접근 경로 필요 | Docker 이미지·Helm Chart 보관 |
 | 요청 GCS | pjt-d-host01-sbxtest01-requests | pjt-d-host01 | 전용 Subnet 없음 | 포털 승인 JSON 저장 |
@@ -101,7 +105,7 @@ no-public-egress는 Pool의 공용 인터넷 egress를 제한하는 설정입니
 | 순서 | 수행 내용 | 담당 |
 |---|---|---|
 | 1 | 기존 SBX 프로젝트·기존 자원·실제 CIDR 인벤토리 확정 | 운영자·VPC Admin |
-| 2 | N1~N7 필요 대역·PSA·공통 Shared VPC 연결 검증 | VPC Admin |
+| 2 | 유지하는 GKE 대역·PSA·공통 Shared VPC 연결 검증 | VPC Admin |
 | 3 | API·SA·권한 → 네트워크 → 공통 서비스 gcloud 개별 실행 | 인프라 작업자 |
 | 4 | tf-manager 그룹 관리자 역할·실제 Customer ID·OAuth 준비 | Workspace/OAuth 담당자 |
 | 5 | 이미지·Chart·소스 릴리스 준비, Private Pool 사설 접속 확인 | 작업자·VPC Admin |

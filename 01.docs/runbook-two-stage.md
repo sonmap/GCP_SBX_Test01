@@ -70,7 +70,7 @@ gcloud services list --enabled --project="${SBX_GKE_PROJECT}" --account="${ADMIN
 
 실행 계정: tf-manager impersonation.
 
-[02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. Main GKE·Cloud Run·과제 서브넷이 기본 대상입니다. Test GKE용 서브넷은 선택 항목입니다.
+[02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. 기존 Main GKE 대역과 Private Pool PSA만 기본 대상으로 유지합니다. Cloud Run 전용·과제별·테스트 GKE 서브넷은 생성하지 않습니다.
 
 ```bash
 export SBX_GKE_PROJECT="pjt-d-host01"
@@ -92,7 +92,7 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST
 | 1~9 | 승인 요청·배포 ZIP·Build Source 버킷과 접근 권한 |
 | 10~12 | 내부 Artifact Registry와 GKE 노드 읽기 권한 |
 | 13~16 | Jupyter OAuth Secret 메타데이터와 읽기 권한 |
-| 17~19 | Private Pool·Main GKE·선택적 Test GKE |
+| 17~19 | Private Pool·Main GKE, 테스트 GKE는 제외 |
 | 20 | bootstrap 이미지 두 개 빌드: 요청 API·GKE 배포 도구 |
 | 21~27 | Cloud Run 배포·실제 URL 치환·Workflow 배포·호출 권한 |
 | 28~35 | 공통 Classic External ALB와 기존 SSL 인증서 연결 |
@@ -240,7 +240,7 @@ gcloud artifacts docker images describe "${REGION}-docker.pkg.dev/${SBX_GKE_PROJ
 | 예제 항목 | 현재 값·실제 의미 |
 |---|---|
 | project.create_project | false: 기존 pjt-net-hub-base 사용 |
-| network.required/create_subnet | true/false: 기존 subnet-sbx01-an3 사용 |
+| network.required/create_subnet | false/false: 과제 Network 단계 생략 |
 | data.adopt_existing_resources | true: 기존 sbx01_main Dataset·과제 GCS Bucket 편입 |
 | task/namespace | sbx01 |
 | identity.members | 승인된 user01/user02 예시; 실제 계정으로 변경 |
@@ -303,7 +303,7 @@ gcloud infra-manager deployments list --project="${SBX_GKE_PROJECT}" --location=
 # gcloud builds log "${BUILD_ID}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
-완료 기준: 이번 요청의 부모/자식 Build SUCCESS, 해당 과제 IM Deployment가 ACTIVE입니다. 최신 Revision은 APPLIED 상태를 확인합니다. 여러 과제의 Build가 섞여 있으면 생성 시각·로그의 request_id/배포 이름을 대조합니다. 예제는 Network를 포함한 다섯 Deployment이며 network.required=false면 네 Deployment입니다.
+완료 기준: 이번 요청의 부모/자식 Build SUCCESS, 해당 과제 IM Deployment가 ACTIVE입니다. 최신 Revision은 APPLIED 상태를 확인합니다. 여러 과제의 Build가 섞여 있으면 생성 시각·로그의 request_id/배포 이름을 대조합니다. 현재 예제는 Network를 생략한 네 Deployment입니다. 별도 승인 요청에서 network.required=true를 지정한 경우에만 다섯 Deployment입니다.
 
 ### 11-2. GKE와 ALB
 

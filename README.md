@@ -1,5 +1,7 @@
 # GCP_SBX_Test01
 
+> **[IP 최소화 구성](01.docs/minimal-ip-design.md)**: Cloud Run·테스트 GKE·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
+
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](01.docs/network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
 
 > **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](01.docs/tf-manager-project.md)

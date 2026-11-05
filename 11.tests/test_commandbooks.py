@@ -106,6 +106,21 @@ esac
         self.assertEqual(sample['gke']['project_id'], project)
         self.assertTrue(sample['source']['archive_uri'].startswith('gs://' + env['BUNDLE_BUCKET'] + '/'))
 
+    def test_minimal_ip_setup_keeps_private_deployment_without_run_subnet(self):
+        network='\n'.join(blocks('02-network.md'))
+        for marker in ['RUN_SUBNET','TEST_SUBNET','TASK_SUBNET']:
+            self.assertNotIn(marker,network)
+        self.assertIn('services vpc-peerings connect',network)
+        foundation='\n'.join(blocks('03-foundation.md'))
+        run=next(line for line in foundation.splitlines() if line.startswith('gcloud run deploy '))
+        self.assertIn('--clear-network',run)
+        self.assertNotIn('--subnet=',run)
+        self.assertNotIn('--vpc-egress=',run)
+        self.assertIn('builds worker-pools create pool-sbxtest01',foundation)
+        release=yaml.safe_load((ROOT/'03.cloudbuild/platform-release.yaml').read_text())
+        rollout=next(step for step in release['steps'] if step.get('id')=='roll-provisioner')
+        self.assertIn('--clear-network',rollout['args'][-1])
+
 
 if __name__ == '__main__':
     unittest.main()

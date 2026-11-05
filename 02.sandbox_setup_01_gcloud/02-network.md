@@ -15,14 +15,6 @@ export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
 export MAIN_NODE_CIDR=10.252.0.0/24
 export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
 export MAIN_POD_CIDR=10.240.0.0/20
-export TEST_SUBNET=subnet-dev-cicd-gke-01-an3-test
-export TEST_NODE_CIDR=10.252.1.0/26
-export TEST_POD_RANGE=pods-dev-cicd-gke-01-an3-test
-export TEST_POD_CIDR=10.240.32.0/22
-export RUN_SUBNET=subnet-dev-cicd-run-01-an3-egress
-export RUN_CIDR=10.251.0.0/26
-export TASK_SUBNET=subnet-sbx01-an3
-export TASK_CIDR=172.31.110.0/24
 export PSA_NAME=prip-dev-cicd-cbp-01-an3-psa
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export PSA_ADDRESS="10.250.0.0"
@@ -58,70 +50,35 @@ gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --format=json --
 # 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
 gcloud compute shared-vpc associated-projects add "${SBX_GKE_PROJECT}" --host-project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 6. compute shared-vpc get-host-project pjt-d-host01 ──
-# 기존 자원 확인
-
-# ── 7. compute shared-vpc associated-projects add pjt-d-host01 ──
-# 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
-
-# ── 8. compute networks subnets create subnet-dev-sbx-gke-01-an3-main ──
+# ── 6. compute networks subnets create subnet-dev-sbx-gke-01-an3-main ──
 # 기존 자원 확인
 gcloud compute networks subnets describe "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # 기존 자원 확인값: {"ipCidrRange": "10.252.0.0/24", "network": "https://www.googleapis.com/compute/v1/projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"} — 다르면 중단합니다.
 gcloud compute networks subnets create "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${MAIN_NODE_CIDR}" --enable-private-ip-google-access --secondary-range="${MAIN_POD_RANGE}=${MAIN_POD_CIDR}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 9. compute networks subnets update subnet-dev-sbx-gke-01-an3-main ──
+# ── 7. compute networks subnets update subnet-dev-sbx-gke-01-an3-main ──
 gcloud compute networks subnets update "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 10. 선택 · compute networks subnets create subnet-dev-cicd-gke-01-an3-test ──
-# 선택 작업: 필요한 경우에만 아래 명령의 주석을 해제합니다.
-# 기존 자원 확인
-# gcloud compute networks subnets describe "${TEST_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"ipCidrRange": "10.252.1.0/26", "network": "https://www.googleapis.com/compute/v1/projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"} — 다르면 중단합니다.
-# gcloud compute networks subnets create "${TEST_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${TEST_NODE_CIDR}" --enable-private-ip-google-access --secondary-range="${TEST_POD_RANGE}=${TEST_POD_CIDR}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# IP 최소화: Cloud Run·테스트 GKE·과제 전용 Subnet을 생성하지 않습니다.
+# 과제 Namespace는 기존 Main GKE Pod 대역을 공유합니다.
 
-# ── 11. 선택 · compute networks subnets update subnet-dev-cicd-gke-01-an3-test ──
-# 선택 작업: 필요한 경우에만 아래 명령의 주석을 해제합니다.
-# gcloud compute networks subnets update "${TEST_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-
-# ── 12. compute networks subnets create subnet-dev-cicd-run-01-an3-egress ──
-# 기존 자원 확인
-gcloud compute networks subnets describe "${RUN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"ipCidrRange": "10.251.0.0/26", "network": "https://www.googleapis.com/compute/v1/projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"} — 다르면 중단합니다.
-gcloud compute networks subnets create "${RUN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${RUN_CIDR}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-
-# ── 13. compute networks subnets update subnet-dev-cicd-run-01-an3-egress ──
-gcloud compute networks subnets update "${RUN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-
-# ── 14. compute networks subnets create subnet-sbx01-an3 ──
-# 기존 자원 확인
-gcloud compute networks subnets describe "${TASK_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"ipCidrRange": "172.31.110.0/24", "network": "https://www.googleapis.com/compute/v1/projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"} — 다르면 중단합니다.
-gcloud compute networks subnets create "${TASK_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${TASK_CIDR}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-
-# ── 15. compute networks subnets update subnet-sbx01-an3 ──
-gcloud compute networks subnets update "${TASK_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-
-# ── 16. compute addresses create prip-dev-cicd-cbp-01-an3-psa ──
+# ── 8. compute addresses create prip-dev-cicd-cbp-01-an3-psa ──
 # 기존 자원 확인
 gcloud compute addresses describe "${PSA_NAME}" --project="${VPC_HOST_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # 기존 자원 확인값: {"address": "10.250.0.0", "prefixLength": 24, "purpose": "VPC_PEERING"} — 다르면 중단합니다.
 gcloud compute addresses create "${PSA_NAME}" --project="${VPC_HOST_PROJECT}" --global --purpose=VPC_PEERING --addresses="${PSA_ADDRESS}" --prefix-length="${PSA_PREFIX_LENGTH}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 17. services vpc-peerings list ──
+# ── 9. services vpc-peerings list ──
 # 기존 자원 확인
 gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network="${NETWORK}" --service=servicenetworking.googleapis.com --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 18. services vpc-peerings connect ──
+# ── 10. services vpc-peerings connect ──
 # 앞의 조회에 PSA Range 연결이 이미 있으면 건너뜁니다. 기존 Range를 덮어쓰지 않습니다.
 gcloud services vpc-peerings connect --project="${VPC_HOST_PROJECT}" --network="${NETWORK}" --service=servicenetworking.googleapis.com --ranges="${PSA_NAME}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 19. compute firewall-rules create fw-sbxtest01-alb-hc ──
+# ── 11. compute firewall-rules create fw-sbxtest01-alb-hc ──
 # 기존 자원 확인
 gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
