@@ -1,5 +1,7 @@
 # GCP_SBX_Test01
 
+**[작업 순서 Mermaid + 단계별 실행 문서·폴더 링크](01.docs/work-order.md)** — 최초 준비와 운영 자동화 순서를 여기서 확인하세요.
+
 ## 프로젝트 기준과 변수명
 
 이 작업의 주 대상은 **SBX_GKE_PROJECT=pjt-d-host01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 l2comn_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
