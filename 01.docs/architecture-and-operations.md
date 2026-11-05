@@ -75,7 +75,7 @@
 | SSL 인증서·DNS/PoC hosts | 인증서/DNS 담당자; HTTPS 기반 준비·11단계 |
 | 기존 별도 BQ Dataset 조회 권한 | 데이터 프로젝트 관리자; Notebook 데이터 조회 전 |
 
-현재 Run은 IAM 인증이 필요하지만 ingress=all, 사용자 접속은 Classic External ALB입니다. GKE API/노드는 private 설정입니다. 완전 사설 사용자 접속/Internal ALB 설계로 자동 전환되는 코드는 없습니다.
+사용자 Jupyter 접속은 Regional Internal ALB의 사설 VIP를 사용합니다. GKE API/노드도 private 설정입니다. 요청 API인 Cloud Run은 기존처럼 IAM 인증과 ingress=all이며 VPC 미연결입니다. 이 변경은 사용자용 ALB를 내부화하는 것이며 모든 Google API를 사설화하는 변경은 아닙니다. [내부 ALB 설계](internal-alb-design.md)를 확인합니다.
 
 ## 새 소스 구조의 릴리스 경계
 

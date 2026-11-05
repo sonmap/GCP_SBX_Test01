@@ -11,6 +11,12 @@ export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
 export REGION=asia-northeast3
 export NETWORK=vpc-d-shared-base
+# 내부 ALB 대역 후보: VPC Admin의 실제 중복 확인·승인 후 실행합니다.
+export ILB_VIP_SUBNET=subnet-sbx-ilb-vip-an3
+export ILB_VIP_CIDR=172.31.111.0/28
+export ILB_VIP_ADDRESS=172.31.111.5
+export ILB_PROXY_SUBNET=subnet-sbx-ilb-proxy-an3
+export ILB_PROXY_CIDR=172.31.111.64/26
 export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
 export MAIN_NODE_CIDR=10.252.0.0/24
 export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
@@ -84,4 +90,22 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # 기존 자원 확인값: {"sourceRanges": ["35.191.0.0/16", "130.211.0.0/22"], "destinationRanges": ["10.240.0.0/20"]} — 다르면 중단합니다.
 gcloud compute firewall-rules create fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --network="${NETWORK}" --direction=INGRESS --allow=tcp:8000 --source-ranges=35.191.0.0/16,130.211.0.0/22 --destination-ranges="${MAIN_POD_CIDR}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+
+# ── 내부 ALB VIP용 일반 Subnet /28 — Shared VPC Host 소유 ──
+# 후보 CIDR은 반드시 VPC Admin이 전체 사내망과 중복 여부를 확인합니다.
+gcloud compute networks subnets describe "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다. 403이면 중단합니다.
+gcloud compute networks subnets create "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${ILB_VIP_CIDR}" --enable-private-ip-google-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+
+# ── 프록시 전용 Subnet — 같은 VPC·리전에 ACTIVE가 있으면 재사용 ──
+# 목록의 network·region·purpose·role을 확인합니다. 기존 ACTIVE가 있으면
+# ILB_PROXY_SUBNET·ILB_PROXY_CIDR을 그 값으로 맞추고 아래 create를 건너뜁니다.
+gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --filter="purpose=REGIONAL_MANAGED_PROXY AND region:${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 호환 ACTIVE가 없고 CIDR 승인이 완료된 경우에만 생성합니다. /28은 사용할 수 없습니다.
+gcloud compute networks subnets create "${ILB_PROXY_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${ILB_PROXY_CIDR}" --purpose=REGIONAL_MANAGED_PROXY --role=ACTIVE --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+
+# ── ALB 프록시에서 GKE NEG의 Proxy Pod로 HTTP 전달 ──
+gcloud compute firewall-rules describe fw-sbxtest01-ilb-proxy --project="${VPC_HOST_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다. 기존 규칙이면 실제 CIDR·포트를 비교합니다.
+gcloud compute firewall-rules create fw-sbxtest01-ilb-proxy --project="${VPC_HOST_PROJECT}" --network="${NETWORK}" --direction=INGRESS --allow=tcp:8000 --source-ranges="${ILB_PROXY_CIDR}" --destination-ranges="${MAIN_POD_CIDR}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```

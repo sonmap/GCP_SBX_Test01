@@ -31,7 +31,9 @@
 | N6 | 과제 전용 Subnet | 기본 구성에서 제외 | 신규 예약 없음 | 0 추가 | 기존 자원이 있으면 그대로 유지 | 샘플 network.required=false, 과제 Namespace는 N2 공유 |
 | N7 | 기존 관리자망 | ADMIN_CIDR, Subnet 이름 미지정 | 172.31.10.0/24 | 256 | 기존 관리자 접속 대역 | 관리 PC/VM 위치는 실제 환경 확인 |
 | N8 | GKE Service ClusterIP | 명시적 Service CIDR 설정 없음 | 실제 클러스터 조회 후 기록 | 미확정 | GKE 관리 Service 범위 | 사용자 Subnet 추가 생성 대상으로 보지 않음 |
-| N9 | 사용자 ALB VIP | ip-alb-sbxtest01-shared | 생성·조회 후 기록 | 1 VIP | 현재 소스는 Global Classic External ALB | DNS·인증서 별도, 사설 ALB로 전환된 상태 아님 |
+| N9 | ALB 사설 VIP | ip-alb-sbxtest01-shared | 172.31.111.5 후보 | 1 VIP | Regional Internal ALB / pjt-d-host01 | VIP는 N10에서 예약, DNS·Regional 인증서 별도 |
+| N10 | ALB VIP용 Subnet | subnet-sbx-ilb-vip-an3 | 172.31.111.0/28 후보 | 16 | 일반 Subnet / Shared VPC Host | pjt-d-host01의 ALB에서 사용 |
+| N11 | ALB 프록시 전용 Subnet | subnet-sbx-ilb-proxy-an3 | 172.31.111.64/26 후보 | 64 | REGIONAL_MANAGED_PROXY / Shared VPC Host | 같은 VPC·리전의 기존 ACTIVE 우선 재사용 |
 
 Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니다. 이는 N5와 별개의 256주소 서브넷을 추가하는 의미가 아닙니다. 실제 Pool이 배정받은 IP와 예약 범위 사용 현황은 생성 후 확인합니다. Cloud Run의 기존 /26 예약·생성 명령은 제거했습니다. Workflows 전용 Subnet은 생성하지 않습니다.
 
@@ -61,7 +63,7 @@ Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니�
 | 배포 번들 GCS | pjt-d-host01-sbxtest01-bundles | pjt-d-host01 | 전용 Subnet 없음 | 릴리스·요청별 Terraform ZIP |
 | Build 소스 GCS | pjt-d-host01-sbxtest01-build-source | pjt-d-host01 | 전용 Subnet 없음 | Build 입력 소스 |
 | Secret Manager | jupyter-oauth-client-id / jupyter-oauth-client-secret | pjt-d-host01 | 전용 Subnet 없음 | Jupyter 로그인용 OAuth 값 |
-| 공통 ALB | alb-sbxtest01-shared, URL Map·HTTP/HTTPS Proxy·VIP | pjt-d-host01 | 현 Classic External 방식은 proxy-only Subnet 없음 | tf-manager, 인증서·DNS 별도 |
+| 공통 ALB | alb-sbxtest01-shared, URL Map·HTTP/HTTPS Proxy·VIP | pjt-d-host01 | N10 VIP용 /28과 N11 프록시 전용 /26 사용 | tf-manager, 인증서·DNS 별도 |
 | 과제 Backend·NEG·Health Check | bes-jupyter-sbx01 / hc-jupyter-sbx01 / proxy-public NEG | pjt-d-host01 | Backend는 N2 Pod IP에 연결 | 과제 Deploy에서 구성 |
 | Namespace·KSA·Hub·Proxy | sbx01 / ksa-jupyter-sbx01 | pjt-d-host01의 GKE | N2 | 자동 Deploy |
 | 사용자 Notebook·PVC | 로그인·서버 시작 시 생성 | pjt-d-host01의 GKE | Pod는 N2, PVC는 별도 디스크 자원 | JupyterHub |
@@ -77,8 +79,9 @@ Private Pool의 peered-network-ip-range도 N5의 10.250.0.0/24를 참조합니�
 | 관리 PC/VM N7 | GKE Private API | TCP 443 | VPC Admin / 운영자: 관리 경로·IAM·Kubernetes 권한 확인 |
 | Workflow | Cloud Run API | HTTPS 443 + OIDC | 플랫폼 관리자: sbx-manager의 Run Invoker |
 | API·Build·Notebook | GCS·AR·IAM·BQ 등 Google API | HTTPS 443 | VPC Admin·플랫폼 관리자: DNS·Private Google Access/승인된 API 접근 경로 |
-| ALB/Health Check | GKE Proxy Pod N2 | TCP 8000 | VPC Admin: 소스 35.191.0.0/16·130.211.0.0/22, 현재 소스 방화벽 기준 |
-| 사용자 | Jupyter ALB 도메인 | HTTPS 443 | 인증서·DNS 별도 진행 |
+| ALB 프록시 N11 | GKE Proxy Pod N2 | TCP 8000 | VPC Admin: 프록시 전용 CIDR 허용 |
+| Google Health Check | GKE Proxy Pod N2 | TCP 8000 | VPC Admin: 소스 35.191.0.0/16·130.211.0.0/22 허용 |
+| 사내 사용자 / 승인된 사설 연결 | Jupyter 내부 ALB 도메인 | HTTPS 443 | 사설 경로·내부 DNS·Regional 인증서 별도 진행 |
 | Notebook GSA | 기존 BQ Dataset | IAM·Dataset 조회 권한 | **VPC Admin 요청·완료 확인**, 데이터 IAM 권한 보유자가 실제 부여 |
 | 기본 Cloud Build | 외부 이미지·패키지 저장소 | HTTPS 443 등 | 플랫폼 관리자: 외부 다운로드가 필요한 이미지 빌드·미러링 |
 
@@ -118,3 +121,7 @@ no-public-egress는 Pool의 공용 인터넷 egress를 제한하는 설정입니
 - [Private GKE 접속](https://docs.cloud.google.com/build/docs/private-pools/accessing-private-gke-clusters-with-cloud-build-private-pools)
 - [Cloud Run Direct VPC](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc)
 - [GKE IP 범위](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/alias-ips)
+
+## 내부 ALB 추가 기준
+
+N10·N11·VIP 값은 신규 후보이며 실제 VPC·온프레미스 IPAM 조회 없이 확정한 값이 아닙니다. 기존 프록시 전용 Subnet이 있으면 N11을 추가 생성하지 않고 해당 이름·CIDR을 방화벽과 변수에 반영합니다. /28은 VIP용이고 프록시 전용은 최소 /26입니다. ALB·VIP 자원은 pjt-d-host01, Subnet은 Shared VPC Host pjt-d-shared-base에 생성합니다. [전환·구축 절차](internal-alb-design.md)를 따릅니다.

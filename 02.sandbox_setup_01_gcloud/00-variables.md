@@ -25,6 +25,12 @@ export SBX_PROJECT="pjt-net-hub-base"
 export FOLDER_ID=154455658682
 export REGION=asia-northeast3
 export NETWORK=vpc-d-shared-base
+# 내부 ALB 대역 후보: VPC Admin의 실제 중복 확인·승인 후 실행합니다.
+export ILB_VIP_SUBNET=subnet-sbx-ilb-vip-an3
+export ILB_VIP_CIDR=172.31.111.0/28
+export ILB_VIP_ADDRESS=172.31.111.5
+export ILB_PROXY_SUBNET=subnet-sbx-ilb-proxy-an3
+export ILB_PROXY_CIDR=172.31.111.64/26
 export MAIN_CLUSTER=gke-sbx-main-an3
 export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
 export MAIN_NODE_CIDR=10.252.0.0/24

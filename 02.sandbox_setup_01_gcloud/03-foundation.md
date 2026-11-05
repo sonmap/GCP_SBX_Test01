@@ -12,6 +12,12 @@ export SBX_GKE_PROJECT="pjt-d-host01"
 export VPC_HOST_PROJECT="pjt-d-shared-base"
 export REGION=asia-northeast3
 export NETWORK=vpc-d-shared-base
+# 내부 ALB 대역 후보: VPC Admin의 실제 중복 확인·승인 후 실행합니다.
+export ILB_VIP_SUBNET=subnet-sbx-ilb-vip-an3
+export ILB_VIP_CIDR=172.31.111.0/28
+export ILB_VIP_ADDRESS=172.31.111.5
+export ILB_PROXY_SUBNET=subnet-sbx-ilb-proxy-an3
+export ILB_PROXY_CIDR=172.31.111.64/26
 export MAIN_CLUSTER=gke-sbx-main-an3
 export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
 export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
@@ -137,52 +143,49 @@ gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01
 # ── 26. storage buckets add-iam-policy-binding gs://pjt-d-host01-sbxtest01-bundles · roles/storage.objectViewer ──
 gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 27. compute addresses create ip-alb-sbxtest01-shared ──
-# 기존 자원 확인
-gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute addresses create ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --ip-version=IPV4 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 27. Regional Internal ALB: 사설 VIP 예약 ──
+# 서브넷·프록시 전용 Subnet·방화벽 준비가 완료된 뒤 실행합니다.
+# 기존 Global 외부 ALB를 제자리 변환하지 않습니다. Regional 자원을 별도로 생성합니다.
+gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다.
+gcloud compute addresses create ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${ILB_VIP_SUBNET}" --addresses="${ILB_VIP_ADDRESS}" --purpose=SHARED_LOADBALANCER_VIP --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 28. compute backend-services create bes-alb-sbxtest01-shared-default ──
-# 기존 자원 확인
-gcloud compute backend-services describe bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute backend-services create bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --global --protocol=HTTP --load-balancing-scheme=EXTERNAL --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 28. 기본 Regional Health Check·Backend ──
+gcloud compute health-checks describe hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다.
+gcloud compute health-checks create http hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --port=8000 --request-path=/_chp_healthz --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute backend-services describe bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다. 기존 scheme은 INTERNAL_MANAGED여야 합니다.
+gcloud compute backend-services create bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --protocol=HTTP --load-balancing-scheme=INTERNAL_MANAGED --health-checks=hc-alb-sbxtest01-shared-default --health-checks-region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 29. compute url-maps create urlmap-alb-sbxtest01-shared ──
-# 기존 자원 확인
-gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --default-service=bes-alb-sbxtest01-shared-default --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 29. Regional URL Map ──
+gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다.
+gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --default-service="projects/${SBX_GKE_PROJECT}/regions/${REGION}/backendServices/bes-alb-sbxtest01-shared-default" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 30. compute target-http-proxies create http-proxy-alb-sbxtest01-shared ──
-# 기존 자원 확인
-gcloud compute target-http-proxies describe http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute target-http-proxies create http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --url-map=urlmap-alb-sbxtest01-shared --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 30. Regional HTTP Proxy ──
+gcloud compute target-http-proxies describe http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다.
+gcloud compute target-http-proxies create http-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --url-map="projects/${SBX_GKE_PROJECT}/regions/${REGION}/urlMaps/urlmap-alb-sbxtest01-shared" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 31. compute forwarding-rules create fr-alb-sbxtest01-shared-http ──
-# 기존 자원 확인
-gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --global --load-balancing-scheme=EXTERNAL --address=ip-alb-sbxtest01-shared --target-http-proxy=http-proxy-alb-sbxtest01-shared --ports=80 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 31. 내부 HTTP Forwarding Rule ──
+gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다. global-access는 사설 연결의 리전 제한만 해제합니다.
+gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-http --project="${SBX_GKE_PROJECT}" --region="${REGION}" --load-balancing-scheme=INTERNAL_MANAGED --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${ILB_VIP_SUBNET}" --address=ip-alb-sbxtest01-shared --ports=80 --target-http-proxy=http-proxy-alb-sbxtest01-shared --target-http-proxy-region="${REGION}" --allow-global-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 32. compute ssl-certificates describe cert-jupyter-sbx01-self ──
-# 인증서가 없으면 이후 HTTPS Proxy/443 명령을 실행하지 말고 인증서를 별도 등록합니다.
-# 기존 자원 확인
-gcloud compute ssl-certificates describe "${SSL_CERTIFICATE}" --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 32. Regional SSL 인증서 별도 준비 확인 ──
+# Global 인증서는 재사용할 수 없습니다. 아래 Regional 인증서가 없으면 HTTPS 생성을 중단합니다.
+gcloud compute ssl-certificates describe "${SSL_CERTIFICATE}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 33. compute target-https-proxies create https-proxy-alb-sbxtest01-shared ──
-# 기존 자원 확인
-gcloud compute target-https-proxies describe https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute target-https-proxies create https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --url-map=urlmap-alb-sbxtest01-shared --ssl-certificates="${SSL_CERTIFICATE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 33. Regional HTTPS Proxy ──
+gcloud compute target-https-proxies describe https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found이고 Regional 인증서가 준비된 경우에만 생성합니다.
+gcloud compute target-https-proxies create https-proxy-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --url-map="projects/${SBX_GKE_PROJECT}/regions/${REGION}/urlMaps/urlmap-alb-sbxtest01-shared" --ssl-certificates="${SSL_CERTIFICATE}" --ssl-certificates-region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# ── 34. compute forwarding-rules create fr-alb-sbxtest01-shared-https ──
-# 기존 자원 확인
-gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --global --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-# 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --global --load-balancing-scheme=EXTERNAL --address=ip-alb-sbxtest01-shared --target-https-proxy=https-proxy-alb-sbxtest01-shared --ports=443 --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# ── 34. 내부 HTTPS Forwarding Rule ──
+gcloud compute forwarding-rules describe fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+# 명시적 Not Found일 때만 생성합니다.
+gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https --project="${SBX_GKE_PROJECT}" --region="${REGION}" --load-balancing-scheme=INTERNAL_MANAGED --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${ILB_VIP_SUBNET}" --address=ip-alb-sbxtest01-shared --ports=443 --target-https-proxy=https-proxy-alb-sbxtest01-shared --target-https-proxy-region="${REGION}" --allow-global-access --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 35. 선택 · builds triggers create github ──
 # 선택 작업: 필요한 경우에만 아래 명령의 주석을 해제합니다.

@@ -1,5 +1,7 @@
 # 작업 순서와 실행 링크
 
+> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 > **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
@@ -33,7 +35,7 @@ flowchart TD
 | 1 | 권한 관리자: API·sbx-manager·tf-manager·IAM | [01-admin.md](../02.sandbox_setup_01_gcloud/01-admin.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | 두 SA 조회·위임 성공 |
 | 2 | 인프라 관리자: VPC·Subnet·PSA·방화벽 | [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md) | [02.gcloud](../02.sandbox_setup_01_gcloud) | 대역·연결 확인 |
 | 3 | 인프라 관리자: GCS·AR·Pool·GKE·Run·Workflow·ALB | [03-foundation.md](../02.sandbox_setup_01_gcloud/03-foundation.md) | [02.gcloud](../02.sandbox_setup_01_gcloud), [03.cloudbuild](../03.cloudbuild) | GKE RUNNING·API healthz 정상 |
-| 4 | Workspace·OAuth 담당자 인증 준비 / VPC Admin 사설 경로·BQ 권한 요청 / 인증서·DNS 별도 진행 | [OAuth 등록 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#4-oauth-값-등록), [그룹 관리자 역할 직접 부여](runbook-two-stage.md#4-2-cloud-identity-그룹-관리자-역할), [인증·도메인 안내](jupyterhub-external-alb-oauth-runbook.md) | [01.docs](../01.docs), [02.gcloud](../02.sandbox_setup_01_gcloud) | OAuth Secret ENABLED·tf-manager 그룹 관리자 역할 부여·도메인/인증서 준비 |
+| 4 | Workspace·OAuth 담당자 인증 준비 / VPC Admin 사설 경로·BQ 권한 요청 / 인증서·DNS 별도 진행 | [OAuth 등록 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#4-oauth-값-등록), [그룹 관리자 역할 직접 부여](runbook-two-stage.md#4-2-cloud-identity-그룹-관리자-역할), [인증·도메인 안내](jupyterhub-internal-alb-oauth-runbook.md) | [01.docs](../01.docs), [02.gcloud](../02.sandbox_setup_01_gcloud) | OAuth Secret ENABLED·tf-manager 그룹 관리자 역할 부여·도메인/인증서 준비 |
 | 5 | 운영자: Private Pool에서 GKE API 조회 | [접속 점검 명령](runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인), [점검 YAML](check-private-gke.yaml) | [01.docs](../01.docs) | 점검 Build SUCCESS |
 | 6 | 운영자: API·배포 도구 이미지와 Terraform 소스 게시 | [플랫폼 릴리스 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#5-플랫폼-릴리스-게시) | [03.cloudbuild](../03.cloudbuild) | Build SUCCESS·release.json 생성 |
 | 7 | 운영자: Chart·기본 이미지를 내부 AR로 복사 | [미러링 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#6-chart와-기본-이미지-미러링) | [03.cloudbuild](../03.cloudbuild) | 두 Build SUCCESS |

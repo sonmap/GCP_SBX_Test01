@@ -54,3 +54,7 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 ## 작업 순서
 
 VPC Admin 요청과 인증서·DNS 별도 준비를 먼저 착수합니다. 작업자는 인프라 gcloud 명령을 수행하고, 해당 외부 준비가 완료된 뒤 Private Pool 접속·사용자 인증을 확인합니다. 이후 [Deploy 명령](../02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다.
+
+## VPC Admin 요청 3 — 내부 ALB
+
+VIP용 172.31.111.0/28과 VIP 172.31.111.5는 중복 확인 전 후보입니다. 같은 VPC·리전의 ACTIVE REGIONAL_MANAGED_PROXY가 있으면 재사용하고, 없으면 172.31.111.64/26 후보를 검증합니다. Subnet 소유는 pjt-d-shared-base, ALB·VIP 소유는 pjt-d-host01입니다. 프록시 CIDR → GKE Pod CIDR TCP 8000과 Google Health Check 소스 → Pod TCP 8000을 허용하고 사내망·VPN/Interconnect에서 VIP로의 경로를 확인합니다. [내부 ALB 설계](internal-alb-design.md)

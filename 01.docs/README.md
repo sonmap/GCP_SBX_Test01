@@ -1,5 +1,7 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
+> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
@@ -41,7 +43,7 @@ Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.
 |---|---|
 | [runbook-two-stage.md](runbook-two-stage.md) | 처음부터 끝까지 실제 실행 |
 | [cloudbuild-private-gke-vpn-design.md](cloudbuild-private-gke-vpn-design.md) | 5단계 Private GKE 접속 점검이 실패할 때 |
-| [jupyterhub-external-alb-oauth-runbook.md](jupyterhub-external-alb-oauth-runbook.md) | 4단계 OAuth 준비·11단계 접속 확인 |
+| [jupyterhub-internal-alb-oauth-runbook.md](jupyterhub-internal-alb-oauth-runbook.md) | 4단계 OAuth 준비·11단계 접속 확인 |
 | [architecture-and-operations.md](architecture-and-operations.md) | 실행 계정·자동화 경계·현재 코드 제한 확인 |
 | [file-relationships.md](file-relationships.md) | 사람이 실행하는 작업과 자동 호출 관계 확인 |
 | [file-catalog.md](file-catalog.md) | 특정 파일의 역할 조회 |

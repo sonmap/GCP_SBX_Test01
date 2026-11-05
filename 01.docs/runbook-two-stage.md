@@ -95,7 +95,7 @@ gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST
 | 17~18 | Private Pool·Main GKE |
 | 19 | bootstrap 이미지 두 개 빌드: 요청 API·GKE 배포 도구 |
 | 20~26 | Cloud Run 배포·실제 URL 치환·Workflow 배포·호출 권한 |
-| 27~34 | 공통 Classic External ALB와 기존 SSL 인증서 연결 |
+| 27~34 | 공통 Regional Internal ALB와 기존 SSL 인증서 연결 |
 | 35 | 선택: GitHub 자동 릴리스 Trigger |
 
 기존 GKE/버킷/ALB 자원은 조회 결과를 비교하고 create를 건너뜁니다. Secret은 여기서 이름만 준비하고 실제 값은 4단계에서 등록합니다. SSL 인증서 `cert-jupyter-sbx01-self`가 없으면 HTTPS Proxy/443 명령 전에 인증서 담당자가 별도 등록해야 합니다. DNS/hosts 연결은 11단계에서 확인합니다.
@@ -316,8 +316,8 @@ gcloud container clusters get-credentials "${MAIN_CLUSTER}" --project="${SBX_GKE
 kubectl -n "${SBX_NAME}" get pods,svc,pvc
 kubectl -n "${SBX_NAME}" get serviceaccount "ksa-jupyter-${SBX_NAME}" -o yaml
 kubectl -n "${SBX_NAME}" get service proxy-public -o yaml
-gcloud compute backend-services get-health "bes-jupyter-${SBX_NAME}" --project="${SBX_GKE_PROJECT}" --global
-gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --global --format='value(address)'
+gcloud compute backend-services get-health "bes-jupyter-${SBX_NAME}" --project="${SBX_GKE_PROJECT}" --region="${REGION}"
+gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format='value(address)'
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 ```
 

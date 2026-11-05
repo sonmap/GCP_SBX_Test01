@@ -47,7 +47,7 @@ def gcloud_describe_or_none(resource_args, *, env=None):
     if result.returncode == 0:
         return json.loads(result.stdout or "{}")
     text = f"{result.stdout}\n{result.stderr}".lower()
-    if "not found" in text or "could not fetch resource" in text:
+    if "not found" in text or "was not found" in text:
         return None
     raise RuntimeError(
         f"command failed ({result.returncode}): {' '.join(args)}\n"
@@ -56,9 +56,10 @@ def gcloud_describe_or_none(resource_args, *, env=None):
     )
 
 
-def expected_backend(path_matcher, backend_name):
+def expected_backend(path_matcher, backend_uri):
     service = path_matcher.get("defaultService", "")
-    return service.endswith(f"/backendServices/{backend_name}")
+    return service == backend_uri or service.endswith("/" + backend_uri)
+
 
 
 def verify_workload_identity(request, env):
@@ -150,13 +151,13 @@ def ensure_health_check(project, task, env):
     name = f"hc-jupyter-{task}"
     describe_args = (
         "compute", "health-checks", "describe", name,
-        f"--project={project}", "--global",
+        f"--project={project}", f"--region={env['GCP_REGION']}",
     )
     current = gcloud_describe_or_none(describe_args, env=env)
     if current is None:
         gcloud(
             "compute", "health-checks", "create", "http", name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             "--request-path=/_chp_healthz",
             "--check-interval=10s",
             "--timeout=5s",
@@ -168,7 +169,7 @@ def ensure_health_check(project, task, env):
     else:
         gcloud(
             "compute", "health-checks", "update", "http", name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             "--request-path=/_chp_healthz",
             "--check-interval=10s",
             "--timeout=5s",
@@ -184,25 +185,26 @@ def ensure_backend_service(project, task, health_check_name, neg_backends, env):
     name = f"bes-jupyter-{task}"
     describe_args = (
         "compute", "backend-services", "describe", name,
-        f"--project={project}", "--global",
+        f"--project={project}", f"--region={env['GCP_REGION']}",
     )
     current = gcloud_describe_or_none(describe_args, env=env)
 
     if current is None:
         gcloud(
             "compute", "backend-services", "create", name,
-            f"--project={project}", "--global",
-            "--load-balancing-scheme=EXTERNAL",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
+            "--load-balancing-scheme=INTERNAL_MANAGED",
             "--protocol=HTTP",
             "--timeout=30s",
             f"--health-checks={health_check_name}",
+            f"--health-checks-region={env['GCP_REGION']}",
             "--quiet",
             env=env,
         )
         current = gcloud_describe_or_none(describe_args, env=env)
         print(f"[OK] Created backend service {name}", flush=True)
     else:
-        if current.get("loadBalancingScheme") != "EXTERNAL":
+        if current.get("loadBalancingScheme") != "INTERNAL_MANAGED":
             raise RuntimeError(
                 f"backend {name} has unexpected loadBalancingScheme="
                 f"{current.get('loadBalancingScheme')}"
@@ -213,9 +215,10 @@ def ensure_backend_service(project, task, health_check_name, neg_backends, env):
             )
         gcloud(
             "compute", "backend-services", "update", name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             "--timeout=30s",
             f"--health-checks={health_check_name}",
+            f"--health-checks-region={env['GCP_REGION']}",
             "--quiet",
             env=env,
         )
@@ -238,7 +241,7 @@ def ensure_backend_service(project, task, health_check_name, neg_backends, env):
         zone, neg_name = match.groups()
         gcloud(
             "compute", "backend-services", "remove-backend", name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             f"--network-endpoint-group={neg_name}",
             f"--network-endpoint-group-zone={zone}",
             "--quiet",
@@ -251,7 +254,7 @@ def ensure_backend_service(project, task, health_check_name, neg_backends, env):
             continue
         gcloud(
             "compute", "backend-services", "add-backend", name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             f"--network-endpoint-group={backend['name']}",
             f"--network-endpoint-group-zone={backend['zone']}",
             "--balancing-mode=RATE",
@@ -273,7 +276,7 @@ def wait_for_backend_healthy(project, backend_name, env):
     for _ in range(30):
         raw = gcloud(
             "compute", "backend-services", "get-health", backend_name,
-            f"--project={project}", "--global", "--format=json",
+            f"--project={project}", f"--region={env['GCP_REGION']}", "--format=json",
             env=env, quiet=True,
         )
         payload = json.loads(raw or "[]")
@@ -293,9 +296,10 @@ def wait_for_backend_healthy(project, backend_name, env):
 
 
 def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
+    backend_uri = f"projects/{project}/regions/{env['GCP_REGION']}/backendServices/{backend_name}"
     raw = gcloud(
         "compute", "url-maps", "describe", url_map_name,
-        f"--project={project}", "--global", "--format=json", env=env,
+        f"--project={project}", f"--region={env['GCP_REGION']}", "--format=json", env=env,
     )
     config = json.loads(raw)
 
@@ -308,12 +312,12 @@ def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
     if current_matcher is None:
         gcloud(
             "compute", "url-maps", "add-path-matcher", url_map_name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             f"--path-matcher-name={task}",
-            f"--default-service={backend_name}",
+            f"--default-service={backend_uri}",
             env=env,
         )
-    elif not expected_backend(current_matcher, backend_name):
+    elif not expected_backend(current_matcher, backend_uri):
         raise RuntimeError(
             f"URL map path matcher {task} already exists but does not point to "
             f"{backend_name}: {current_matcher.get('defaultService')}"
@@ -321,7 +325,7 @@ def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
 
     raw = gcloud(
         "compute", "url-maps", "describe", url_map_name,
-        f"--project={project}", "--global", "--format=json", env=env,
+        f"--project={project}", f"--region={env['GCP_REGION']}", "--format=json", env=env,
     )
     config = json.loads(raw)
     hostname_rules = [
@@ -331,7 +335,7 @@ def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
     if not hostname_rules:
         gcloud(
             "compute", "url-maps", "add-host-rule", url_map_name,
-            f"--project={project}", "--global",
+            f"--project={project}", f"--region={env['GCP_REGION']}",
             f"--hosts={hostname}",
             f"--path-matcher-name={task}",
             env=env,
@@ -344,7 +348,7 @@ def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
 
     raw = gcloud(
         "compute", "url-maps", "describe", url_map_name,
-        f"--project={project}", "--global", "--format=json", env=env,
+        f"--project={project}", f"--region={env['GCP_REGION']}", "--format=json", env=env,
     )
     config = json.loads(raw)
     path_matchers = {
@@ -357,7 +361,7 @@ def reconcile_url_map(project, url_map_name, task, hostname, backend_name, env):
         hostname in item.get("hosts", []) and item.get("pathMatcher") == task
         for item in config.get("hostRules", [])
     )
-    if matcher is None or not expected_backend(matcher, backend_name) or not host_ok:
+    if matcher is None or not expected_backend(matcher, backend_uri) or not host_ok:
         raise RuntimeError(
             f"URL map reconciliation failed for {hostname} -> {backend_name}"
         )

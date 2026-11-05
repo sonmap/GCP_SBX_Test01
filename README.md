@@ -1,5 +1,7 @@
 # GCP_SBX_Test01
 
+> **[내부 사설 ALB 설계](01.docs/internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+
 > **[IP 최소화 구성](01.docs/minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](01.docs/network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.

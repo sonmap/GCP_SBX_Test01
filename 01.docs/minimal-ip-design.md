@@ -9,6 +9,7 @@
 | 과제 프로젝트 | 기존 프로젝트 사용, network.required=false | 과제별 Subnet 0 |
 | 과제 JupyterHub·Notebook | 중앙 GKE Namespace와 기존 Pod 대역 사용 | 과제별 Pod CIDR 별도 예약 0, 실제 Pod IP는 소비 |
 | Main GKE | Node 10.252.0.0/24·Pod 10.240.0.0/20·제어 영역 10.253.0.0/28 유지·재사용 | 기존 사용이면 새 대역 추가 없음 |
+| 내부 ALB | VIP용 172.31.111.0/28 후보, 기존 프록시 전용 Subnet 재사용 우선 | VIP용 16주소, 프록시 신규 시 /26 64주소 추가 |
 | Private Pool | 기존 호환 PSA 할당에 여유가 있으면 재사용, 없으면 현재 10.250.0.0/24 설계 검증 | 신규 PSA는 최소 /24 단위 |
 
 ## 유지하는 대역을 줄이지 않은 이유
@@ -45,3 +46,7 @@ gcloud run services update run-sbxtest01-provisioner --project="${SBX_GKE_PROJEC
 ```
 
 기존 Subnet 예약이 자동 해제되는 것은 아닙니다. 위 표의 0은 새 구성의 추가 예약 기준이며 실제 현재 IP 확보량을 의미하지 않습니다.
+
+## 내부 ALB 추가 요구 반영
+
+사용자 사설 접속을 위해 VIP용 /28을 추가합니다. 프록시 전용 Subnet은 /28로 만들 수 없으며 최소 /26입니다. 같은 VPC·리전에 이미 있다면 공유하여 추가 /26 예약을 피합니다. 후보 CIDR·소유 프로젝트는 [내부 ALB 설계](internal-alb-design.md)에서 확인합니다.

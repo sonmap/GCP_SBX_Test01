@@ -23,7 +23,7 @@
 | `01.docs/cloudbuild-private-gke-vpn-design.md` | Private Pool 사설 IP 경로 전제와 DNS 대안 |
 | `01.docs/file-catalog.md` | 이 파일: 전체 파일 설명 |
 | `01.docs/file-relationships.md` | 전체 파일 관계 Mermaid |
-| `01.docs/jupyterhub-external-alb-oauth-runbook.md` | ALB·OAuth 접속 설명 |
+| `01.docs/jupyterhub-internal-alb-oauth-runbook.md` | ALB·OAuth 접속 설명 |
 | `01.docs/runbook-two-stage.md` | 실행 순서 |
 | `05.sandbox_json/sbx01-approved-request.json` | 과제 요청 예시, 새 릴리스 값으로 교체 필요 |
 | `02.sandbox_setup_01_gcloud/mirror-jupyter.sh` | Chart·기본 이미지를 내부 AR로 복사하는 Build 제출 |
