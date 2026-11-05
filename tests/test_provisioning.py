@@ -35,7 +35,7 @@ class ProvisioningTests(unittest.TestCase):
         written={}
         bucket=mock.Mock();bucket.name=ENV['BUNDLE_BUCKET'];bucket.blob.side_effect=lambda name:name
         def download(source,destination):
-            shutil.copytree(ROOT/'sandbxo_setup_terraform',destination/'sandbxo_setup_terraform')
+            shutil.copytree(ROOT/'sandbox_setup_02_terraform',destination/'sandbox_setup_02_terraform')
             return destination
         with mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=download),mock.patch.object(p,'upload_immutable',side_effect=lambda name,data,ctype:written.setdefault(name,data)):
             client.return_value.bucket.return_value=bucket
@@ -94,7 +94,7 @@ class ProvisioningTests(unittest.TestCase):
             with zipfile.ZipFile(work/'source.zip') as archive:
                 paths=archive.namelist()
                 self.assertTrue(paths)
-                self.assertTrue(all(name.startswith('sandbxo_setup_terraform/02-sandbox/deployments/') for name in paths))
+                self.assertTrue(all(name.startswith('sandbox_setup_02_terraform/deployments/') for name in paths))
                 archive.extractall(extracted)
             written={}
             bucket=mock.Mock();bucket.name=ENV['BUNDLE_BUCKET'];bucket.blob.side_effect=lambda name:name

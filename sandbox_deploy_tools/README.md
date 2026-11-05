@@ -11,4 +11,4 @@
 | set-request-release.py | 신청 JSON에 새 릴리스 소스 정보 반영 |
 | group_upsert.py | Google Group과 구성원 동기화 |
 
-일반 실행 순서는 `docs/runbook-two-stage.md`를 따릅니다. `group_upsert.py`는 `sandbox_gke_deployer/`의 동일 파일과 함께 유지하며 Cloud Build 안에서 사용합니다. 최초 인프라 1~3단계 명령은 이 폴더가 아니라 `infra_setup_gcloud/`에 있습니다.
+일반 실행 순서는 `docs/runbook-two-stage.md`를 따릅니다. `group_upsert.py`는 `sandbox_gke_deployer/`의 동일 파일과 함께 유지하며 Cloud Build 안에서 사용합니다. 최초 인프라 1~3단계 명령은 이 폴더가 아니라 `sandbox_setup_01_gcloud/`에 있습니다.

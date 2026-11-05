@@ -4,13 +4,13 @@
 
 ```mermaid
 flowchart TD
-  CFG["infra_setup_gcloud/00-variables.md"] -.-> A["infra_setup_gcloud/01-admin.md: 개별 gcloud"]
-  CFG -.-> N["infra_setup_gcloud/02-network.md: 개별 gcloud"]
-  CFG -.-> F["infra_setup_gcloud/03-foundation.md: 개별 gcloud"]
-  Y["infra_setup_gcloud/configs/: YAML 입력 파일"] -.-> F
+  CFG["sandbox_setup_01_gcloud/00-variables.md"] -.-> A["sandbox_setup_01_gcloud/01-admin.md: 개별 gcloud"]
+  CFG -.-> N["sandbox_setup_01_gcloud/02-network.md: 개별 gcloud"]
+  CFG -.-> F["sandbox_setup_01_gcloud/03-foundation.md: 개별 gcloud"]
+  Y["sandbox_setup_01_gcloud/configs/: YAML 입력 파일"] -.-> F
   A --> N
   N --> F
-  F --> REL["infra_setup_gcloud/release.sh"]
+  F --> REL["sandbox_setup_01_gcloud/release.sh"]
   REL --> YAML["cloudbuild/platform-release.yaml"]
   YAML --> RD["sandbox_gke_deployer/Dockerfile"]
   YAML --> PD["sandbox_request_api/Dockerfile"]
@@ -37,7 +37,7 @@ flowchart TD
   BUNDLE --> BUILD["동적 Cloud Build: tf-manager"]
   BUILD --> GRP["sandbox_gke_deployer/group_upsert.py"]
   GRP --> IM["Infrastructure Manager: tf-manager"]
-  IM --> T1["sandbxo_setup_terraform/02-sandbox/deployments/10-project/"]
+  IM --> T1["sandbox_setup_02_terraform/deployments/10-project/"]
   T1 --> T2["20-network/: 선택적"]
   T2 --> T3["30-project-iam/"]
   T3 --> T4["40-data/"]
@@ -50,7 +50,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  M["infra_setup_gcloud/mirror-jupyter.sh"] --> MC["cloudbuild/mirror-jupyterhub-chart.yaml"]
+  M["sandbox_setup_01_gcloud/mirror-jupyter.sh"] --> MC["cloudbuild/mirror-jupyterhub-chart.yaml"]
   M --> MI["cloudbuild/mirror-jupyterhub-images.yaml"]
   MC --> AR["Artifact Registry: Chart·기본 이미지"]
   MI --> AR

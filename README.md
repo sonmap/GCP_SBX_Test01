@@ -6,11 +6,11 @@
 
 | 폴더 | 역할 |
 |---|---|
-| `infra_setup_gcloud/` | 최초 1·2·3단계 인프라 구성 명령 |
+| `sandbox_setup_01_gcloud/` | 최초 1·2·3단계 인프라 구성 명령 |
 | `sandbox_json/` | 과제 신청 JSON |
 | `sandbox_json_rules/` | 신청 JSON의 필수 항목·허용값 검사 규칙 |
 | `sandbox_request_api/` | Cloud Run에서 신청 접수·검증·배포 시작 |
-| `sandbxo_setup_terraform/` | 과제별 프로젝트·IAM·Dataset·GCS 구성 |
+| `sandbox_setup_02_terraform/` | 과제별 프로젝트·IAM·Dataset·GCS 구성 |
 | `sandbox_gke_deployer/` | Cloud Build에서 GKE·JupyterHub·ALB 연결 |
 | `Jupiter-setup-image/` | 사용자가 접속할 Notebook 이미지 제작 |
 | `sandbox_deploy_tools/` | JSON 업로드·소스 ZIP 게시·Secret 등록 등 보조 도구 |
@@ -21,10 +21,10 @@
 
 | 단계 | 작업 | 개별 명령어 |
 |---|---|---|
-| 준비 | 공통 변수 설정 | [00-variables.md](infra_setup_gcloud/00-variables.md) |
-| 1 | 관리자 권한·서비스 계정 | [01-admin.md](infra_setup_gcloud/01-admin.md) |
-| 2 | Shared VPC·서브넷·PSA·방화벽 | [02-network.md](infra_setup_gcloud/02-network.md) |
-| 3 | Cloud Run·Cloud Build·GKE·Workflow·ALB | [03-foundation.md](infra_setup_gcloud/03-foundation.md) |
+| 준비 | 공통 변수 설정 | [00-variables.md](sandbox_setup_01_gcloud/00-variables.md) |
+| 1 | 관리자 권한·서비스 계정 | [01-admin.md](sandbox_setup_01_gcloud/01-admin.md) |
+| 2 | Shared VPC·서브넷·PSA·방화벽 | [02-network.md](sandbox_setup_01_gcloud/02-network.md) |
+| 3 | Cloud Run·Cloud Build·GKE·Workflow·ALB | [03-foundation.md](sandbox_setup_01_gcloud/03-foundation.md) |
 | 이후 과제별 | 프로젝트·IAM·BigQuery·GCS | Infrastructure Manager의 Terraform |
 
 **1~3단계는 개별 gcloud 명령을 한 줄씩 복사하여 실행합니다.** Python 통합 실행기와 config.json은 제거했습니다. 전체 실행 스크립트·--apply 모드는 없습니다. 조회 결과를 확인하고 없는 자원만 생성합니다.
@@ -34,7 +34,7 @@ git clone https://github.com/sonmap/GCP_SBX_Test01.git
 cd GCP_SBX_Test01
 ```
 
-[공통 변수](infra_setup_gcloud/00-variables.md)를 같은 터미널에 설정한 후 1 → 2 → 3 순서로 진행합니다. 최신 Google Cloud CLI와 Bash가 필요합니다. 1~3단계 명령 실행에는 Python·Terraform 설치가 필요하지 않습니다. Cloud Build/Run/Workflows용 YAML은 [`infra_setup_gcloud/configs/`](infra_setup_gcloud/configs/)에 있습니다. 이후 과제별 자동화의 Python 프로그램은 유지합니다.
+[공통 변수](sandbox_setup_01_gcloud/00-variables.md)를 같은 터미널에 설정한 후 1 → 2 → 3 순서로 진행합니다. 최신 Google Cloud CLI와 Bash가 필요합니다. 1~3단계 명령 실행에는 Python·Terraform 설치가 필요하지 않습니다. Cloud Build/Run/Workflows용 YAML은 [`sandbox_setup_01_gcloud/configs/`](sandbox_setup_01_gcloud/configs/)에 있습니다. 이후 과제별 자동화의 Python 프로그램은 유지합니다.
 
 | 표시 이름 | 실제 서비스 계정 ID | 용도 |
 |---|---|---|

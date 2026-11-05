@@ -25,8 +25,8 @@
 | `docs/jupyterhub-external-alb-oauth-runbook.md` | ALB·OAuth 접속 설명 |
 | `docs/runbook-two-stage.md` | 실행 순서 |
 | `sandbox_json/sbx01-approved-request.json` | 과제 요청 예시, 새 릴리스 값으로 교체 필요 |
-| `infra_setup_gcloud/mirror-jupyter.sh` | Chart·기본 이미지를 내부 AR로 복사하는 Build 제출 |
-| `infra_setup_gcloud/release.sh` | 현재 Git 커밋 기준 플랫폼 릴리스 Build 제출 |
+| `sandbox_setup_01_gcloud/mirror-jupyter.sh` | Chart·기본 이미지를 내부 AR로 복사하는 Build 제출 |
+| `sandbox_setup_01_gcloud/release.sh` | 현재 Git 커밋 기준 플랫폼 릴리스 Build 제출 |
 | `Jupiter-setup-image/Dockerfile` | 해당 프로그램 실행 이미지 정의 |
 | `Jupiter-setup-image/README.md` | 해당 기능 설명서 |
 | `Jupiter-setup-image/build-gcloud.sh` | tf-manager로 Notebook 이미지 Build 제출 |
@@ -39,27 +39,27 @@
 | `sandbox_deploy_tools/run-approved-workflow.sh` | 승인 요청 업로드·Generation/해시·Workflow 실행 |
 | `sandbox_deploy_tools/set-jupyter-oauth-secrets.sh` | OAuth 비밀값을 Secret Manager 버전에 등록 |
 | `sandbox_deploy_tools/set-request-release.py` | 새 release.json 값으로 요청 source 갱신 |
-| `sandbxo_setup_terraform/02-sandbox/README.md` | 과제별 독립 IM State 안내 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/10-project/main.tf` | 프로젝트·API·자동화 IAM |
-| `sandbxo_setup_terraform/02-sandbox/deployments/10-project/variables.tf` | 입력 변수 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/10-project/versions.tf` | Terraform/Provider 버전 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/20-network/main.tf` | 선택적 과제 네트워크 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/20-network/variables.tf` | 입력 변수 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/20-network/versions.tf` | Terraform/Provider 버전 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/30-project-iam/main.tf` | 과제 Group IAM |
-| `sandbxo_setup_terraform/02-sandbox/deployments/30-project-iam/variables.tf` | 입력 변수 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/30-project-iam/versions.tf` | Terraform/Provider 버전 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/40-data/main.tf` | Dataset·Bucket·공통 GSA·WI |
-| `sandbxo_setup_terraform/02-sandbox/deployments/40-data/variables.tf` | 입력 변수 |
-| `sandbxo_setup_terraform/02-sandbox/deployments/40-data/versions.tf` | Terraform/Provider 버전 |
+| `sandbox_setup_02_terraform/README.md` | 과제별 독립 IM State 안내 |
+| `sandbox_setup_02_terraform/deployments/10-project/main.tf` | 프로젝트·API·자동화 IAM |
+| `sandbox_setup_02_terraform/deployments/10-project/variables.tf` | 입력 변수 |
+| `sandbox_setup_02_terraform/deployments/10-project/versions.tf` | Terraform/Provider 버전 |
+| `sandbox_setup_02_terraform/deployments/20-network/main.tf` | 선택적 과제 네트워크 |
+| `sandbox_setup_02_terraform/deployments/20-network/variables.tf` | 입력 변수 |
+| `sandbox_setup_02_terraform/deployments/20-network/versions.tf` | Terraform/Provider 버전 |
+| `sandbox_setup_02_terraform/deployments/30-project-iam/main.tf` | 과제 Group IAM |
+| `sandbox_setup_02_terraform/deployments/30-project-iam/variables.tf` | 입력 변수 |
+| `sandbox_setup_02_terraform/deployments/30-project-iam/versions.tf` | Terraform/Provider 버전 |
+| `sandbox_setup_02_terraform/deployments/40-data/main.tf` | Dataset·Bucket·공통 GSA·WI |
+| `sandbox_setup_02_terraform/deployments/40-data/variables.tf` | 입력 변수 |
+| `sandbox_setup_02_terraform/deployments/40-data/versions.tf` | Terraform/Provider 버전 |
 | `tests/test_provisioning.py` | 실제 생성 ZIP·Build 계정·그룹 순서·선택 네트워크 검증 |
-| `infra_setup_gcloud/00-variables.md` | 공통 변수·프로젝트 번호 조회 |
-| `infra_setup_gcloud/01-admin.md` | 1단계 API·두 계정·IAM의 개별 gcloud 명령 |
-| `infra_setup_gcloud/02-network.md` | 2단계 네트워크의 조회/생성 gcloud 명령 |
-| `infra_setup_gcloud/03-foundation.md` | 3단계 공통 기반의 개별 gcloud 명령 |
-| `infra_setup_gcloud/configs/bootstrap-build.yaml` | 초기 두 실행 이미지 Build 입력 |
-| `infra_setup_gcloud/configs/provisioner-env.yaml` | Cloud Run 환경변수 입력 |
-| `infra_setup_gcloud/configs/workflow.template.yaml` | Workflows OIDC 호출 템플릿, URL만 치환 |
+| `sandbox_setup_01_gcloud/00-variables.md` | 공통 변수·프로젝트 번호 조회 |
+| `sandbox_setup_01_gcloud/01-admin.md` | 1단계 API·두 계정·IAM의 개별 gcloud 명령 |
+| `sandbox_setup_01_gcloud/02-network.md` | 2단계 네트워크의 조회/생성 gcloud 명령 |
+| `sandbox_setup_01_gcloud/03-foundation.md` | 3단계 공통 기반의 개별 gcloud 명령 |
+| `sandbox_setup_01_gcloud/configs/bootstrap-build.yaml` | 초기 두 실행 이미지 Build 입력 |
+| `sandbox_setup_01_gcloud/configs/provisioner-env.yaml` | Cloud Run 환경변수 입력 |
+| `sandbox_setup_01_gcloud/configs/workflow.template.yaml` | Workflows OIDC 호출 템플릿, URL만 치환 |
 | `tests/test_commandbooks.py` | 명령 Bash 구문·변수 치환·Workflow 치환의 오프라인 검증 |
 | `sandbox_gke_deployer/README.md` | GKE·Jupyter 배포 도구 역할 설명 |
 | `sandbox_request_api/README.md` | 신청 접수 API 역할 설명 |

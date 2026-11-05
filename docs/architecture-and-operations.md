@@ -6,14 +6,14 @@
 
 | 단계 | 문서 | 실행 주체 |
 |---|---|---|
-| 공통 변수 | infra_setup_gcloud/00-variables.md | 기존 관리자 |
-| 1 관리자 권한 | infra_setup_gcloud/01-admin.md | 기존 권한 관리자 |
-| 2 공통 네트워크 | infra_setup_gcloud/02-network.md | tf-manager impersonation |
-| 3 공통 기반 | infra_setup_gcloud/03-foundation.md | tf-manager impersonation |
+| 공통 변수 | sandbox_setup_01_gcloud/00-variables.md | 기존 관리자 |
+| 1 관리자 권한 | sandbox_setup_01_gcloud/01-admin.md | 기존 권한 관리자 |
+| 2 공통 네트워크 | sandbox_setup_01_gcloud/02-network.md | tf-manager impersonation |
+| 3 공통 기반 | sandbox_setup_01_gcloud/03-foundation.md | tf-manager impersonation |
 
 문서의 각 gcloud 명령을 복사하여 개별 실행합니다. Python 통합 실행기와 config.json은 제거했습니다. 자동 미리보기/--apply 모드는 없으며 조회와 생성 명령을 명확히 분리했습니다. 조회 성공 시 CIDR/Private/Pod Range 등 값을 확인하고 create를 건너뜁니다. 명시적 Not Found일 때만 생성하며 403·인증·연결 오류면 중단합니다. 기존 State/URL Map 경로는 자동 삭제하지 않습니다.
 
-Cloud Build, Cloud Run 환경변수, Workflows의 선언형 입력 파일은 infra_setup_gcloud/configs/에 있습니다. Workflow URL 자리만 sed로 바꿉니다. 1~3단계 실행에 Python/Terraform 설치는 필요하지 않습니다. 과제별 배포의 기존 Python/Infrastructure Manager는 유지합니다.
+Cloud Build, Cloud Run 환경변수, Workflows의 선언형 입력 파일은 sandbox_setup_01_gcloud/configs/에 있습니다. Workflow URL 자리만 sed로 바꿉니다. 1~3단계 실행에 Python/Terraform 설치는 필요하지 않습니다. 과제별 배포의 기존 Python/Infrastructure Manager는 유지합니다.
 
 ## 두 사용자 관리 서비스 계정
 
@@ -62,6 +62,6 @@ GKE는 Private Node/Private IP Endpoint를 사용합니다. 기본 `GKE_ENDPOINT
 
 ## 소스 폴더명 변경 후 릴리스
 
-소스 폴더명을 변경했으므로 새 플랫폼 릴리스에서 이미지와 소스 ZIP을 함께 생성해야 합니다. ZIP 내부 Root는 `sandbxo_setup_terraform/02-sandbox/deployments/`이며 sandbox_request_api도 같은 경로를 읽습니다. 이전 릴리스 ZIP을 새 API 이미지와 섞지 않습니다. Cloud Run/Workflow/Artifact Registry 이미지 이름은 이번 소스 경로 정리로 변경하지 않습니다.
+소스 폴더명을 변경했으므로 새 플랫폼 릴리스에서 이미지와 소스 ZIP을 함께 생성해야 합니다. ZIP 내부 Root는 `sandbox_setup_02_terraform/deployments/`이며 sandbox_request_api도 같은 경로를 읽습니다. 이전 릴리스 ZIP을 새 API 이미지와 섞지 않습니다. Cloud Run/Workflow/Artifact Registry 이미지 이름은 이번 소스 경로 정리로 변경하지 않습니다.
 
 별도 데이터레이크 조회 권한 자동화 코드는 제거했습니다. 기존 BQ 프로젝트의 데이터 접근 권한은 해당 프로젝트 관리자가 관리합니다. 과제별 40-data의 Dataset/GCS 및 Workload Identity 구성은 그대로 유지합니다. 이번 변경은 저장소 소스만 정리하며 이미 배포된 GCP 서비스나 기존 BQ 자원을 삭제하지 않습니다.

@@ -1,6 +1,6 @@
 # Jupyter 접속 경로와 OAuth
 
-`infra_setup_gcloud/03-foundation.md`의 개별 명령이 공통 Classic External ALB `alb-sbxtest01-shared`를 생성합니다. 기존 SSL 인증서 리소스를 이름으로 참조하며 인증서/키를 Git에 저장하지 않습니다.
+`sandbox_setup_01_gcloud/03-foundation.md`의 개별 명령이 공통 Classic External ALB `alb-sbxtest01-shared`를 생성합니다. 기존 SSL 인증서 리소스를 이름으로 참조하며 인증서/키를 Git에 저장하지 않습니다.
 
 과제 배포의 `sandbox_gke_deployer/reconcile_postdeploy.py`가 과제별 Health Check/Backend를 만들고 NEG를 붙인 뒤 공통 URL Map `urlmap-alb-sbxtest01-shared`에 Host 경로를 추가합니다. GKE Service는 ClusterIP이며 GKE API는 private endpoint를 사용합니다. ALB 사용자 접속은 외부 경로입니다.
 
