@@ -14,13 +14,13 @@ BOOKS = ['00-variables.md', '01-admin.md', '02-network.md', '03-foundation.md']
 
 
 def blocks(name):
-    return re.findall(r'```bash\n(.*?)\n```', (ROOT / 'gcloud' / name).read_text(), re.S)
+    return re.findall(r'```bash\n(.*?)\n```', (ROOT / 'infra_setup_gcloud' / name).read_text(), re.S)
 
 
 class CommandbookTests(unittest.TestCase):
     def test_all_blocks_are_valid_bash_and_no_python_executor(self):
-        self.assertFalse((ROOT / 'gcloud/bootstrap.py').exists())
-        self.assertFalse((ROOT / 'gcloud/config.example.json').exists())
+        self.assertFalse((ROOT / 'infra_setup_gcloud/bootstrap.py').exists())
+        self.assertFalse((ROOT / 'infra_setup_gcloud/config.example.json').exists())
         for name in BOOKS:
             for block in blocks(name):
                 self.assertNotRegex(block, r'\bpython[0-9.]*\b|\bterraform\b|\bfor\b|\bwhile\b|\bfunction\b')
@@ -36,7 +36,7 @@ class CommandbookTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             (work / 'bin').mkdir()
-            shutil.copytree(ROOT / 'gcloud/configs', work / 'gcloud/configs')
+            shutil.copytree(ROOT / 'infra_setup_gcloud/configs', work / 'infra_setup_gcloud/configs')
             stub = work / 'bin/gcloud'
             stub.write_text('''#!/bin/sh
 printf '%s\\n' "$*" >> "$GCLOUD_TEST_LOG"
@@ -66,14 +66,14 @@ esac
             self.assertEqual(len(creates), 2)
             self.assertTrue(any('create sbx-manager ' in c for c in creates))
             self.assertTrue(any('create tf-manager ' in c for c in creates))
-            self.assertTrue(any('_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA' in c for c in calls))
+            self.assertIn('_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA', (ROOT / 'infra_setup_gcloud/03-foundation.md').read_text())
             self.assertFalse(any('${' in c for c in calls))
             for call in calls:
                 if call.startswith(('compute ', 'storage ', 'builds ', 'run ', 'workflows ')):
                     self.assertIn('--impersonate-service-account=tf-manager@', call)
 
     def test_static_configs_match_runtime_targets_and_reference_files_exist(self):
-        configs = ROOT / 'gcloud/configs'
+        configs = ROOT / 'infra_setup_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
         self.assertEqual(env['GCP_PROJECT'], 'prj-b-cicd-local-236d')
         self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')

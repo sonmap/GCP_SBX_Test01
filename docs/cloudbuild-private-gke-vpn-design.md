@@ -1,6 +1,6 @@
 # Private Pool → Private GKE 연결
 
-이 버전의 기본 설정은 `gcloud/configs/provisioner-env.yaml`의 `GKE_ENDPOINT_MODE=internal`입니다.
+이 버전의 기본 설정은 `infra_setup_gcloud/configs/provisioner-env.yaml`의 `GKE_ENDPOINT_MODE=internal`입니다.
 
 Cloud Build와 GKE의 관리 네트워크는 VPC Peering 뒤에 있습니다. Peering은 전이 라우팅을 지원하지 않으므로 같은 Shared VPC 연결만으로 Private Pool에서 GKE Private IP에 도달할 수 없습니다. 1~3단계 명령에는 HA VPN/BGP 자동 구축이 포함되지 않습니다.
 

@@ -21,7 +21,7 @@ export GKE_PROJECT_NUMBER="$(gcloud projects describe "${GKE_PROJECT}" --account
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
-gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com admin.googleapis.com cloudscheduler.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com admin.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud services enable container.googleapis.com compute.googleapis.com --project="${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 
@@ -30,7 +30,6 @@ gcloud beta services identity create --service=cloudbuild.googleapis.com --proje
 gcloud beta services identity create --service=config.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=run.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=workflows.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=cloudscheduler.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"

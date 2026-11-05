@@ -4,7 +4,7 @@
 set -euo pipefail
 
 if [ "$#" -ne 2 ]; then
-  echo "Usage: bash scripts/run-approved-workflow.sh REQUEST_ID APPROVED_JSON_FILE" >&2
+  echo "Usage: bash sandbox_deploy_tools/run-approved-workflow.sh REQUEST_ID APPROVED_JSON_FILE" >&2
   exit 2
 fi
 

@@ -206,7 +206,7 @@ def assemble_bundles(payload: dict, raw_request: bytes) -> tuple[str, dict]:
     with tempfile.TemporaryDirectory() as temp_dir:
         temp = Path(temp_dir)
         source_root = download_source_archive(payload["source"], temp / "source")
-        deployment_root = source_root / "terraform" / "02-sandbox" / "deployments"
+        deployment_root = source_root / "sandbxo_setup_terraform" / "02-sandbox" / "deployments"
         for stage, archive_name in STAGES.items():
             source = deployment_root / stage
             if not source.is_dir():

@@ -1,11 +1,11 @@
 # 사용자 Notebook 표준 이미지
 
-`Dockerfile`은 내부 sample Notebook 이미지에 gcloud/git/jq와 pandas/pyarrow/BigQuery/GCS 라이브러리를 추가합니다. `cloudbuild.yaml`로 빌드하고 `build-gcloud.sh`로 제출합니다. 모든 Build는 tf-manager를 명시적으로 사용합니다.
+`Dockerfile`은 내부 sample Notebook 이미지에 infra_setup_gcloud/git/jq와 pandas/pyarrow/BigQuery/GCS 라이브러리를 추가합니다. `cloudbuild.yaml`로 빌드하고 `build-gcloud.sh`로 제출합니다. 모든 Build는 tf-manager를 명시적으로 사용합니다.
 
 미러링 후 다음 명령으로 빌드합니다.
 
 ```bash
-CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT=tf-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com bash jupyter-singleuser-standard/build-gcloud.sh
+CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT=tf-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com bash Jupiter-setup-image/build-gcloud.sh
 ```
 
 이미지: `asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test`.

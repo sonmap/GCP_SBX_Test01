@@ -6,13 +6,13 @@ set -euo pipefail
 # it does not download Terraform source from GitHub.
 #
 # Usage:
-#   ./scripts/publish-sandbox-source.sh BUCKET_NAME RELEASE_ID
+#   ./sandbox_deploy_tools/publish-sandbox-source.sh BUCKET_NAME RELEASE_ID
 
 bucket_name="${1:?Usage: $0 BUCKET_NAME RELEASE_ID}"
 release_id="${2:?Usage: $0 BUCKET_NAME RELEASE_ID}"
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-source_root="$repo_root/terraform/02-sandbox/deployments"
+source_root="$repo_root/sandbxo_setup_terraform/02-sandbox/deployments"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
@@ -27,7 +27,7 @@ import zipfile
 
 repo_root = pathlib.Path(sys.argv[1])
 archive = pathlib.Path(sys.argv[2])
-source = repo_root / "terraform" / "02-sandbox" / "deployments"
+source = repo_root / "sandbxo_setup_terraform" / "02-sandbox" / "deployments"
 
 excluded_dirs = {".terraform", "__pycache__"}
 excluded_names = {

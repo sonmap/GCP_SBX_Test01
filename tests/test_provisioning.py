@@ -4,6 +4,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -11,7 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
-spec=importlib.util.spec_from_file_location('provisioner',ROOT/'cloudrun-provisioner/main.py')
+spec=importlib.util.spec_from_file_location('provisioner',ROOT/'sandbox_request_api/main.py')
 p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
 ENV={'GCP_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
      'BUNDLE_BUCKET':'prj-b-cicd-local-236d-sbxtest01-bundles',
@@ -22,7 +23,7 @@ ENV={'GCP_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
 
 
 def payload():
-    data=json.loads((ROOT/'examples/sbx01-approved-request.json').read_text())
+    data=json.loads((ROOT/'sandbox_json/sbx01-approved-request.json').read_text())
     data['source']['sha256']='a'*64
     data['source']['release_id']='git-test123'
     return data
@@ -34,7 +35,7 @@ class ProvisioningTests(unittest.TestCase):
         written={}
         bucket=mock.Mock();bucket.name=ENV['BUNDLE_BUCKET'];bucket.blob.side_effect=lambda name:name
         def download(source,destination):
-            shutil.copytree(ROOT/'terraform',destination/'terraform')
+            shutil.copytree(ROOT/'sandbxo_setup_terraform',destination/'sandbxo_setup_terraform')
             return destination
         with mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=download),mock.patch.object(p,'upload_immutable',side_effect=lambda name,data,ctype:written.setdefault(name,data)):
             client.return_value.bucket.return_value=bucket
@@ -79,12 +80,38 @@ class ProvisioningTests(unittest.TestCase):
         data=payload();data['source']['sha256']='0'*64
         with self.assertRaisesRegex(ValueError,'publish a new'): p.validate_semantics(data)
 
+    def test_published_archive_matches_api_source_root_after_rename(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work=Path(temp)
+            (work/'bin').mkdir()
+            stub=work/'bin/gcloud'
+            stub.write_text('#!/bin/sh\nif [ "$1" = storage ] && [ "$2" = cp ]; then\n  cp "$3" "$SBX_TEST_ARCHIVE"\nelif [ "$1" = storage ] && [ "$2" = objects ] && [ "$3" = describe ]; then\n  printf \'1234567890123\\n\'\nelse\n  exit 2\nfi\n')
+            stub.chmod(0o755)
+            env=dict(os.environ,PATH=str(work/'bin')+os.pathsep+os.environ['PATH'],SBX_TEST_ARCHIVE=str(work/'source.zip'))
+            subprocess.run(['bash',str(ROOT/'sandbox_deploy_tools/publish-sandbox-source.sh'),'test-bucket','git-test123'],
+                           cwd=ROOT,env=env,check=True,capture_output=True,text=True)
+            extracted=work/'extracted'
+            with zipfile.ZipFile(work/'source.zip') as archive:
+                paths=archive.namelist()
+                self.assertTrue(paths)
+                self.assertTrue(all(name.startswith('sandbxo_setup_terraform/02-sandbox/deployments/') for name in paths))
+                archive.extractall(extracted)
+            written={}
+            bucket=mock.Mock();bucket.name=ENV['BUNDLE_BUCKET'];bucket.blob.side_effect=lambda name:name
+            def source(source_config,destination):
+                shutil.copytree(extracted,destination)
+                return destination
+            with mock.patch.dict(os.environ,ENV),mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=source),mock.patch.object(p,'upload_immutable',side_effect=lambda name,data,ctype:written.setdefault(name,data)):
+                client.return_value.bucket.return_value=bucket
+                _,manifest=p.assemble_bundles(payload(),b'{}')
+            self.assertEqual(len(manifest['bundles']),4)
+
     def test_schema_reference_matches_runtime(self):
-        self.assertEqual(json.loads((ROOT/'schemas/sandbox-request.schema.json').read_text()),p.SCHEMA)
+        self.assertEqual(json.loads((ROOT/'sandbox_json_rules/sandbox-request.schema.json').read_text()),p.SCHEMA)
         p.VALIDATOR.validate(payload())
 
     def test_runner_group_sync_matches_source(self):
-        self.assertEqual((ROOT/'scripts/group_upsert.py').read_bytes(),(ROOT/'automation-runner/group_upsert.py').read_bytes())
+        self.assertEqual((ROOT/'sandbox_deploy_tools/group_upsert.py').read_bytes(),(ROOT/'sandbox_gke_deployer/group_upsert.py').read_bytes())
 
 
 if __name__=='__main__': unittest.main()
