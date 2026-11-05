@@ -21,7 +21,7 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
-gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com admin.googleapis.com --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud services enable container.googleapis.com compute.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
 
@@ -90,7 +90,6 @@ gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${
 gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${l2comn_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${l2comn_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${l2comn_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
 gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${l2comn_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
@@ -128,7 +127,8 @@ gcloud iam service-accounts add-iam-policy-binding "${SBX_GKE_PROJECT_NUMBER}-co
 # BILLING_ACCOUNT에 실제 ID를 입력하고 신규 프로젝트를 사용할 때만 아래 주석을 해제합니다.
 # gcloud billing accounts add-iam-policy-binding "${BILLING_ACCOUNT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/billing.user --account="${ADMIN_ACCOUNT}"
 
-# ── Workspace DWD 별도 승인용 OAuth Client ID 조회 ──
-# 조회한 Client ID로 Workspace 관리 콘솔에서 Directory Group 두 scope를 승인합니다.
-gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(oauth2ClientId)'
+# ── Cloud Identity 그룹 관리자 역할 직접 부여에 사용할 서비스 계정 Unique ID ──
+# Workspace 최고 관리자는 tf-manager에 Groups Administrator 역할을 직접 부여합니다.
+# GCP IAM 역할과 별개이며 사용자 대신 실행하는 Domain-wide Delegation은 사용하지 않습니다.
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(uniqueId)'
 ```

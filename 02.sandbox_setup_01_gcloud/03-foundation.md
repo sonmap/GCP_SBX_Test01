@@ -207,6 +207,6 @@ gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https --project="
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # gcloud builds triggers create github --name=trigger-sbxtest01-platform-release --project="${l2comn_PROJECT}" --region="${REGION}" --repo-owner=sonmap --repo-name=GCP_SBX_Test01 --branch-pattern="^main$" --build-config=03.cloudbuild/platform-release.yaml --service-account="projects/${l2comn_PROJECT}/serviceAccounts/${TF_MANAGER}" '--substitutions=_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA' --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
-# 다음: OAuth Secret 값 등록 → Workspace DWD 승인 → 릴리스 → 이미지 미러링 → 과제 요청
+# 다음: OAuth Secret 값 등록 → Workspace tf-manager 그룹 관리자 역할 부여 → 릴리스 → 이미지 미러링 → 과제 요청
 # Build/Run/Workflow 입력: 02.sandbox_setup_01_gcloud/configs/의 YAML 파일을 사용합니다. Python 실행기는 없습니다.
 ```

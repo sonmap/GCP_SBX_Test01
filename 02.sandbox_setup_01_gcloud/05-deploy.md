@@ -1,6 +1,6 @@
 # 과제 Deploy — 작업자가 배포 명령 실행
 
-> **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. Workspace 위임은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](../01.docs/admin-requests.md)을 확인하세요.
+> **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](../01.docs/admin-requests.md)을 확인하세요.
 
 현재 운영 방식은 **인프라를 개별 gcloud 명령으로 구축한 뒤, 작업자가 과제 Deploy 명령을 실행**하는 것입니다. GCS 이벤트 자동 시작·포털 결과 전달 자동화는 이후에 적용합니다. 기존 배포 코드를 사용하므로 Deploy 시작 이후의 그룹·Terraform·GKE 설치 순서는 Cloud Build가 수행합니다.
 
@@ -14,11 +14,11 @@
 | 1 | [관리자 준비](01-admin.md) | API·서비스 계정·IAM |
 | 2 | [네트워크](02-network.md) | Shared VPC·Subnet·PSA·방화벽 |
 | 3 | [공통 실행 기반](03-foundation.md) | GCS·AR·Private Pool·GKE·Cloud Run·Workflow·ALB |
-| 4 | [관리자 개별 명령](04-manual-gcloud.md) 및 [인증 안내](../01.docs/jupyterhub-external-alb-oauth-runbook.md) | OAuth 등록·Workspace 위임·인증서·DNS 준비 |
+| 4 | [관리자 개별 명령](04-manual-gcloud.md) 및 [인증 안내](../01.docs/jupyterhub-external-alb-oauth-runbook.md) | OAuth 등록·그룹 관리자 역할 직접 부여·인증서·DNS 준비 |
 | 5 | [Private Pool 접속 점검](../01.docs/runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인) | GKE 사설 API 조회 Build 성공 확인 |
 | 6 | [관리자 개별 명령 5~7절](04-manual-gcloud.md) | 플랫폼 릴리스·기본 이미지 미러링·Notebook 이미지 빌드 |
 
-Workspace 승인·DNS·인증서와 기존 BQ 데이터 조회 권한은 각 담당자가 준비합니다. 인증서는 공통 ALB의 HTTPS 연결 명령 전에 필요합니다. 이 준비 작업을 과제 Deploy마다 반복하지 않습니다.
+tf-manager 그룹 관리자 역할 준비·DNS·인증서와 기존 BQ 데이터 조회 권한은 각 담당자가 준비합니다. 인증서는 공통 ALB의 HTTPS 연결 명령 전에 필요합니다. 이 준비 작업을 과제 Deploy마다 반복하지 않습니다.
 
 ## 2. 과제마다 — 배포할 요청 지정
 

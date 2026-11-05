@@ -4,7 +4,6 @@ Cloud Build의 Private Pool 컨테이너 안에서 실행하는 도구입니다.
 
 | 파일 | 역할 |
 |---|---|
-| group_upsert.py | Workspace Google Group/구성원 동기화 |
 | apply_gke_workload.py | Namespace·KSA·RBAC·Quota·JupyterHub 설치 |
 | reconcile_postdeploy.py | Workload Identity 확인·NEG·Backend·공통 ALB 경로 연결 |
 | Dockerfile | 위 도구와 gcloud/kubectl/Helm 등을 담는 이미지 |

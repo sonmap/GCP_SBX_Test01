@@ -115,7 +115,7 @@ curl --fail --silent --show-error -H "Authorization: Bearer $(gcloud auth print-
 
 완료 기준: Main GKE RUNNING, Worker Pool 조회 성공, Workflow의 호출 URL이 실제 Run URL이며 healthz가 `{"status":"ok"}`를 반환합니다. 여기까지는 Jupyter 사용자 환경이 아직 설치되지 않았습니다. Foundation을 다시 수행하면 API 이미지가 bootstrap으로 갱신되므로 이후 6단계 릴리스를 다시 적용합니다.
 
-## 4. Jupyter 로그인과 Workspace 위임 준비
+## 4. Jupyter 로그인과 그룹 관리자 역할 직접 부여 준비
 
 ### 4-1. Jupyter OAuth
 
@@ -144,21 +144,20 @@ gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --p
 
 완료 기준: 두 latest 버전이 ENABLED이고 OAuth Callback URL이 실제 접속 도메인과 일치합니다.
 
-### 4-2. Workspace Domain-wide Delegation
+### 4-2. Cloud Identity 그룹 관리자 역할
+
+그룹·구성원 생성은 tf-manager가 Terraform 05-group에서 수행합니다. 사용자를 대신하는 Domain-wide Delegation과 sbx-manager 서명은 사용하지 않습니다. GCP 프로젝트 생성 권한과 Cloud Identity 그룹 관리 권한은 서로 별개이며, 두 권한을 실제 실행 계정 tf-manager에 사전 부여합니다.
 
 ```bash
-# 이 값은 Workspace 관리자가 등록할 OAuth Client ID입니다. SA 이메일과 다릅니다.
-gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(oauth2ClientId)'
+# Workspace 최고 관리자에게 전달할 tf-manager의 Unique ID입니다.
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${l2comn_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(uniqueId)'
 ```
 
-Workspace 관리자가 위 Client ID를 Domain-wide Delegation에 승인하고 다음 두 Scope를 허용합니다.
+Workspace 최고 관리자는 이 서비스 계정에 Groups Administrator 역할을 직접 부여합니다. 이 최초 역할 부여는 GCP IAM 역할만으로 대체되지 않습니다. [공식 설정 절차](https://docs.cloud.google.com/identity/docs/how-to/setup#assigning_an_admin_role_to_the_service_account)를 따릅니다.
 
-- `https://www.googleapis.com/auth/admin.directory.group`
-- `https://www.googleapis.com/auth/admin.directory.group.member`
+조직의 실제 Cloud Identity Customer ID(C로 시작하는 값)를 확인하고 `02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml`의 CLOUD_IDENTITY_CUSTOMER_ID에 설정합니다. 기본 __SET_CUSTOMER_ID__는 실행 가능한 값이 아니며 API가 요청을 거절합니다. 설정을 반영한 커밋으로 새 플랫폼 릴리스를 게시합니다. 릴리스는 Cloud Run 환경설정과 API·Runner 이미지를 함께 갱신합니다.
 
-위임 대상 관리자는 `02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml`의 WORKSPACE_ADMIN_SUBJECT와 일치해야 합니다. 현재 값은 admin@sonmap.net입니다. Workspace 승인 작업은 GCP IAM 명령으로 대체되지 않습니다. SA JSON 키는 생성하지 않습니다.
-
-완료 기준: Workspace 관리자가 해당 Client ID·두 Scope·위임 대상의 Group 관리 권한을 확인합니다. 실제 동기화는 요청 배포 Build 첫 단계에서 수행됩니다.
+완료 기준: cloudidentity.googleapis.com 활성화, tf-manager의 프로젝트/그룹 관리 권한 준비, 실제 Customer ID 설정. 기존 그룹은 [기존 그룹 편입 절차](cloud-identity-group-terraform.md)를 확인합니다. SA JSON 키와 사용자 위임은 사용하지 않습니다.
 
 ## 5. Private Pool에서 GKE 사설 API 연결 확인
 
@@ -284,8 +283,8 @@ gcloud workflows run "${WORKFLOW_NAME}" --project="${l2comn_PROJECT}" --location
 
 이후 자동 호출 순서는 다음과 같습니다. 07/08/09 폴더에서 main.py나 terraform apply를 직접 실행할 필요가 없습니다.
 
-1. Cloud Run: JSON·GCS Generation·SHA256 검증, 네 단계 ZIP 생성.
-2. 부모 Cloud Build: Google Group 동기화 → 전파 대기 → Project → 선택적 Network → Project IAM → Data의 IM Deployment 적용.
+1. Cloud Run: JSON·GCS Generation·SHA256 검증, 다섯 단계 ZIP 생성.
+2. 부모 Cloud Build: Terraform Group → 전파 대기 → Project → 선택적 Network → Project IAM → Data의 IM Deployment 적용.
 3. 자식 Private Pool Build: Namespace/KSA/RBAC/Quota/JupyterHub 설치 → NEG 대기 → Backend/Health Check/공통 ALB 연결.
 
 ## 11. 최종 배포와 사용자 동작 확인
@@ -305,7 +304,7 @@ gcloud infra-manager deployments list --project="${l2comn_PROJECT}" --location="
 # gcloud builds log "${BUILD_ID}" --project="${l2comn_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
-완료 기준: 이번 요청의 부모/자식 Build SUCCESS, 해당 과제 IM Deployment가 ACTIVE입니다. 최신 Revision은 APPLIED 상태를 확인합니다. 여러 과제의 Build가 섞여 있으면 생성 시각·로그의 request_id/배포 이름을 대조합니다. 예제는 Network를 포함한 네 Deployment이며 network.required=false면 세 Deployment입니다.
+완료 기준: 이번 요청의 부모/자식 Build SUCCESS, 해당 과제 IM Deployment가 ACTIVE입니다. 최신 Revision은 APPLIED 상태를 확인합니다. 여러 과제의 Build가 섞여 있으면 생성 시각·로그의 request_id/배포 이름을 대조합니다. 예제는 Network를 포함한 다섯 Deployment이며 network.required=false면 네 Deployment입니다.
 
 ### 11-2. GKE와 ALB
 
@@ -348,7 +347,7 @@ print(list(client.query("SELECT 1 AS ok").result()))
 | SA/프로젝트 IAM 403 | 1단계의 실행 관리자와 대상 IAM 확인 |
 | 기존 CIDR/서브넷/Host가 다름 | 2단계에서 중단하고 네트워크 설계 확인 |
 | SSL 인증서 Not Found | 3단계 HTTPS Proxy/443 전에 인증서 별도 등록 |
-| Group 동기화 invalid_grant/unauthorized_client | 4단계 DWD Client ID·Scope·위임 관리자 확인 |
+| Cloud Identity Group 403 또는 409 | 4단계 tf-manager 그룹 관리자 역할·Customer ID·기존 그룹 import 확인 |
 | kubectl timeout | 5단계 Private Pool/관리 VM → GKE 경로 확인 |
 | source ZIP/이미지 Not Found | 6단계 릴리스 ID·Generation·SHA256·이미지 태그 확인 |
 | ImagePullBackOff | 7~8단계 내부 이미지 존재·노드 AR Reader 확인 |
@@ -367,6 +366,6 @@ python3 -m pip install -r requirements-dev.txt
 python3 -m unittest discover -s 11.tests -v
 ```
 
-문서/코드의 오프라인 검사와 실제 클라우드 배포 성공은 별개입니다. Cloud Build, DWD, 사설 경로, OAuth, 실제 BQ 조회는 위 완료 기준으로 실행 환경에서 확인해야 합니다. Terraform Provider 실행 검증도 이전 로컬 환경 오류로 완료되지 않았으며 여기서는 통과했다고 표시하지 않습니다.
+문서/코드의 오프라인 검사와 실제 클라우드 배포 성공은 별개입니다. Cloud Build, Cloud Identity 그룹 관리자 역할, 사설 경로, OAuth, 실제 BQ 조회는 위 완료 기준으로 실행 환경에서 확인해야 합니다. Terraform Provider 실행 검증도 이전 로컬 환경 오류로 완료되지 않았으며 여기서는 통과했다고 표시하지 않습니다.
 
 공식 명령·상태 참고: [Build 제출](https://docs.cloud.google.com/sdk/gcloud/reference/builds/submit), [Workflow 실행 확인](https://docs.cloud.google.com/workflows/docs/executing-workflow), [IM Deployment 상태](https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.deployments), [IM Revision 상태](https://docs.cloud.google.com/infrastructure-manager/docs/reference/rest/v1/projects.locations.deployments.revisions).

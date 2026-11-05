@@ -9,7 +9,7 @@
 | Private Pool → GKE 사설 통신 | **VPC Admin** | 경로·왕복 라우팅·필요 방화벽 및 GKE 접근 허용 범위 확인·구성 | Private Pool 점검 Build에서 kubectl get namespaces 성공 |
 | 기존 BigQuery 데이터 조회 | **VPC Admin** | 데이터 관리자와 협의해 sbx-manager에 승인 Dataset 조회 권한 요청·적용 확인 | Notebook에서 승인된 실제 Table 조회 성공 |
 | 인증서·DNS | **별도 진행** | Jupyter 도메인·인증서·ALB 주소 연결 | HTTPS 접속·도메인 일치 |
-| Workspace 위임 | **Workspace 관리자** | 배포 프로그램의 과제 Google Group·멤버 관리 권한 승인 | 그룹 동기화 Build 성공 |
+| 그룹 관리자 역할 직접 부여 | **Workspace 최고 관리자** | tf-manager 서비스 계정에 Groups Administrator 역할 부여 | Terraform Group 배포 성공 |
 | Jupyter OAuth 발급 | **OAuth 설정 담당자** | Google 로그인 Client ID·Secret·Callback URL 준비 | 승인 사용자 Jupyter 로그인 성공 |
 
 VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관리자 권한 자체로 Dataset IAM을 변경할 수 있는 것은 아니므로, 실제 부여는 데이터 프로젝트/Dataset IAM 권한 보유자가 수행하거나 VPC Admin에게 필요한 권한을 위임해야 합니다.
@@ -34,18 +34,11 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 - 완료 확인: SELECT 1만으로 끝내지 않고 승인된 실제 Table을 Notebook에서 조회합니다.
 - 현재 중앙 sbx-manager를 공유하므로 이 계정에 부여한 데이터 접근 범위가 여러 과제에 영향을 줄 수 있습니다. 승인 범위는 과제 운영 정책과 함께 확인합니다.
 
-## Workspace 위임은 무엇인가
+## 그룹 관리자 역할 직접 부여
 
-현재 배포 코드는 과제용 Google Group과 구성원을 생성·갱신합니다. 예를 들어 sbx01 과제는 pgrp-gcp-dev-sbx01@sonmap.net 그룹을 사용합니다.
+그룹 생성·구성원 관리는 tf-manager가 Cloud Identity Groups API를 사용하는 Terraform 05-group에서 수행합니다. Workspace 최고 관리자는 tf-manager 서비스 계정의 Unique ID에 Groups Administrator 역할을 직접 부여합니다. GCP 조직·Folder·프로젝트 생성 및 IAM 권한도 같은 실행 계정에 사전 부여합니다. 이는 최초 한 번 준비하는 권한 작업이며 배포 때마다 사람이 승인하지 않습니다.
 
-서비스 계정 sbx-manager가 Workspace 관리자 대신 이 그룹 관리 API를 호출할 수 있도록 Workspace 관리 콘솔에서 허용하는 것이 **Domain-wide Delegation 승인**입니다. GKE를 생성하기 위한 권한이 아니라 **Google Group 자동 관리에 필요한 권한**입니다.
-
-현재 구성은 sbx-manager의 OAuth Client ID에 아래 Scope를 승인하고, 지정된 Workspace 관리자 계정으로 그룹 관리를 수행합니다.
-
-- https://www.googleapis.com/auth/admin.directory.group
-- https://www.googleapis.com/auth/admin.directory.group.member
-
-[실제 승인 절차](runbook-two-stage.md#4-2-workspace-domain-wide-delegation)를 따릅니다. 포털이나 관리자가 그룹과 멤버를 이미 관리한다면 이 자동 동기화 단계와 위임을 제거하는 설계도 가능하지만, **현재 코드는 배포 첫 단계에서 그룹 동기화를 실행하므로 승인 없이 그대로 실행하면 실패할 수 있습니다.**
+사용자 대신 호출하는 Domain-wide Delegation, Directory API Scope 승인, WORKSPACE_ADMIN_SUBJECT 및 sbx-manager 서명은 제거했습니다. 실제 Cloud Identity Customer ID는 provisioner-env.yaml에 설정합니다. [권한·설정·기존 그룹 편입](cloud-identity-group-terraform.md)을 확인하세요.
 
 ## OAuth 발급은 무엇인가
 
@@ -56,7 +49,7 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 - 발급값은 Secret Manager의 jupyter-oauth-client-id / jupyter-oauth-client-secret에 등록합니다.
 - [등록 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#4-oauth-값-등록)을 사용합니다.
 
-Workspace 위임의 Client ID는 그룹 API 관리용 서비스 계정 식별자이고, Jupyter OAuth Client ID/Secret은 사용자 로그인용입니다. 두 가지는 서로 다른 설정이며 인증서·DNS 준비를 대신하지 않습니다.
+그룹 관리자 역할 부여에는 tf-manager의 Unique ID를 사용하며, Jupyter OAuth Client ID/Secret은 사용자 로그인용입니다. 두 가지는 서로 다른 설정이며 인증서·DNS 준비를 대신하지 않습니다.
 
 ## 작업 순서
 

@@ -1,4 +1,16 @@
 steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: check-group-config
+    entrypoint: python3
+    args:
+      - -c
+      - |
+        import pathlib, re
+        config = pathlib.Path("02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml").read_text()
+        value = next((line.split(":", 1)[1].strip() for line in config.splitlines() if line.startswith("CLOUD_IDENTITY_CUSTOMER_ID:")), "")
+        if not re.fullmatch(r"C[A-Za-z0-9]+", value):
+            raise SystemExit("Set actual CLOUD_IDENTITY_CUSTOMER_ID in provisioner-env.yaml and commit before release")
+
   - name: gcr.io/cloud-builders/docker
     id: build-automation-runner
     args:
@@ -93,7 +105,7 @@ steps:
           --project="${_L2COMN_PROJECT}" \
           --region="${_REGION}" \
           --image="${_PROVISIONER_IMAGE_REPO}:${_RELEASE_ID}" \
-          --update-env-vars="PROVISIONER_SOURCE_VERSION=${_RELEASE_ID},l2comn_PROJECT=${_L2COMN_PROJECT}" \
+          --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml \
           --quiet
 
 substitutions:

@@ -8,11 +8,11 @@
 |---|---|---|---|
 | 최초 관리자 준비 | 기존 권한 관리자 | 02 폴더의 01-admin.md | API·sbx-manager·tf-manager·IAM |
 | 공통 네트워크/기반 | tf-manager 위임 운영자 | 02-network.md → 03-foundation.md | Subnet/PSA/Pool/GKE/Run/Workflow/ALB |
-| 로그인/그룹 준비 | 운영자·Workspace/OAuth 관리자 | Secret 등록·OAuth Callback·DWD 승인 | 로그인·Group 동기화 사전 조건 |
-| 플랫폼/사용자 이미지 | tf-manager Build | release.sh → mirror-jupyter.sh → Notebook Build | 버전 이미지·소스 ZIP·Chart |
+| 로그인/그룹 준비 | 운영자·Workspace/OAuth 관리자 | Secret 등록·OAuth Callback·tf-manager 그룹 관리자 역할 부여 | 로그인·Terraform Group 생성 사전 조건 |
+| 플랫폼/사용자 이미지 | tf-manager Build | 04-manual-gcloud.md의 개별 gcloud 빌드 명령 | 버전 이미지·소스 ZIP·Chart |
 | 최종 신청/승인 | 승인 담당자·운영자 | 실제 신청 JSON·release.json | .local/request.json |
-| 접수 | 운영자 → sbx-manager Workflow/Run | run-approved-workflow.sh → /provision | 승인 검증·요청별 ZIP·부모 Build 시작 |
-| 과제 자원 | tf-manager 부모 Build/IM | Group 동기화 → Project → Network 선택 → IAM → Data | Google Group·과제 자원·WI Binding |
+| 접수 | 운영자 → sbx-manager Workflow/Run | 05-deploy.md의 gcloud workflows run → /provision | 승인 검증·요청별 ZIP·부모 Build 시작 |
+| 과제 자원 | tf-manager 부모 Build/IM | Terraform Group → 전파 대기 → Project → Network 선택 → IAM → Data | Google Group·과제 자원·WI Binding |
 | Kubernetes/접속 경로 | tf-manager 자식 Private Pool Build | apply_gke_workload.py → reconcile_postdeploy.py | Namespace·JupyterHub·NEG·Backend·ALB 경로 |
 
 폴더 번호를 따라 코드를 수동 실행하지 않습니다. 수동 진입점은 02 폴더의 gcloud 명령, 이미지 준비 명령, 마지막 승인 요청 제출입니다. Terraform Root에서 직접 apply하거나 Cloud Run main.py를 VM에서 실행할 필요가 없습니다.
@@ -34,7 +34,7 @@
 | 계정 | 실행 위치·권한 용도 |
 |---|---|
 | 기존 관리자/운영자 | 초기 Project/Folder/Billing IAM·승인 JSON 업로드·Workflow 호출 |
-| sbx-manager | Run/Workflow Runtime·Workspace DWD 서명 대상·Notebook GSA |
+| sbx-manager | Run/Workflow Runtime·Notebook GSA |
 | tf-manager | 기반 구축·모든 Build/IM·GKE·Helm·ALB |
 | Google 서비스 에이전트/노드 기본 SA | API/노드 동작; 두 사용자 관리 SA와 별도 |
 | ksa-jupyter-sbx01 등 KSA | 과제 Namespace 안의 Kubernetes 계정; sbx-manager로 WI 연결 |
@@ -70,7 +70,7 @@
 | 항목 | 실제 담당·확인 시점 |
 |---|---|
 | Private Pool → GKE Private IP 경로 | 네트워크 담당; 실행 절차 5단계의 실제 Pool Build로 확인 |
-| Workspace DWD 승인 | Workspace 관리자; 4단계 |
+| Workspace tf-manager 그룹 관리자 역할 부여 | Workspace 관리자; 4단계 |
 | OAuth 웹 Client/Callback | OAuth 담당자; 4단계 |
 | SSL 인증서·DNS/PoC hosts | 인증서/DNS 담당자; HTTPS 기반 준비·11단계 |
 | 기존 별도 BQ Dataset 조회 권한 | 데이터 프로젝트 관리자; Notebook 데이터 조회 전 |

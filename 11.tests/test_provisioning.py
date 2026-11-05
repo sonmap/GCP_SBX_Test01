@@ -18,7 +18,7 @@ ENV={'l2comn_PROJECT':'prj-b-cicd-local-236d','GCP_REGION':'asia-northeast3',
      'BUNDLE_BUCKET':'prj-b-cicd-local-236d-sbxtest01-bundles',
      'REQUEST_BUCKET':'prj-b-cicd-local-236d-sbxtest01-requests',
      'WORKER_POOL':'projects/prj-b-cicd-local-236d/locations/asia-northeast3/workerPools/pool-sbxtest01',
-     'WORKSPACE_ADMIN_SUBJECT':'admin@sonmap.net',
+     'CLOUD_IDENTITY_CUSTOMER_ID':'C123test',
      'JUPYTER_CHART_URI':'oci://example/jupyterhub','JUPYTER_CHART_VERSION':'4.2.0'}
 
 
@@ -40,7 +40,13 @@ class ProvisioningTests(unittest.TestCase):
         with mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=download),mock.patch.object(p,'upload_immutable',side_effect=lambda name,data,ctype:written.setdefault(name,data)):
             client.return_value.bucket.return_value=bucket
             prefix,manifest=p.assemble_bundles(payload(),b'{}')
-        self.assertEqual(set(manifest['bundles']),{'10-project','20-network','30-project-iam','40-data'})
+        self.assertEqual(set(manifest['bundles']),{'05-group','10-project','20-network','30-project-iam','40-data'})
+        group_zip=next(v for k,v in written.items() if k.endswith('/group.zip'))
+        with zipfile.ZipFile(io.BytesIO(group_zip)) as archive:
+            group_vars=json.loads(archive.read('terraform.auto.tfvars.json'))
+            self.assertEqual(group_vars['customer_id'],ENV['CLOUD_IDENTITY_CUSTOMER_ID'])
+            self.assertEqual(group_vars['members'],payload()['identity']['members'])
+            self.assertIn('google_cloud_identity_group',archive.read('main.tf').decode())
         data_zip=next(v for k,v in written.items() if k.endswith('/data.zip'))
         with zipfile.ZipFile(io.BytesIO(data_zip)) as archive:
             variables=json.loads(archive.read('terraform.auto.tfvars.json'))
@@ -59,11 +65,14 @@ class ProvisioningTests(unittest.TestCase):
             build=client.return_value.create_build.call_args.kwargs['build']
         spec=json.loads(p.cloudbuild_v1.Build.to_json(build))
         self.assertEqual(spec['serviceAccount'],f"projects/{ENV['l2comn_PROJECT']}/serviceAccounts/tf-manager@{ENV['l2comn_PROJECT']}.iam.gserviceaccount.com")
-        self.assertIn('group_upsert.py',spec['steps'][0]['args'][0])
-        commands=spec['steps'][2]['args'][1]
+        self.assertEqual(len(spec['steps']),2)
+        self.assertNotIn('WORKSPACE_ADMIN_SUBJECT',str(spec))
+        commands=spec['steps'][0]['args'][1]
+        self.assertLess(commands.index('/group.zip'),commands.index('sleep 60'))
+        self.assertLess(commands.index('sleep 60'),commands.index('/project.zip'))
         self.assertIn('deployments/sbxtest01-',commands)
         self.assertNotIn('sa-im-',commands)
-        self.assertEqual(commands.count('tf-manager@'),4)
+        self.assertEqual(commands.count('tf-manager@'),5)
         self.assertIn('pool-sbxtest01',spec['options']['pool']['name'])
 
     @mock.patch.dict(os.environ,ENV)
@@ -72,10 +81,11 @@ class ProvisioningTests(unittest.TestCase):
         with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient') as client:
             p.start_build(data,'gs://example/request.json','gs://example/bundle')
         build=client.return_value.create_build.call_args.kwargs['build']
-        text=build.steps[2].args[1]
+        text=build.steps[0].args[1]
         self.assertNotIn('/network.zip',text)
         self.assertIn('/data.zip',text)
 
+    @mock.patch.dict(os.environ,ENV)
     def test_placeholder_release_rejected(self):
         data=payload();data['source']['sha256']='0'*64
         with self.assertRaisesRegex(ValueError,'publish a new'): p.validate_semantics(data)
@@ -104,14 +114,49 @@ class ProvisioningTests(unittest.TestCase):
             with mock.patch.dict(os.environ,ENV),mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=source),mock.patch.object(p,'upload_immutable',side_effect=lambda name,data,ctype:written.setdefault(name,data)):
                 client.return_value.bucket.return_value=bucket
                 _,manifest=p.assemble_bundles(payload(),b'{}')
-            self.assertEqual(len(manifest['bundles']),4)
+            self.assertEqual(len(manifest['bundles']),5)
 
     def test_schema_reference_matches_runtime(self):
         self.assertEqual(json.loads((ROOT/'06.sandbox_json_rules/sandbox-request.schema.json').read_text()),p.SCHEMA)
         p.VALIDATOR.validate(payload())
 
-    def test_runner_group_sync_matches_source(self):
-        self.assertEqual((ROOT/'10.sandbox_deploy_tools/group_upsert.py').read_bytes(),(ROOT/'09.sandbox_gke_deployer/group_upsert.py').read_bytes())
+    @mock.patch.dict(os.environ,ENV)
+    def test_group_imports_are_literal_and_validate_membership_parent(self):
+        data=payload()
+        data['identity']['group_resource_name']='groups/group123'
+        email=data['identity']['members'][0]
+        data['identity']['membership_resource_names']={email:'groups/group123/memberships/member123'}
+        p.VALIDATOR.validate(data)
+        p.validate_semantics(data)
+        with tempfile.TemporaryDirectory() as tmp:
+            work=Path(tmp)
+            p.write_static_group_imports(work,data)
+            imports=(work/'imports.tf').read_text()
+            self.assertIn('to = google_cloud_identity_group.sandbox',imports)
+            self.assertIn('id = "groups/group123"',imports)
+            self.assertIn(f'member["{email}"]',imports)
+            self.assertNotIn('var.',imports)
+        data['identity']['membership_resource_names'][email]='groups/other/memberships/member123'
+        with self.assertRaisesRegex(ValueError,'must belong'):p.validate_semantics(data)
+
+    @mock.patch.dict(os.environ,ENV)
+    def test_group_variables_and_reject_missing_customer_or_unapproved_import(self):
+        data=payload()
+        variables=p.stage_variables(data)['05-group']
+        self.assertEqual(variables['customer_id'],ENV['CLOUD_IDENTITY_CUSTOMER_ID'])
+        self.assertEqual(variables['members'],data['identity']['members'])
+        with mock.patch.dict(os.environ,{'CLOUD_IDENTITY_CUSTOMER_ID':'__SET_CUSTOMER_ID__'}):
+            with self.assertRaisesRegex(ValueError,'configure CLOUD_IDENTITY'):p.validate_semantics(data)
+        data['identity']['group_resource_name']='groups/group123'
+        data['identity']['membership_resource_names']={'other@sonmap.net':'groups/group123/memberships/m1'}
+        with self.assertRaisesRegex(ValueError,'approved identity.members'):p.validate_semantics(data)
+
+    def test_old_group_delegation_runner_removed(self):
+        self.assertFalse((ROOT/'09.sandbox_gke_deployer/group_upsert.py').exists())
+        self.assertFalse((ROOT/'10.sandbox_deploy_tools/group_upsert.py').exists())
+        module=(ROOT/'08.sandbox_setup_02_terraform/deployments/05-group/main.tf').read_text()
+        self.assertIn('google_cloud_identity_group_membership',module)
+        self.assertIn('prevent_destroy = true',module)
 
 
 if __name__=='__main__': unittest.main()

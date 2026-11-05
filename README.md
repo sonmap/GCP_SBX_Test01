@@ -74,7 +74,7 @@ flowchart TD
   B --> C["3 공통 기반: 03-foundation.md"]
   C --> D["플랫폼 릴리스·이미지 준비"]
   D --> E["승인 JSON → Workflow → Cloud Run"]
-  E --> F["Cloud Build: Group 동기화"]
+  E --> F["IM Terraform: Group 생성"]
   F --> G["Infrastructure Manager: 과제 자원"]
   G --> H["Runner: JupyterHub·공통 ALB 연결"]
 ```

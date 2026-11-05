@@ -4,11 +4,16 @@
 
 | Root | 기능 | 실행 계정 |
 |---|---|---|
+| deployments/05-group | Cloud Identity Group·구성원 관리 | tf-manager |
 | deployments/10-project | 신규/기존 프로젝트와 API·자동화 IAM | tf-manager |
 | deployments/20-network | 선택적 과제 서브넷·Shared VPC 연결 | tf-manager |
 | deployments/30-project-iam | 과제 Google Group 프로젝트 권한 | tf-manager |
 | deployments/40-data | Dataset·Bucket·중앙 GSA 접근·Workload Identity | tf-manager |
 
-중앙 `sbx-manager`는 data source로 조회합니다. 이 Terraform은 GSA를 생성하지 않습니다. 기존 자원 채택 옵션은 Dataset/Bucket만 import합니다.
+중앙 `sbx-manager`는 data source로 조회합니다. 이 Terraform은 GSA를 생성하지 않습니다. data.adopt_existing_resources는 Dataset/Bucket 편입용입니다. 기존 그룹·멤버는 identity의 별도 import 필드로 편입합니다.
 
 각 Root는 `sbxtest01-<task>-<project-hash>-<stage>` Infrastructure Manager Deployment에서 독립 State로 관리합니다. VM에서 직접 terraform apply하지 않습니다. Kubernetes와 ALB 연결은 Cloud Build Runner가 처리합니다.
+
+## 그룹 생성이 첫 단계입니다
+
+05-group → 10-project → 선택적 20-network → 30-project-iam → 40-data 순서로 Infrastructure Manager가 적용합니다. 모든 단계는 tf-manager로 수행합니다. [권한 및 기존 그룹 편입](../01.docs/cloud-identity-group-terraform.md)을 먼저 확인합니다.

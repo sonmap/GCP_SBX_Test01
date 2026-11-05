@@ -2,7 +2,6 @@ FROM gcr.io/google.com/cloudsdktool/cloud-sdk:slim
 
 ARG HELM_VERSION=v3.16.2
 
-COPY group_upsert.py /opt/sandbox/group_upsert.py
 COPY requirements.txt /tmp/requirements.txt
 COPY apply_gke_workload.py /opt/sandbox/apply_gke_workload.py
 COPY reconcile_postdeploy.py /opt/sandbox/reconcile_postdeploy.py

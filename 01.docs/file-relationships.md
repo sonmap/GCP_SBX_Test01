@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart TD
-  A["운영자: 관리자·네트워크·공통 기반"] --> B["OAuth·DWD 승인·사설 접속 검사"]
+  A["운영자: 관리자·네트워크·공통 기반"] --> B["OAuth·tf-manager 그룹 관리자 역할 부여·사설 접속 검사"]
   B --> C["릴리스 → 미러링 → Notebook 이미지"]
   C --> D["실제 JSON 수정·최종 승인"]
   D --> E["운영자: Workflow 호출"]
@@ -47,8 +47,8 @@ flowchart TD
   SOURCE["GCS 플랫폼 소스 ZIP"] -.-> API
   API --> BUNDLE["과제별 배포 ZIP"]
   BUNDLE --> BUILD["동적 Cloud Build: tf-manager"]
-  BUILD --> GRP["09.sandbox_gke_deployer/group_upsert.py"]
-  GRP --> IM["Infrastructure Manager: tf-manager"]
+  BUILD --> GRP["Terraform: 05-group"]
+  GRP --> IM["같은 IM 실행 계정: tf-manager"]
   IM --> T1["08.sandbox_setup_02_terraform/deployments/10-project/"]
   T1 --> T2["20-network/: 선택적"]
   T2 --> T3["30-project-iam/"]
@@ -77,4 +77,4 @@ flowchart TD
 ```
 
 
-각 Terraform 폴더의 main.tf/variables.tf/versions.tf는 함께 읽습니다. 최초 기반용 Terraform 00-admin/00-network-host/01-foundation과 중복 배포 경로는 제거했습니다. 10.sandbox_deploy_tools/group_upsert.py는 Runner 안의 동일 파일과 동기화해 유지합니다.
+각 Terraform 폴더의 main.tf/variables.tf/versions.tf는 함께 읽습니다. 최초 기반용 Terraform 00-admin/00-network-host/01-foundation과 중복 배포 경로는 제거했습니다. 그룹·구성원은 08.sandbox_setup_02_terraform/deployments/05-group에서 관리합니다.

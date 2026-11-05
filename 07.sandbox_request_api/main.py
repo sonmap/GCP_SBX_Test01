@@ -23,6 +23,7 @@ SCHEMA = json.loads(Path(__file__).with_name("sandbox-request.schema.json").read
 VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
 STAGES = {
+    "05-group": "group.zip",
     "10-project": "project.zip",
     "20-network": "network.zip",
     "30-project-iam": "project-iam.zip",
@@ -60,6 +61,19 @@ def download_approved_request(uri: str, generation: int, expected_sha256: str) -
 
 
 def validate_semantics(payload: dict) -> None:
+    customer_id = os.environ.get("CLOUD_IDENTITY_CUSTOMER_ID", "")
+    if not re.fullmatch(r"C[A-Za-z0-9]+", customer_id):
+        raise ValueError("configure CLOUD_IDENTITY_CUSTOMER_ID before deployment")
+    identity = payload["identity"]
+    group_name = identity.get("group_resource_name")
+    membership_names = identity.get("membership_resource_names", {})
+    if membership_names and not group_name:
+        raise ValueError("group_resource_name is required when importing memberships")
+    if not set(membership_names).issubset(identity["members"]):
+        raise ValueError("imported membership keys must be approved identity.members")
+    for name in membership_names.values():
+        if not name.startswith(f"{group_name}/memberships/"):
+            raise ValueError("membership resource must belong to group_resource_name")
     task = payload["task"]["name"]
     if payload["source"]["sha256"] == "0" * 64:
         raise ValueError("publish a new GCP_SBX_Test01 release and update request source first")
@@ -119,6 +133,13 @@ def stage_variables(payload: dict) -> dict[str, dict]:
     cicd_project = os.environ["l2comn_PROJECT"]
 
     return {
+        "05-group": {
+            "identity_project_id": cicd_project,
+            "customer_id": os.environ["CLOUD_IDENTITY_CUSTOMER_ID"],
+            "group_email": payload["identity"]["group_email"],
+            "display_name": task["display_name"],
+            "members": payload["identity"]["members"],
+        },
         "10-project": {
             "create_project": project["create_project"],
             "project_id": project["project_id"], "project_name": project["project_name"],
@@ -186,6 +207,25 @@ def write_static_data_imports(work: Path, payload: dict) -> None:
     (work / "imports.tf").write_text(imports, encoding="utf-8")
 
 
+def write_static_group_imports(work: Path, payload: dict) -> None:
+    """Import approved existing group/memberships with Terraform 1.5 literal IDs."""
+    identity = payload["identity"]
+    group_name = identity.get("group_resource_name")
+    if not group_name:
+        return
+    blocks = [
+        'import {\n  to = google_cloud_identity_group.sandbox\n'
+        f'  id = {json.dumps(group_name)}\n}}\n'
+    ]
+    for email, name in sorted(identity.get("membership_resource_names", {}).items()):
+        blocks.append(
+            'import {\n'
+            f'  to = google_cloud_identity_group_membership.member[{json.dumps(email)}]\n'
+            f'  id = {json.dumps(name)}\n}}\n'
+        )
+    (work / "imports.tf").write_text("\n".join(blocks), encoding="utf-8")
+
+
 def upload_immutable(blob, content: bytes, content_type: str) -> None:
     try:
         blob.upload_from_string(content, content_type=content_type, if_generation_match=0)
@@ -213,6 +253,8 @@ def assemble_bundles(payload: dict, raw_request: bytes) -> tuple[str, dict]:
                 raise ValueError(f"missing Terraform root module: {stage}")
             work = temp / "work" / stage
             shutil.copytree(source, work)
+            if stage == "05-group":
+                write_static_group_imports(work, payload)
             if stage == "40-data":
                 write_static_data_imports(work, payload)
             (work / "terraform.auto.tfvars.json").write_text(
@@ -248,6 +290,7 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
     # Infrastructure Manager manages Google Cloud resources only. Kubernetes
     # objects are applied by a separate Cloud Build running in the private pool.
     stages = [
+        ("group", "group.zip", "tf-manager"),
         ("project", "project.zip", "tf-manager"),
     ]
     if payload["network"]["required"]:
@@ -270,6 +313,9 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
             f"--annotations=\"request_id={request_id},task={task}\" "
             "--quiet"
         )
+        if name == "group":
+            # Group IAM visibility may lag creation. Failures stop the build.
+            commands.append("sleep 60")
 
     # The approved source release and runner image use the same immutable tag.
     # This prevents a newer :latest image from changing an already-approved build.
@@ -330,17 +376,6 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
 
     build_spec = {
         "steps": [
-            {
-                "name": automation_image,
-                "entrypoint": "python3",
-                "args": ["/opt/sandbox/group_upsert.py", f"{bundle_prefix}/approved-request.json"],
-                "env": [f"WORKSPACE_DWD_SERVICE_ACCOUNT=sbx-manager@{project}.iam.gserviceaccount.com",
-                        f"GOOGLE_WORKSPACE_ADMIN_SUBJECT={os.environ['WORKSPACE_ADMIN_SUBJECT']}"],
-            },
-            {
-                "name": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
-                "entrypoint": "bash", "args": ["-ceu", "sleep 60"],
-            },
             {
                 "name": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
                 "entrypoint": "bash",

@@ -10,7 +10,6 @@
 | `README.md` | 시작 문서 |
 | `09.sandbox_gke_deployer/Dockerfile` | 해당 프로그램 실행 이미지 정의 |
 | `09.sandbox_gke_deployer/apply_gke_workload.py` | Namespace·KSA·RBAC·Quota·JupyterHub·NEG |
-| `09.sandbox_gke_deployer/group_upsert.py` | Workspace Group 동기화, sandbox_deploy_tools 원본의 배포 실행용 사본 |
 | `09.sandbox_gke_deployer/reconcile_postdeploy.py` | WI 확인·Backend·Health Check·공통 ALB 경로 연결 |
 | `09.sandbox_gke_deployer/requirements.txt` | Python 라이브러리 의존성 |
 | `03.cloudbuild/mirror-jupyterhub-chart.yaml` | JupyterHub Chart 내부 미러링 |
@@ -35,7 +34,6 @@
 | `04.Jupiter-setup-image/cloudbuild.yaml` | Notebook 표준 이미지 빌드 |
 | `requirements-dev.txt` | 로컬 검증 의존성 |
 | `06.sandbox_json_rules/sandbox-request.schema.json` | 런타임과 동기화한 참고 요청 규격 |
-| `10.sandbox_deploy_tools/group_upsert.py` | 키 없는 IAM 서명으로 Workspace Group/구성원 동기화 |
 | `10.sandbox_deploy_tools/preflight-instance-son.sh` | gcloud·계정 사전 확인 |
 | `10.sandbox_deploy_tools/publish-sandbox-source.sh` | 과제별 Terraform 소스 ZIP 게시 |
 | `10.sandbox_deploy_tools/run-approved-workflow.sh` | 승인 요청 업로드·Generation/해시·Workflow 실행 |
@@ -70,3 +68,6 @@
 | `11.tests/test_build_paths.py` | 빌드 Context·Docker COPY 경로·삭제 컴포넌트 참조 검사 |
 | `01.docs/README.md` | 실제 수행 단계·실행 계정·완료 기준의 시작 안내 |
 | `01.docs/check-private-gke.yaml` | 실제 Private Pool에서 GKE 사설 접속을 읽기 전용으로 검사 |
+
+| `08.sandbox_setup_02_terraform/deployments/05-group/` | tf-manager가 Cloud Identity Group·구성원을 Terraform으로 관리 |
+| `01.docs/cloud-identity-group-terraform.md` | 그룹 관리자 역할·Customer ID·기존 그룹 import 안내 |

@@ -11,7 +11,7 @@
 | 허용 도메인 | sonmap.net |
 | 허용 사용자 | 최종 승인 JSON의 identity.members |
 
-OAuth Client 등록·정책은 담당자가 설정합니다. Google Group용 Workspace DWD는 별도 항목으로, Jupyter OAuth Client Secret과 혼동하지 않습니다.
+OAuth Client 등록·정책은 담당자가 설정합니다. Google Group 관리는 tf-manager의 Cloud Identity 그룹 관리자 역할로 수행하며, Jupyter OAuth Client Secret과 별개입니다.
 
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"

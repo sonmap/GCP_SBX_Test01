@@ -1,6 +1,6 @@
 # 여기서 시작하세요 — 실제 수행 순서
 
-> **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. Workspace 위임은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
+> **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 
 > **현재 작업 기준:** 공통 인프라는 작업자가 개별 gcloud 명령으로 구축합니다. 과제는 포털이 GCS에 저장한 승인 JSON을 대상으로 작업자가 [Deploy 명령](../02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다. GCS 이벤트 자동 시작·포털 결과 자동 전달은 추후 적용하며 현재 필수 구축 단계가 아닙니다. 기존 Deploy 내부의 API·Build·Terraform·GKE 처리 코드는 사용합니다.
 
@@ -14,7 +14,7 @@
 | 1 | API·두 SA·IAM 준비 | 기존 권한 관리자 | 두 SA 조회·tf-manager 위임 성공 |
 | 2 | Shared VPC·Subnet·PSA·방화벽 | tf-manager | CIDR/연결/방화벽 확인 |
 | 3 | Bucket·AR·Private Pool·GKE·Run·Workflow·ALB | tf-manager | 각 서비스 조회·Run healthz 성공 |
-| 4 | Jupyter OAuth·Workspace DWD 승인 | GCP 운영자·Workspace 관리자 | Secret ENABLED·위임 승인 |
+| 4 | Jupyter OAuth·tf-manager 그룹 관리자 역할 | GCP 운영자·Workspace 관리자 | Secret ENABLED·그룹 관리자 역할·Customer ID 준비 |
 | 5 | Private Pool → GKE API 접속 점검 | tf-manager Build | 접속 점검 Build SUCCESS |
 | 6 | 플랫폼 릴리스 게시 | tf-manager Build | 이미지·소스 ZIP·release.json 생성 |
 | 7 | Jupyter Chart/기본 이미지 미러링 | tf-manager Build | Chart/이미지 게시 성공 |

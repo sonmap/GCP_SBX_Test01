@@ -96,6 +96,22 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9._%+-]+@sonmap\\.net$"
           }
+        },
+        "group_resource_name": {
+          "type": "string",
+          "pattern": "^groups/[A-Za-z0-9_-]+$",
+          "description": "Existing group resource to import into the group deployment state; omit for new group."
+        },
+        "membership_resource_names": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9._%+-]+@sonmap\\.net$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^groups/[A-Za-z0-9_-]+/memberships/[A-Za-z0-9_-]+$"
+          },
+          "description": "Existing requested memberships to import, keyed by email; omit for new members."
         }
       }
     },
