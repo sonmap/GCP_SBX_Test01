@@ -32,8 +32,6 @@
 | `docs/jupyterhub-external-alb-oauth-runbook.md` | ALB·OAuth 접속 설명 |
 | `docs/runbook-two-stage.md` | 실행 순서 |
 | `examples/sbx01-approved-request.json` | 과제 요청 예시, 새 릴리스 값으로 교체 필요 |
-| `gcloud/bootstrap.py` | 최초 1~3단계 gcloud 생성·실행. 기본 출력만 수행 |
-| `gcloud/config.example.json` | 프로젝트·계정·네트워크 입력값 예시 |
 | `gcloud/mirror-jupyter.sh` | Chart·기본 이미지를 내부 AR로 복사하는 Build 제출 |
 | `gcloud/release.sh` | 현재 Git 커밋 기준 플랫폼 릴리스 Build 제출 |
 | `jupyter-singleuser-standard/Dockerfile` | 해당 프로그램 실행 이미지 정의 |
@@ -61,5 +59,12 @@
 | `terraform/02-sandbox/deployments/40-data/main.tf` | Dataset·Bucket·공통 GSA·WI |
 | `terraform/02-sandbox/deployments/40-data/variables.tf` | 입력 변수 |
 | `terraform/02-sandbox/deployments/40-data/versions.tf` | Terraform/Provider 버전 |
-| `tests/test_bootstrap.py` | Preview 무변경·권한오류·CIDR·계정 수 검증 |
 | `tests/test_provisioning.py` | 실제 생성 ZIP·Build 계정·그룹 순서·선택 네트워크 검증 |
+| `gcloud/00-variables.md` | 공통 변수·프로젝트 번호 조회 |
+| `gcloud/01-admin.md` | 1단계 API·두 계정·IAM의 개별 gcloud 명령 |
+| `gcloud/02-network.md` | 2단계 네트워크의 조회/생성 gcloud 명령 |
+| `gcloud/03-foundation.md` | 3단계 공통 기반의 개별 gcloud 명령 |
+| `gcloud/configs/bootstrap-build.yaml` | 초기 두 실행 이미지 Build 입력 |
+| `gcloud/configs/provisioner-env.yaml` | Cloud Run 환경변수 입력 |
+| `gcloud/configs/workflow.template.yaml` | Workflows OIDC 호출 템플릿, URL만 치환 |
+| `tests/test_commandbooks.py` | 명령 Bash 구문·변수 치환·Workflow 치환의 오프라인 검증 |

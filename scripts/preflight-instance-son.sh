@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-command -v python3
 command -v gcloud
 gcloud auth list
 gcloud config get-value project
-echo 'Review python3 gcloud/bootstrap.py admin/network/foundation before --apply.'
+echo 'Read gcloud/00-variables.md and run the commands in 01-admin.md, 02-network.md, 03-foundation.md one at a time.'

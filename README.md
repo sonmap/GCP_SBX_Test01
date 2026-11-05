@@ -2,23 +2,22 @@
 
 승인 JSON으로 GKE Jupyter Sandbox를 만드는 테스트 저장소입니다. **최초 구축 1~3단계는 Terraform 대신 gcloud**, 사용자 관리 서비스 계정은 **두 개**를 사용합니다.
 
-| 단계 | 작업 | 실행 |
+| 단계 | 작업 | 개별 명령어 |
 |---|---|---|
-| 1 | 관리자 권한·서비스 계정 | `python3 gcloud/bootstrap.py admin` |
-| 2 | Shared VPC·서브넷·PSA·방화벽 | `python3 gcloud/bootstrap.py network` |
-| 3 | Cloud Run·Cloud Build·GKE·Workflow·ALB | `python3 gcloud/bootstrap.py foundation` |
+| 준비 | 공통 변수 설정 | [00-variables.md](gcloud/00-variables.md) |
+| 1 | 관리자 권한·서비스 계정 | [01-admin.md](gcloud/01-admin.md) |
+| 2 | Shared VPC·서브넷·PSA·방화벽 | [02-network.md](gcloud/02-network.md) |
+| 3 | Cloud Run·Cloud Build·GKE·Workflow·ALB | [03-foundation.md](gcloud/03-foundation.md) |
 | 이후 과제별 | 프로젝트·IAM·BigQuery·GCS | Infrastructure Manager의 Terraform |
 
-명령은 기본적으로 **출력만** 합니다. `--apply`를 붙이면 GCP에 적용합니다.
+**1~3단계는 개별 gcloud 명령을 한 줄씩 복사하여 실행합니다.** Python 통합 실행기와 config.json은 제거했습니다. 전체 실행 스크립트·--apply 모드는 없습니다. 조회 결과를 확인하고 없는 자원만 생성합니다.
 
 ```bash
 git clone https://github.com/sonmap/GCP_SBX_Test01.git
 cd GCP_SBX_Test01
-cp gcloud/config.example.json gcloud/config.json
-python3 gcloud/bootstrap.py admin
 ```
 
-설정과 출력 명령을 검토한 뒤 단계별 실행은 [실행 절차](docs/runbook-two-stage.md)를 따릅니다. 로컬 Python은 3.10 이상, 실행 VM에는 최신 Google Cloud CLI가 필요합니다. 1~3단계에는 Terraform이 필요하지 않습니다.
+[공통 변수](gcloud/00-variables.md)를 같은 터미널에 설정한 후 1 → 2 → 3 순서로 진행합니다. 최신 Google Cloud CLI와 Bash가 필요합니다. 1~3단계 명령 실행에는 Python·Terraform 설치가 필요하지 않습니다. Cloud Build/Run/Workflows용 YAML은 [`gcloud/configs/`](gcloud/configs/)에 있습니다. 이후 과제별 자동화의 Python 프로그램은 유지합니다.
 
 | 표시 이름 | 실제 서비스 계정 ID | 용도 |
 |---|---|---|
@@ -31,8 +30,8 @@ python3 gcloud/bootstrap.py admin
 
 ```mermaid
 flowchart TD
-  A["1 관리자: admin"] --> B["2 네트워크: network"]
-  B --> C["3 공통 기반: foundation"]
+  A["1 관리자: 01-admin.md"] --> B["2 네트워크: 02-network.md"]
+  B --> C["3 공통 기반: 03-foundation.md"]
   C --> D["플랫폼 릴리스·이미지 준비"]
   D --> E["승인 JSON → Workflow → Cloud Run"]
   E --> F["Cloud Build: Group 동기화"]

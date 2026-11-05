@@ -1,6 +1,6 @@
 # 과제별 Infrastructure Manager Terraform
 
-최초 1~3단계는 `gcloud/bootstrap.py`로 이전했습니다. 여기는 과제별 자원만 남깁니다.
+최초 1~3단계는 `gcloud/01-admin.md`·`02-network.md`·`03-foundation.md`의 개별 명령으로 이전했습니다. 여기는 과제별 자원만 남깁니다.
 
 | Root | 기능 | 실행 계정 |
 |---|---|---|

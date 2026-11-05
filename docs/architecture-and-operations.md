@@ -2,17 +2,18 @@
 
 기존 `sonmap/Gcp_Managed_GKE_GIT_ETC_09`의 커밋 `4f0cae91c6483380b4e2fb2b705a63129db395eb`를 기준으로 새 저장소를 구성했습니다. 원본 저장소와 GCP 자원은 이 코드 변경으로 수정되지 않습니다.
 
-## 1~3단계
+## 1~3단계: 개별 gcloud 명령
 
-| 단계 | 파일/명령 | 실행 주체 |
+| 단계 | 문서 | 실행 주체 |
 |---|---|---|
-| 1 관리자 권한 | `python3 gcloud/bootstrap.py admin` | 기존 권한 관리자 |
-| 2 공통 네트워크 | `python3 gcloud/bootstrap.py network` | tf-manager impersonation |
-| 3 공통 기반 | `python3 gcloud/bootstrap.py foundation` | tf-manager impersonation |
+| 공통 변수 | gcloud/00-variables.md | 기존 관리자 |
+| 1 관리자 권한 | gcloud/01-admin.md | 기존 권한 관리자 |
+| 2 공통 네트워크 | gcloud/02-network.md | tf-manager impersonation |
+| 3 공통 기반 | gcloud/03-foundation.md | tf-manager impersonation |
 
-세 명령은 `--apply`를 붙이기 전에는 gcloud 명령을 출력할 뿐 GCP에 접속하지 않습니다. Terraform을 설치하지 않아도 1~3단계를 실행할 수 있습니다. 생성된 임시 설정은 `.local/`에 저장되고 Git에서 제외됩니다.
+문서의 각 gcloud 명령을 복사하여 개별 실행합니다. Python 통합 실행기와 config.json은 제거했습니다. 자동 미리보기/--apply 모드는 없으며 조회와 생성 명령을 명확히 분리했습니다. 조회 성공 시 CIDR/Private/Pod Range 등 값을 확인하고 create를 건너뜁니다. 명시적 Not Found일 때만 생성하며 403·인증·연결 오류면 중단합니다. 기존 State/URL Map 경로는 자동 삭제하지 않습니다.
 
-관리자가 API, 두 계정, IAM을 먼저 준비합니다. 이어 Shared VPC 연결/서브넷/PSA/방화벽, 마지막으로 버킷/AR/Private Pool/GKE/Cloud Run/Workflow/공통 ALB를 구성합니다. 기존 네트워크·GKE는 조회하여 재사용하고 주요 CIDR/Private 설정이 다르면 중단합니다. 기존 URL Map의 과제별 경로를 초기화하지 않습니다. API 호출 실패 중 명시적 Not Found만 미존재로 취급합니다.
+Cloud Build, Cloud Run 환경변수, Workflows의 선언형 입력 파일은 gcloud/configs/에 있습니다. Workflow URL 자리만 sed로 바꿉니다. 1~3단계 실행에 Python/Terraform 설치는 필요하지 않습니다. 과제별 배포의 기존 Python/Infrastructure Manager는 유지합니다.
 
 ## 두 사용자 관리 서비스 계정
 
@@ -25,7 +26,7 @@
 
 정확히 두 계정으로 통합했으므로 Notebook과 제어 서비스가 sbx-manager를 공유합니다. Notebook은 sbx-manager가 보유한 데이터 권한뿐 아니라 Cloud Build 제출 권한 및 tf-manager actAs 권한도 얻습니다. 여러 과제의 데이터 권한도 이 계정에 합쳐집니다. 따라서 이 버전은 신뢰된 사용자만 사용하는 PoC용이며, Namespace 분리만으로 과제별 GCP 권한을 격리하지 못합니다. 운영 전환 시 Notebook GSA를 분리해야 합니다.
 
-관리자 단계는 Owner/Editor를 새로 부여하지 않습니다. 기능별 사전 정의 역할을 더하는 방식이며, tf-manager에 통합된 권한 범위는 원본의 여러 실행 계정을 합친 범위입니다. 프로젝트 생성 Folder와 Billing 권한은 설정된 범위에만 추가합니다. `operator_member`의 실제 계정을 `admin_account`와 맞춥니다.
+관리자 단계는 Owner/Editor를 새로 부여하지 않습니다. 기능별 사전 정의 역할을 더하는 방식이며, tf-manager에 통합된 권한 범위는 원본의 여러 실행 계정을 합친 범위입니다. 프로젝트 생성 Folder와 Billing 권한은 공통 변수에 지정된 범위에만 추가합니다. `OPERATOR_MEMBER`의 실제 계정을 `ADMIN_ACCOUNT`와 맞춥니다.
 
 ## 과제별 배포는 Infrastructure Manager 유지
 
@@ -42,9 +43,9 @@ State는 Infrastructure Manager Deployment별로 관리합니다. 새 Deployment
 
 ## 네트워크와 외부 연결 경계
 
-GKE는 Private Node/Private IP Endpoint를 사용합니다. 기본 `gke_endpoint_mode=internal`이며 API 연결은 `--internal-ip`입니다. Private Pool에서 Private GKE까지의 VPN/BGP 경로는 별도 준비해야 합니다. PSA/VPC peering만으로는 전이 라우팅이 되지 않습니다. 같은 리전/다른 리전 라우팅과 방화벽 및 DNS는 실제 환경에서 점검합니다.
+GKE는 Private Node/Private IP Endpoint를 사용합니다. 기본 `GKE_ENDPOINT_MODE=internal`이며 API 연결은 `--internal-ip`입니다. Private Pool에서 Private GKE까지의 VPN/BGP 경로는 별도 준비해야 합니다. PSA/VPC peering만으로는 전이 라우팅이 되지 않습니다. 같은 리전/다른 리전 라우팅과 방화벽 및 DNS는 실제 환경에서 점검합니다.
 
-`dns` 모드는 명시적으로 선택할 때만 IAM 인증 DNS endpoint를 사용합니다. Cloud Run은 Workflows의 OIDC 호출을 받기 위해 ingress=all이지만 익명 호출을 허용하지 않습니다. 이는 네트워크 수준 private ingress와 다릅니다. 사용자 Jupyter 접속은 원본의 Classic External ALB 구조를 유지합니다. 완전 사설 사용자 접속이 필요하면 별도의 Internal ALB 설계로 변경해야 합니다.
+`provisioner-env.yaml`의 GKE_ENDPOINT_MODE를 dns로 바꾼 경우에만 IAM 인증 DNS endpoint를 사용합니다. Cloud Run은 Workflows의 OIDC 호출을 받기 위해 ingress=all이지만 익명 호출을 허용하지 않습니다. 이는 네트워크 수준 private ingress와 다릅니다. 사용자 Jupyter 접속은 원본의 Classic External ALB 구조를 유지합니다. 완전 사설 사용자 접속이 필요하면 별도의 Internal ALB 설계로 변경해야 합니다.
 
 부트스트랩 이미지 빌드와 미러링은 외부 패키지를 받는 완전관리형 Cloud Build에서 수행합니다. 과제 배포 Private Pool에는 외부 IP가 없습니다. Google API/DNS 및 Artifact Registry에 도달하는 경로는 필요합니다.
 

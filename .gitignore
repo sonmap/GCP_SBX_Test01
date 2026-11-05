@@ -8,7 +8,6 @@ __pycache__/
 *.pyc
 
 
-gcloud/config.json
 .local/
 *.pem
 *.key

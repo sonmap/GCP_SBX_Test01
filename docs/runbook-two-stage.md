@@ -2,50 +2,32 @@
 
 ## 준비
 
-Python 3.10 이상과 최신 gcloud가 있는 관리 VM에서 실행합니다. 기존 프로젝트의 결제와 관리자 권한을 먼저 확인합니다. 로컬 PC에 Terraform을 설치할 필요는 없습니다.
+최신 gcloud와 Bash가 있는 관리 VM에서 저장소를 받습니다. 기존 프로젝트 결제·관리자 권한을 확인합니다.
 
 ```bash
 git clone https://github.com/sonmap/GCP_SBX_Test01.git
 cd GCP_SBX_Test01
-cp gcloud/config.example.json gcloud/config.json
 gcloud auth list
 gcloud config get-value project
 ```
 
-`gcloud/config.json`의 관리자/운영자, Folder, CIDR, 기존 프로젝트, 인증서 이름을 확인합니다. 새 프로젝트 생성을 사용할 때만 billing_account를 채웁니다. 예제 프로젝트/네트워크/리전은 런타임 Schema와 함께 고정되어 있어 단독 변경하면 검증이 거부합니다. create_test_cluster는 기본 false입니다. 원본의 Internal ALB 잔여 서브넷/예약 IP는 현행 External ALB에 필요 없어 새로 생성하지 않습니다.
+[공통 변수](../gcloud/00-variables.md)의 export/프로젝트 번호 조회 블록을 같은 터미널에 복사합니다. config.json과 Python 통합 실행기는 사용하지 않습니다. 관리 계정·운영자·Folder·CIDR·인증서 이름을 확인합니다. 이 PoC의 프로젝트·네트워크·클러스터 값은 런타임 Schema와 YAML에도 있으므로 공통 변수만 단독 변경하지 않습니다.
 
 ## 1 관리자 권한
 
-관리자로 로그인한 뒤 명령 출력부터 확인합니다. --apply는 계정/API/IAM을 실제 변경합니다.
-
-```bash
-python3 gcloud/bootstrap.py admin
-python3 gcloud/bootstrap.py admin --apply
-```
-
-sbx-manager와 tf-manager 두 계정만 생성합니다. 기존 관리자에게 여러 프로젝트의 IAM 변경 권한과 Folder/Billing 범위 권한이 필요합니다. GCP 서비스 에이전트는 API 활성화에 따라 별도 생성됩니다.
+[01-admin.md](../gcloud/01-admin.md)의 API → 서비스 계정 → IAM 명령을 한 줄씩 실행합니다. 기존 sbx-manager/tf-manager는 describe 결과를 확인하고 create를 건너뜁니다. 여러 프로젝트와 Folder/Billing의 IAM을 변경할 수 있는 기존 관리자로 실행합니다.
 
 ## 2 공통 네트워크
 
-```bash
-python3 gcloud/bootstrap.py network
-python3 gcloud/bootstrap.py network --apply
-```
-
-tf-manager를 impersonation하여 실행합니다. 기존 VPC/서브넷/PSA가 있으면 재사용합니다. 기존 CIDR 또는 PSA Range가 다르면 자동 덮어쓰지 않고 중단합니다. 기존 서비스 프로젝트가 다른 Host에 연결되어 있어도 중단합니다.
+[02-network.md](../gcloud/02-network.md)의 gcloud 명령을 개별 실행합니다. 명령마다 tf-manager impersonation을 명시합니다. VPC·서브넷·PSA·Shared VPC 연결을 조회하고 없는 것만 생성합니다. 기존 CIDR/Secondary Range/Host가 다르면 중단합니다. 403·연결 실패는 미존재로 취급하지 않습니다. Test GKE용 서브넷은 선택 항목입니다.
 
 ## 3 공통 기반
 
-공통 HTTPS ALB를 활성화하려면 설정의 SSL 인증서 리소스가 GKE 프로젝트에 미리 있어야 합니다. 인증서 PEM/개인키는 Git에 넣지 않습니다. 기존 인증서를 재사용하거나 별도 절차로 등록합니다.
+[03-foundation.md](../gcloud/03-foundation.md)의 Bucket·AR·Secret·Pool·GKE·Build·Run·Workflow·ALB 명령을 개별 실행합니다. YAML 입력 파일은 Git에 포함되어 있으며 Python으로 생성하지 않습니다. Workflow URL 치환만 문서의 sed 명령을 사용합니다.
 
-```bash
-python3 gcloud/bootstrap.py foundation
-python3 gcloud/bootstrap.py foundation --apply
-```
+기존 GKE는 Private/Autopilot/Subnet/Pod Range를 확인하고 생성 명령을 건너뜁니다. 기존 공통 ALB는 조회하여 재사용하고 URL Map 경로를 덮어쓰지 않습니다. 인증서가 없으면 HTTPS 명령 전에 별도 등록합니다. 이미지 Build와 Cloud Run/Workflow deploy는 실제 생성·갱신 작업입니다. 전체 실행 명령/--apply/미리보기 모드는 없습니다.
 
-첫 Build는 bootstrap 태그로 Runner/Provisioner 이미지를 만듭니다. 다음 릴리스 과정이 승인 요청에 사용할 고정 버전을 만듭니다. Bootstrap 재실행은 Cloud Run을 bootstrap 이미지로 갱신하므로 운영 릴리스를 유지하려면 재실행 뒤 release.sh를 다시 실행합니다.
-
-GKE는 기존 private 클러스터를 재사용합니다. Private Pool → GKE Private IP의 VPN/BGP/방화벽/DNS 경로는 [별도 설계](cloudbuild-private-gke-vpn-design.md)를 따라 준비합니다. PSA만으로 Kubernetes API에 연결되지 않습니다. `gke_endpoint_mode=dns`는 명시적 선택 사항입니다.
+Private Pool → GKE Private IP의 VPN/BGP/방화벽/DNS 경로는 [별도 설계](cloudbuild-private-gke-vpn-design.md)를 따라 준비합니다. PSA만으로 Kubernetes API에 연결되지 않습니다. 기본은 internal endpoint입니다.
 
 ## 사용자 이미지와 플랫폼 릴리스
 
@@ -71,7 +53,7 @@ bash gcloud/mirror-jupyter.sh --apply
 CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT=tf-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com bash jupyter-singleuser-standard/build-gcloud.sh
 ```
 
-GitHub 자동 릴리스 Trigger는 기본 false입니다. 먼저 Cloud Build GitHub App에 **새 저장소** 연결을 승인한 뒤 create_github_trigger=true로 바꾸고 foundation을 실행합니다. Trigger가 원본 저장소를 가리키지 않도록 확인합니다.
+GitHub 자동 릴리스 Trigger는 [3단계의 선택 명령](../gcloud/03-foundation.md)으로 분리했습니다. Cloud Build GitHub App에 새 저장소 연결을 승인한 뒤 필요할 때만 해당 create 명령을 실행합니다.
 
 ## 과제 요청
 
@@ -100,13 +82,13 @@ ALB의 IP에 DNS 또는 PoC hosts 파일을 연결하고 등록된 인증서/도
 
 데이터레이크 권한 처리는 별도 datalake-access-provisioner를 배포하고 요청 JSON을 업로드합니다. 이 컴포넌트도 동일한 두 계정만 사용합니다.
 
-## 검증 기록
+## 검증
 
-저장소 반영 시 Python 자동 테스트 14개, Python/Shell 구문 검사, Terraform HCL·JSON·YAML 파싱 검사를 통과했습니다. 명령 출력 모드는 GCP에 접속하거나 자원을 변경하지 않는 것을 테스트했습니다.
+1~3단계 명령 문서의 Bash 구문, 변수 치환, Workflow 템플릿 치환을 gcloud 대역 프로그램으로 검사합니다. 실제 gcloud API는 호출하지 않습니다. 과제별 프로비저너는 기존 자동 테스트로 검사합니다.
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
 python3 -m unittest discover -s tests -v
 ```
 
-실제 GCP 배포·이미지 Build·Workspace DWD·사설 경로는 검증하지 않았습니다. 추가 Terraform 1.5.7 validate 시도는 로컬 Google Provider 캐시 체크섬 불일치 및 plugin 실행 오류로 완료하지 못했습니다. 따라서 Provider 스키마 기반 검증이 통과했다고 간주하지 않습니다. 실행 VM/Infrastructure Manager 환경에서 해당 검증과 신규 자원 Plan을 확인한 후 배포합니다. 최초 1~3단계는 Terraform Provider와 무관한 gcloud 경로입니다.
+검증용 Python은 개발 검사에만 사용하며 1~3단계 실행에는 필요하지 않습니다. 실제 GCP 배포·이미지 Build·Workspace DWD·사설 경로는 검증하지 않았습니다. 이전 Terraform Provider 실행 검증도 환경 오류로 완료하지 못했으므로 Provider 스키마 기반 검증이 통과했다고 간주하지 않습니다. 실행 환경에서 Infrastructure Manager Plan과 실제 네트워크·권한을 확인해야 합니다.

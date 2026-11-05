@@ -4,10 +4,10 @@
 
 ```mermaid
 flowchart TD
-  CFG["gcloud/config.json"] -.-> BOOT["gcloud/bootstrap.py"]
-  BOOT --> A["1 admin: API·두 계정·IAM"]
-  BOOT --> N["2 network: Shared VPC·서브넷·PSA·방화벽"]
-  BOOT --> F["3 foundation: Pool·GKE·AR·Run·Workflow·ALB"]
+  CFG["gcloud/00-variables.md"] -.-> A["gcloud/01-admin.md: 개별 gcloud"]
+  CFG -.-> N["gcloud/02-network.md: 개별 gcloud"]
+  CFG -.-> F["gcloud/03-foundation.md: 개별 gcloud"]
+  Y["gcloud/configs/: YAML 입력 파일"] -.-> F
   A --> N
   N --> F
   F --> REL["gcloud/release.sh"]
