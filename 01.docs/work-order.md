@@ -18,7 +18,7 @@ flowchart TD
     F -->|성공| G["6. 플랫폼 릴리스 게시"]
     G --> H["7. Chart·기본 이미지 미러링"]
     H --> I["8. Notebook 이미지 빌드"]
-    I --> J["9. 포털 자동 연동 구현·종단 시험"]
+    I --> J["9. 작업자가 과제 Deploy 명령 실행"]
 ```
 
 | 순서 | 작업자 / 작업 | 실행 문서 — 클릭 후 명령 실행 | 관련 폴더 | 완료 기준 |
@@ -32,38 +32,37 @@ flowchart TD
 | 6 | 운영자: API·배포 도구 이미지와 Terraform 소스 게시 | [플랫폼 릴리스 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#5-플랫폼-릴리스-게시) | [03.cloudbuild](../03.cloudbuild) | Build SUCCESS·release.json 생성 |
 | 7 | 운영자: Chart·기본 이미지를 내부 AR로 복사 | [미러링 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#6-chart와-기본-이미지-미러링) | [03.cloudbuild](../03.cloudbuild) | 두 Build SUCCESS |
 | 8 | 운영자: Notebook 표준 이미지 빌드 | [Notebook 빌드 명령](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#7-notebook-표준-이미지-빌드) | [04.Notebook 이미지](../04.Jupiter-setup-image) | 이미지 조회 성공 |
-| 9 | 개발자·운영자: GCS 이벤트 연결·결과 전달 구현 후 전체 시험 | [자동화 범위와 미구현 항목](#운영-과제-자동화), [시험·검증 절차](runbook-two-stage.md) | [07.API](../07.sandbox_request_api), [10.점검 도구](../10.sandbox_deploy_tools), [11.테스트](../11.tests) | GCS 저장만으로 배포 시작·최종 결과 확인 |
+| 9 | 운영자: GCS의 승인 JSON을 지정해 Deploy 시작·결과 확인 | [Deploy 실행 명령](../02.sandbox_setup_01_gcloud/05-deploy.md) | [02.gcloud](../02.sandbox_setup_01_gcloud), [07.API](../07.sandbox_request_api) | 부모·자식 Build SUCCESS·사용자 접속 확인 |
 
 3단계의 HTTPS Proxy 구성 전에 인증서가 필요합니다. 인증서가 없다면 해당 명령을 보류하고 4단계 담당자 준비 후 완료합니다. Private Pool의 GKE 사설 경로는 PSA 생성만으로 완성되지 않으며, 5단계 통과가 필수입니다.
 
-## 운영 과제 자동화
+## 현재 운영 — 작업자가 Deploy 명령 실행
 
-포털이 승인 JSON을 GCS에 저장한 뒤에는 작업자가 명령을 실행하지 않는 것이 운영 기준입니다. **현재 GCS 이벤트 시작·이벤트 입력 변환·Build 최종 결과의 포털 전달은 추가 구현 대상**입니다. 아래 점선은 그 미구현 연결을 표시합니다. 현재 Workflow의 성공은 접수 성공이며 배포 완료를 의미하지 않습니다.
+인프라는 관리자가 개별 gcloud 명령으로 준비합니다. 포털은 승인 JSON을 GCS에 저장하고, 작업자는 [Deploy 명령 문서](../02.sandbox_setup_01_gcloud/05-deploy.md)에 따라 요청을 지정해 배포를 시작합니다. GCS 이벤트 연결은 현재 필수 작업이 아닙니다.
 
 ```mermaid
 flowchart TD
-    A["포털: 승인 JSON 저장"] --> B["GCS 요청 버킷"]
-    B -. 추가 구현 .-> C["이벤트 감지·요청 입력 변환"]
-    C -. 자동 호출 .-> D["Workflow → 07 요청 API"]
-    D --> E{"Schema·요청 검증"}
-    E -->|정상| F["Cloud Build: 그룹·과제 자원 구성"]
-    F --> G["Private Pool: 09 GKE 배포"]
-    G --> H["JupyterHub·ALB 설정 완료"]
-    E -->|오류| X["검증 실패"]
-    H -. 완료 추적 추가 .-> I["결과 기록·포털 전달"]
-    X -. 오류 전달 추가 .-> I
+    A["관리자: 개별 gcloud로 인프라 구축"] --> B["공통 기반 준비 완료"]
+    P["포털: 승인 JSON을 GCS에 저장"] --> C["작업자: 요청 버전·대상 확인"]
+    B --> C
+    C --> D["작업자: gcloud workflows run"]
+    D --> E["Cloud Run: 요청 검증"]
+    E -->|정상| F["Cloud Build: 과제 자원·권한 구성"]
+    F --> G["Private Pool: JupyterHub·ALB 배포"]
+    E -->|오류| X["작업자: 오류 확인"]
+    G --> H["작업자: Build·접속 결과 확인"]
 ```
 
-| 처리 순서 | 자동 처리 내용 | 코드·폴더 링크 | 운영자 수동 실행 |
-|---|---|---|---|
-| A | 포털이 승인 요청·고정 릴리스 정보를 JSON으로 저장 | [05.포털 요청 샘플](../05.sandbox_json) | 없음 |
-| B | GCS 이벤트 감지·URI/generation/SHA256 등 입력 구성 | 추가 구현 대상 | 구현 후 없음 |
-| C | Workflow 호출 → API의 Schema·의미 검증 | [Workflow 설정](../02.sandbox_setup_01_gcloud/configs/workflow.template.yaml), [06.검증 규칙](../06.sandbox_json_rules), [07.요청 API](../07.sandbox_request_api) | 없음 |
-| D | 그룹 동기화 → Project → 선택 Network → IAM → Data | [08.과제 Terraform](../08.sandbox_setup_02_terraform), [09.그룹·GKE 배포 코드](../09.sandbox_gke_deployer) | 없음 |
-| E | Namespace·KSA·JupyterHub·과제 ALB 연결 | [09.GKE 배포](../09.sandbox_gke_deployer) | 없음 |
-| F | Build 최종 상태 확인·포털 결과 전달 | 추가 구현 대상 | 구현 후 없음 |
+| 구간 | 지금 수행하는 방식 | 문서·소스 |
+|---|---|---|
+| 공통 인프라 | 작업자가 gcloud 명령을 한 줄씩 수행 | [01-admin](../02.sandbox_setup_01_gcloud/01-admin.md), [02-network](../02.sandbox_setup_01_gcloud/02-network.md), [03-foundation](../02.sandbox_setup_01_gcloud/03-foundation.md) |
+| 공통 이미지 준비 | 작업자가 빌드·릴리스 gcloud 명령을 직접 제출 | [04-manual-gcloud](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md) |
+| 과제 Deploy 시작 | 작업자가 GCS 요청을 지정하고 Deploy 명령 실행 | [05-deploy](../02.sandbox_setup_01_gcloud/05-deploy.md) |
+| Deploy 내부 처리 | 기존 API·Build가 검증·Terraform·GKE 배포 수행 | [07.API](../07.sandbox_request_api), [08.Terraform](../08.sandbox_setup_02_terraform), [09.GKE 배포](../09.sandbox_gke_deployer) |
+| 배포 결과 확인 | 작업자가 Build·GKE·접속 결과 확인 | [Deploy 결과 확인](../02.sandbox_setup_01_gcloud/05-deploy.md#4-deploy-결과-확인) |
+| 이후 자동화 | GCS 이벤트 → Deploy 시작·완료 추적·포털 결과 전달 | 향후 작업, 현재 구축 필수 단계에서 제외 |
 
-공통 GKE는 SBX_GKE_PROJECT, 공통 VPC는 VPC_HOST_PROJECT, 자동화 실행은 l2comn_PROJECT, 과제 데이터·Query Job은 SBX_PROJECT를 사용합니다. 과제 처리 중 08/09 폴더에서 terraform apply나 Python 파일을 직접 실행하지 않습니다. 사용자의 Notebook Pod는 배포 직후가 아니라 로그인 후 서버를 시작할 때 생성됩니다.
+주 대상은 SBX_GKE_PROJECT=pjt-d-host01입니다. Workflow 성공·ACCEPTED는 접수 성공이며, 배포 완료는 부모·자식 Build 결과로 확인합니다. 사용자 Notebook Pod는 로그인 후 서버를 시작할 때 생성됩니다.
 
 ## 수동 연동 시험·장애 점검
 

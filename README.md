@@ -1,5 +1,7 @@
 # GCP_SBX_Test01
 
+> **현재 작업 기준:** 공통 인프라는 작업자가 개별 gcloud 명령으로 구축합니다. 과제는 포털이 GCS에 저장한 승인 JSON을 대상으로 작업자가 [Deploy 명령](02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다. GCS 이벤트 자동 시작·포털 결과 자동 전달은 추후 적용하며 현재 필수 구축 단계가 아닙니다. 기존 Deploy 내부의 API·Build·Terraform·GKE 처리 코드는 사용합니다.
+
 **[작업 순서 Mermaid + 단계별 실행 문서·폴더 링크](01.docs/work-order.md)** — 최초 준비와 운영 자동화 순서를 여기서 확인하세요.
 
 ## 프로젝트 기준과 변수명
