@@ -99,3 +99,14 @@ gcloud infra-manager deployments list --project=prj-b-cicd-local-236d --location
 ALB의 IP에 DNS 또는 PoC hosts 파일을 연결하고 등록된 인증서/도메인과 일치하는지 확인합니다. KSA annotation은 sbx-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com이어야 합니다. OAuth Callback URL은 `https://<과제 도메인>/hub/oauth_callback`입니다.
 
 데이터레이크 권한 처리는 별도 datalake-access-provisioner를 배포하고 요청 JSON을 업로드합니다. 이 컴포넌트도 동일한 두 계정만 사용합니다.
+
+## 검증 기록
+
+저장소 반영 시 Python 자동 테스트 14개, Python/Shell 구문 검사, Terraform HCL·JSON·YAML 파싱 검사를 통과했습니다. 명령 출력 모드는 GCP에 접속하거나 자원을 변경하지 않는 것을 테스트했습니다.
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m unittest discover -s tests -v
+```
+
+실제 GCP 배포·이미지 Build·Workspace DWD·사설 경로는 검증하지 않았습니다. 추가 Terraform 1.5.7 validate 시도는 로컬 Google Provider 캐시 체크섬 불일치 및 plugin 실행 오류로 완료하지 못했습니다. 따라서 Provider 스키마 기반 검증이 통과했다고 간주하지 않습니다. 실행 VM/Infrastructure Manager 환경에서 해당 검증과 신규 자원 Plan을 확인한 후 배포합니다. 최초 1~3단계는 Terraform Provider와 무관한 gcloud 경로입니다.
