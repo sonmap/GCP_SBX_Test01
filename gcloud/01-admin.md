@@ -1,8 +1,25 @@
 # 1. 관리자 권한 — 주석으로 통합한 gcloud 명령
 
-먼저 [공통 변수](00-variables.md)를 같은 터미널에 설정합니다. 아래 한 개의 코드 블록에서 `# 주석`을 보며 순서대로 실행합니다. **계정이 이미 있으면 해당 create 명령을 건너뜁니다.** Billing은 필요한 경우에만 주석을 해제합니다.
+필요한 변수 선언을 아래 코드 블록 맨 앞에 포함했습니다. 별도 문서에서 변수를 설정할 필요 없이, 이 문서의 선언부터 같은 터미널에서 실행합니다. 아래 한 개의 코드 블록에서 `# 주석`을 보며 순서대로 실행합니다. **계정이 이미 있으면 해당 create 명령을 건너뜁니다.** Billing은 필요한 경우에만 주석을 해제합니다.
 
 ```bash
+# ── 이 문서에서 사용하는 변수 선언 ──
+# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
+unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
+export ADMIN_ACCOUNT=admin@sonmap.net
+export OPERATOR_MEMBER=user:admin@sonmap.net
+export CICD_PROJECT=prj-b-cicd-local-236d
+export HOST_PROJECT=pjt-d-shared-base
+export GKE_PROJECT=pjt-d-host01
+export TASK_PROJECT=pjt-net-hub-base
+export FOLDER_ID=154455658682
+export BILLING_ACCOUNT=""
+export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export SBX_MANAGER="sbx-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
+export CICD_PROJECT_NUMBER="$(gcloud projects describe "${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+export GKE_PROJECT_NUMBER="$(gcloud projects describe "${GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+# 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
+
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
 gcloud services enable serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com admin.googleapis.com cloudscheduler.googleapis.com --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}"
 gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${HOST_PROJECT}" --account="${ADMIN_ACCOUNT}"
