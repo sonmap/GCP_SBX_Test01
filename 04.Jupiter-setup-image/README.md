@@ -5,7 +5,7 @@
 미러링 후 다음 명령으로 빌드합니다.
 
 ```bash
-CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT=tf-manager@prj-b-cicd-local-236d.iam.gserviceaccount.com bash 04.Jupiter-setup-image/build-gcloud.sh
+# 개별 명령: 02.sandbox_setup_01_gcloud/04-manual-gcloud.md 의 7단계
 ```
 
 이미지: `asia-northeast3-docker.pkg.dev/prj-b-cicd-local-236d/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test`.

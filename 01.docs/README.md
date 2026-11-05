@@ -13,8 +13,8 @@
 | 6 | 플랫폼 릴리스 게시 | tf-manager Build | 이미지·소스 ZIP·release.json 생성 |
 | 7 | Jupyter Chart/기본 이미지 미러링 | tf-manager Build | Chart/이미지 게시 성공 |
 | 8 | 사용자 Notebook 표준 이미지 빌드 | tf-manager Build | 표준 이미지 조회 성공 |
-| 9 | 실제 과제값과 새 릴리스를 신청 JSON에 반영·승인 | 승인 담당자·운영자 | request/source/data 설정 확인 |
-| 10 | 승인 요청 업로드·Workflow 호출 | 권한 있는 운영자 | ACCEPTED·Build 시작 |
+| 9 | 수동 시험: 실제 과제값과 릴리스를 신청 JSON에 반영 | 시험 운영자 | request/source/data 설정 확인 |
+| 10 | 수동 시험: 승인 요청 업로드·Workflow 호출 | 시험 운영자 | ACCEPTED·Build 시작 |
 | 11 | Build·IM·GKE·ALB·로그인·BQ 점검 | 운영자·승인 사용자 | Build SUCCESS·Notebook/BQ 테스트 성공 |
 
 폴더 번호는 자료를 찾기 위한 흐름 표기입니다. 실제 최초 구축에서는 Cloud Run API와 GKE 배포 도구의 이미지가 3단계에서 함께 빌드됩니다. 07/08/09 폴더는 요청 후 자동 호출되는 코드이며, 폴더 안에서 프로그램을 차례로 수동 실행하지 않습니다.
@@ -31,3 +31,5 @@
 | [file-catalog.md](file-catalog.md) | 특정 파일의 역할 조회 |
 
 기존 별도 BQ 프로젝트의 조회 권한은 해당 관리자가 부여합니다. 별도 데이터레이크 권한 자동화 서비스는 제거되어 있습니다. 현재 과제별 40-data의 Dataset/GCS 구성은 유지되어 있으므로, 기존 BQ만 사용하는 설계와 구분해서 신청값을 확인합니다.
+
+관리자 준비 작업은 [개별 gcloud 실행 문서](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md)를 사용합니다. shell 실행 없이 OAuth 등록·릴리스·미러링·Notebook 빌드를 수행합니다. 과제 요청은 포털→GCS가 운영 기준이며, 수동 요청 제출은 연동 시험용입니다. GCS 이벤트 시작과 배포 결과의 포털 전달은 추가 구현 대상입니다.

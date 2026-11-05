@@ -23,7 +23,20 @@ export TF_MANAGER="tf-manager@${CICD_PROJECT}.iam.gserviceaccount.com"
 export CLOUDSDK_CORE_ACCOUNT="${ADMIN_ACCOUNT}"
 
 # 03-foundation에서 Secret 이름을 만든 후 실제 값을 입력합니다.
-CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}" bash 10.sandbox_deploy_tools/set-jupyter-oauth-secrets.sh
+# 입력값은 화면에 표시하지 않습니다. set -x를 사용하지 않습니다.
+read -r -s -p "OAuth Client ID: " OAUTH_CLIENT_ID
+printf '\n'
+read -r -s -p "OAuth Client Secret: " OAUTH_CLIENT_SECRET
+printf '\n'
+# 둘 다 입력했는지 확인한 뒤 아래 명령을 실행합니다.
+test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
+
+# 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
+if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+fi
+unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 # 값 자체를 출력하지 않고 버전 상태만 확인합니다.
 gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'

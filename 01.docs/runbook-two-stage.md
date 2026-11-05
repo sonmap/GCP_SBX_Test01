@@ -117,10 +117,23 @@ curl --fail --silent --show-error -H "Authorization: Bearer $(gcloud auth print-
 
 ### 4-1. Jupyter OAuth
 
-OAuth 담당자가 웹 애플리케이션용 Client ID/Secret과 Callback URL `https://jupyter-sbx01.sonmap.net/hub/oauth_callback`을 준비합니다. 실행 계정 tf-manager로 다음 보조 명령을 실행하고 값을 입력합니다.
+OAuth 담당자가 웹 애플리케이션용 Client ID/Secret과 Callback URL `https://jupyter-sbx01.sonmap.net/hub/oauth_callback`을 준비합니다. 다음 입력·gcloud 명령을 한 단계씩 실행합니다. gcloud는 tf-manager 위임으로 수행합니다.
 
 ```bash
-CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}" bash 10.sandbox_deploy_tools/set-jupyter-oauth-secrets.sh
+# 입력값은 화면에 표시하지 않습니다. set -x를 사용하지 않습니다.
+read -r -s -p "OAuth Client ID: " OAUTH_CLIENT_ID
+printf '\n'
+read -r -s -p "OAuth Client Secret: " OAUTH_CLIENT_SECRET
+printf '\n'
+# 둘 다 입력했는지 확인한 뒤 아래 명령을 실행합니다.
+test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
+
+# 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
+if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+fi
+unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 # 비밀값을 출력하지 않고 등록 상태만 확인합니다.
 gcloud secrets versions describe latest --secret=jupyter-oauth-client-id --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(state)'
@@ -164,9 +177,14 @@ gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --proje
 git status --porcelain
 export RELEASE_ID="git-$(git rev-parse HEAD | cut -c1-12)"
 
-# 첫 명령은 제출 명령 출력, 두 번째는 실제 Build 제출입니다.
-bash 02.sandbox_setup_01_gcloud/release.sh
-bash 02.sandbox_setup_01_gcloud/release.sh --apply
+# 로컬 수정이 있으면 아래 Build 제출을 실행하지 않습니다.
+export COMMIT_SHA="$(git rev-parse HEAD)"
+export RELEASE_ID="git-$(git rev-parse HEAD | cut -c1-12)"
+if [ -z "$(git status --porcelain)" ]; then
+  gcloud builds submit . --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" --config=03.cloudbuild/platform-release.yaml --substitutions="_RELEASE_ID=${RELEASE_ID},_COMMIT_SHA=${COMMIT_SHA}"
+else
+  echo "로컬 변경을 커밋하거나 정리한 뒤 다시 실행하세요."
+fi
 
 # Build 성공 후 생성된 release.json을 받아 봅니다.
 gcloud storage cp "gs://${BUNDLE_BUCKET}/platform-releases/${RELEASE_ID}/release.json" .local/release.json --account="${ADMIN_ACCOUNT}"
@@ -177,12 +195,17 @@ jq '{release_id,git_commit,archive_uri,generation,sha256,runner_image,provisione
 
 ## 7. Chart와 기본 이미지 미러링
 
-실행 계정: tf-manager Build. `mirror-jupyter.sh`는 기본 bootstrap Runner로 외부 Chart/이미지를 받아 내부 AR에 저장하는 두 Build를 제출합니다.
+실행 계정: tf-manager Build. 아래 두 gcloud 명령은 bootstrap Runner로 외부 Chart/이미지를 받아 내부 AR에 저장하는 Build를 각각 제출합니다.
 
 ```bash
-# 출력 확인 후 실제 미러링합니다.
-bash 02.sandbox_setup_01_gcloud/mirror-jupyter.sh
-bash 02.sandbox_setup_01_gcloud/mirror-jupyter.sh --apply
+export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
+
+# 1. Chart를 내부 Artifact Registry로 복사합니다.
+gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+
+# 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
+# 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
+gcloud builds submit --no-source --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
 gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform" --include-tags --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
@@ -192,16 +215,27 @@ gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar
 ## 8. 사용자 Notebook 표준 이미지 빌드
 
 ```bash
-CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}" bash 04.Jupiter-setup-image/build-gcloud.sh
+export IMAGE_REPO="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
+export IMAGE_TAG="4.2.0-r1-test"
+export BASE_IMAGE="${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
+
+# 버킷 location이 asia-northeast3인지 확인합니다. 다르면 중단합니다.
+gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
+
+# Build 실행 계정의 소스 읽기 권한을 준비합니다.
+gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+
+# Notebook 이미지를 빌드합니다. 성공한 뒤 이미지 조회로 확인합니다.
+gcloud builds submit 04.Jupiter-setup-image --project="${CICD_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
 
 gcloud artifacts docker images describe "${REGION}-docker.pkg.dev/${CICD_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test" --project="${CICD_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 완료 기준: Build SUCCESS이고 이미지 describe가 성공합니다. 이 이미지는 이후 새 사용자 Notebook Pod에 설정됩니다. 기존 사용자 PVC는 삭제하지 않습니다.
 
-## 9. 실제 과제 신청값과 릴리스 반영
+## 9. 수동 연동 시험 전용 — 실제 과제 신청값과 릴리스 반영
 
-수행자: 과제 승인 담당자·운영자. 먼저 현재 예제의 의미를 확인합니다.
+운영 요청은 포털이 작성·승인하여 GCS에 저장합니다. 이 단계와 10단계는 포털 없이 시험할 때만 사용합니다. 현재 GCS 이벤트 시작 및 Build 완료 결과의 포털 전달은 미구현이므로, GCS 저장만으로 운영 자동화가 시작된다고 판단하지 않습니다. 포털은 릴리스 메타데이터도 JSON에 반영해야 합니다. 먼저 현재 예제의 의미를 확인합니다.
 
 | 예제 항목 | 현재 값·실제 의미 |
 |---|---|
@@ -226,14 +260,22 @@ jq '{request_id,approval,task,identity,project,network,data,gke,source}' .local/
 
 완료 기준: 최종 JSON이 실제 승인값이고 source가 이번 release.json과 일치합니다. Request ID는 실행할 때마다 새 값으로 관리합니다. 아래 단계는 해당 JSON의 Request ID를 직접 읽으므로 예제 ID를 명령에 고정하지 않습니다.
 
-## 10. 승인 JSON 업로드·Workflow 실행
+## 10. 수동 연동 시험 전용 — 승인 JSON 업로드·Workflow 실행
 
-수행자: 3단계에서 requests Bucket 쓰기와 Workflow 호출 권한을 받은 운영자. 이 스크립트는 IAM 변경 권한이 큰 tf-manager 대신 현재 운영 계정으로 업로드·호출합니다.
+수행자: 3단계에서 requests Bucket 쓰기와 Workflow 호출 권한을 받은 운영자. 아래 명령은 현재 운영 계정으로 업로드·호출합니다.
 
 ```bash
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export REQUEST_ID="$(jq -r '.request_id' .local/request.json)"
-bash 10.sandbox_deploy_tools/run-approved-workflow.sh "${REQUEST_ID}" .local/request.json
+# 운영 경로가 아닌 수동 시험 명령입니다.
+export REQUEST_URI="gs://${REQUEST_BUCKET}/approved/${REQUEST_ID}/request.json"
+gcloud storage cp .local/request.json "${REQUEST_URI}" --account="${ADMIN_ACCOUNT}"
+export REQUEST_GENERATION="$(gcloud storage objects describe "${REQUEST_URI}" --account="${ADMIN_ACCOUNT}" --format='value(generation)')"
+# 업로드한 특정 generation을 읽어 SHA256을 구합니다.
+gcloud storage cp "${REQUEST_URI}#${REQUEST_GENERATION}" .local/uploaded-request.json --account="${ADMIN_ACCOUNT}"
+export REQUEST_SHA256="$(sha256sum .local/uploaded-request.json | cut -d ' ' -f1)"
+jq -n --arg id "${REQUEST_ID}" --arg uri "${REQUEST_URI}" --arg gen "${REQUEST_GENERATION}" --arg sha "${REQUEST_SHA256}" '{request_id:$id,approved_json_uri:$uri,generation:($gen|tonumber),sha256:$sha}' > .local/workflow-input.json
+gcloud workflows run "${WORKFLOW_NAME}" --project="${CICD_PROJECT}" --location="${REGION}" --account="${ADMIN_ACCOUNT}" --data="$(cat .local/workflow-input.json)"
 ```
 
 완료 기준: Workflow 응답에 ACCEPTED와 operation/bundle_prefix가 표시됩니다. **이는 요청 접수 성공입니다. 최종 배포 결과는 다음 단계에서 확인합니다.**
