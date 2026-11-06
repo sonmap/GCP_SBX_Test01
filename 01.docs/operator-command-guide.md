@@ -2,7 +2,7 @@
 
 기준일: 2026-11-07. 대화에서 실행·확인한 환경을 기준으로 정리했습니다. 이 문서는 작업자가 명령을 한 개씩 실행하는 가이드이며, 전체 자동 실행 스크립트가 아닙니다. GCP 자원은 이 문서를 저장하는 것으로 생성되지 않습니다.
 
-**현재 환경에서는 이 가이드의 프로젝트·계정·대역 값을 우선 사용하세요.** 기존 문서·YAML에는 `pjt-d-host01`, `pjt-d-shared-base`, `vpc-d-shared-base`가 남아 있습니다. 이 이름들을 현재 환경 값과 섞어 실행하지 않습니다. 소스 수정은 명시한 로컬 설정에만 적용하며 저장소 전체를 일괄 치환하지 않습니다.
+**현재 환경 기본값을 저장소에 동기화했습니다.** 점검 YAML·Build·API 환경·요청 Schema는 `gcp-sbx-edp-gke01` 기준입니다. 프로젝트명 치환용 sed는 더 이상 필요하지 않습니다. 실제 Customer ID·Secret·승인 정보는 별도로 준비합니다.
 
 각 명령의 결과를 확인한 뒤 다음 명령을 실행합니다. 신규 구축은 00부터, 이어서 작업할 때는 상태표에서 미확인 항목부터 시작합니다. 이미 존재하는 자원은 조회 후 재사용하며 삭제·재생성하지 않습니다. GCP 계정과 VM의 Linux 로그인 이름 `admin_sonmap_net`은 다릅니다.
 
@@ -1022,10 +1022,10 @@ flowchart TD
 
 수행·실행 계정: **son@sonmap.net**. Cloud Run 런타임 SA는 sbx-manager입니다. API 이미지 bootstrap이 AR에 존재해야 합니다.
 
-**명령 140 — 환경 파일의 이전 프로젝트 변경 — 로컬**
+**명령 140 — 동기화된 환경 파일 확인 — 로컬**
 
 ```bash
-sed -i.bak 's/pjt-d-host01/gcp-sbx-edp-gke01/g' 02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml
+cat 02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml
 ```
 
 **명령 141 — Customer ID 조회 — admin**
@@ -1252,18 +1252,18 @@ bigquery.admin·storage.admin·projectIamAdmin은 해당 과제 프로젝트의 
 | 그룹·사용자·승인 | 실제 승인 포탈 JSON 사용. 샘플 APPROVED를 승인 증빙으로 사용하지 않음 |
 | 요청·릴리스 검증 | 로컬 변경·Schema·API 허용값과 새 프로젝트·클러스터 값의 호환성 확인 |
 
-**Private Pool 점검은 읽기 작업입니다.** 기존 01.docs/check-private-gke.yaml의 이전 프로젝트 값만 바꾼 로컬 파일을 사용합니다.
+**Private Pool 점검은 읽기 작업입니다.** 저장소의 01.docs/check-private-gke.yaml을 그대로 사용합니다.
 
-**명령 167 — 현재 프로젝트용 점검 YAML 준비 — 로컬**
+**명령 167 — 저장소의 현재 프로젝트용 점검 YAML 확인**
 
 ```bash
-sed 's/pjt-d-host01/gcp-sbx-edp-gke01/g' 01.docs/check-private-gke.yaml > /tmp/check-private-gke-sbx.yaml
+cat 01.docs/check-private-gke.yaml
 ```
 
 **명령 168 — tf-manager가 Private Pool을 써서 사설 GKE API 조회**
 
 ```bash
-gcloud builds submit --no-source --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --account=son@sonmap.net --service-account=projects/gcp-sbx-edp-gke01/serviceAccounts/tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com --config=/tmp/check-private-gke-sbx.yaml
+gcloud builds submit --no-source --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --account=son@sonmap.net --service-account=projects/gcp-sbx-edp-gke01/serviceAccounts/tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com --config=01.docs/check-private-gke.yaml
 ```
 
 이 Build가 SUCCESS여야 합니다. 관리 VM의 kubectl 성공을 Private Pool의 성공으로 대체하지 않습니다. 실패하면 Pool 출발지·허용 목록·피어링/PSC/라우팅 구조를 확인합니다. 단순히 피어링 옵션을 모두 켜거나 VPN을 무조건 새로 만들지 않습니다.
@@ -1274,9 +1274,9 @@ gcloud builds submit --no-source --project=gcp-sbx-edp-gke01 --region=asia-north
 gcloud artifacts docker images describe asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/sbxtest01-automation-runner:manual-20261107 --project=gcp-sbx-edp-gke01 --account=son@sonmap.net
 ```
 
-태그가 없다면 소스 커밋과 bootstrap 이미지 빌드의 일치를 확인한 뒤, 검증된 digest에 릴리스 태그를 붙이거나 해당 커밋에서 이미지를 재빌드합니다. 본 가이드는 확인되지 않은 bootstrap을 자동 재태깅하지 않습니다. platform-release.yaml은 이전 프로젝트 기본값 및 기존 Cloud Run 업데이트를 포함하므로 값을 확인하지 않고 그대로 실행하지 않습니다.
+태그가 없다면 소스 커밋과 bootstrap 이미지 빌드의 일치를 확인한 뒤, 검증된 digest에 릴리스 태그를 붙이거나 해당 커밋에서 이미지를 재빌드합니다. 본 가이드는 확인되지 않은 bootstrap을 자동 재태깅하지 않습니다. platform-release.yaml은 현재 프로젝트 기본값으로 동기화했지만 기존 Cloud Run 업데이트를 포함하므로 소스·릴리스 값과 실행 영향을 확인한 뒤 실행합니다.
 
-준비 완료 후 [Deploy 절차](../02.sandbox_setup_01_gcloud/05-deploy.md)의 요청 버전 고정·SHA256 확인·입력 작성 순서를 현재 프로젝트와 son 계정에 맞춰 수행합니다. 원래 문서의 pjt-d-host01/admin 기본값을 그대로 복사하지 않습니다. 포탈이 승인 JSON을 GCS에 저장하고, 작업자가 Deploy를 시작합니다. GCS 이벤트 자동 시작은 향후 작업입니다. Workflow의 ACCEPTED는 접수 성공이며 부모·자식 Build SUCCESS와 로그인·BQ 검증이 최종 완료 기준입니다.
+준비 완료 후 [Deploy 절차](../02.sandbox_setup_01_gcloud/05-deploy.md)의 요청 버전 고정·SHA256 확인·입력 작성 순서를 현재 프로젝트와 son 계정에 맞춰 수행합니다. 실행 프로젝트는 son, 호스트·초기 IAM 작업은 admin으로 명시한 계정을 따릅니다. 포탈이 승인 JSON을 GCS에 저장하고, 작업자가 Deploy를 시작합니다. GCS 이벤트 자동 시작은 향후 작업입니다. Workflow의 ACCEPTED는 접수 성공이며 부모·자식 Build SUCCESS와 로그인·BQ 검증이 최종 완료 기준입니다.
 
 ## 오류와 재개 위치
 
@@ -1307,4 +1307,10 @@ gcloud artifacts docker images describe asia-northeast3-docker.pkg.dev/gcp-sbx-e
 - [요청 예시](../05.sandbox_json/sbx01-approved-request.json)
 - [Terraform 배포 단계](../08.sandbox_setup_02_terraform/deployments)
 
-기존 소스의 허용값·기본 프로젝트·릴리스 태그와 실제 실행값을 맞추는 검증은 계속 필요합니다. 이 가이드 추가는 기존 런타임 소스나 실제 GCP 자원을 변경하지 않습니다.
+기존 소스의 허용값·기본 프로젝트·릴리스 태그와 실제 실행값을 맞추는 검증은 계속 필요합니다. 저장소 기본값·요청 Schema는 현재 환경으로 동기화했습니다. 실제 GCP 자원은 Git 변경만으로 갱신되지 않으며, 기존 API 이미지의 Schema를 반영하려면 아래 재빌드·재배포가 필요합니다.
+
+
+
+## Git 동기화 후 재개
+
+[현재 환경 Git 동기화 안내](git-sync-current-environment.md)의 순서로 진행하세요. 저장소의 API Schema 변경은 기존 Cloud Run 컨테이너에 자동 반영되지 않습니다. 요청 처리 전에 API 이미지를 새 태그로 빌드·재배포하고, 기존 Terraform 번들의 generation·SHA-256은 해당 기존 객체에만 사용합니다.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-gcp-sbx-edp-gke01}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -13,7 +13,7 @@ IMAGE_REPO="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/${REPOSITORY}/${IMAGE_NA
 
 # Existing regional staging bucket reused by the validated manual build.
 # Override STAGING_BUCKET if a dedicated Jupyter build bucket is created later.
-STAGING_BUCKET="${STAGING_BUCKET:-pjt-d-host01-sbxtest01-build-source}"
+STAGING_BUCKET="${STAGING_BUCKET:-gcp-sbx-edp-gke01-sbxtest01-build-source}"
 BUILD_SA="${BUILD_SA:-tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com}"
 
 BUCKET_LOCATION="$(gcloud storage buckets describe "gs://${STAGING_BUCKET}" --format='value(location)')"

@@ -1,20 +1,22 @@
-**[현재 실환경: 개별 명령 작업 가이드](01.docs/operator-command-guide.md)** — `gcp-sbx-edp-gke01` 기반 실제 수행 순서·계정 구분·오류 해결·미완료 확인사항. 현재 환경에서는 이 가이드의 값을 우선 사용하세요. 아래 기존 설명에는 이전 프로젝트 기본값이 남아 있습니다.
+**[Git 최신 설정 동기화·현재 단계 재개](01.docs/git-sync-current-environment.md)** — 로컬 Customer ID를 보존하고, 프로젝트 치환 없이 Private Pool 점검을 실행합니다.
+
+**[현재 실환경: 개별 명령 작업 가이드](01.docs/operator-command-guide.md)** — `gcp-sbx-edp-gke01` 기반 실제 수행 순서·계정 구분·오류 해결·미완료 확인사항. 현재 환경에서는 이 가이드의 값을 우선 사용하세요. 관련 기본값도 현재 환경으로 동기화했습니다.
 
 # GCP_SBX_Test01
 
 > **[서브넷별 IAM](02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
 
-> **[내부 사설 ALB 설계](01.docs/internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+> **[내부 사설 ALB 설계](01.docs/internal-alb-design.md)**: ALB·VIP는 gcp-sbx-edp-gke01, /27 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](01.docs/minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](01.docs/network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
 
-> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](01.docs/tf-manager-project.md)
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **gcp-sbx-edp-gke01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](01.docs/tf-manager-project.md)
 
 ## tf-manager 소속 프로젝트
 
-Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](01.docs/tf-manager-project.md)을 확인하세요.
+Terraform·Build 실행 계정은 **tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](01.docs/tf-manager-project.md)을 확인하세요.
 
 > **현재 작업 기준:** 공통 인프라는 작업자가 개별 gcloud 명령으로 구축합니다. 과제는 포털이 GCS에 저장한 승인 JSON을 대상으로 작업자가 [Deploy 명령](02.sandbox_setup_01_gcloud/05-deploy.md)을 실행합니다. GCS 이벤트 자동 시작·포털 결과 자동 전달은 추후 적용하며 현재 필수 구축 단계가 아닙니다. 기존 Deploy 내부의 API·Build·Terraform·GKE 처리 코드는 사용합니다.
 
@@ -22,12 +24,12 @@ Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.
 
 ## 프로젝트 기준과 변수명
 
-이 작업의 주 대상은 **SBX_GKE_PROJECT=pjt-d-host01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 SBX_GKE_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
+이 작업의 주 대상은 **SBX_GKE_PROJECT=gcp-sbx-edp-gke01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 SBX_GKE_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"          # 주 대상: Sandbox GKE
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"          # 주 대상: Sandbox GKE
 export SBX_NAME="sbx01"                      # 과제·Namespace 이름
-export VPC_HOST_PROJECT="pjt-d-shared-base"   # Shared VPC
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"   # Shared VPC
 export SBX_PROJECT="pjt-net-hub-base"         # 과제 자원·Query Job
 ```
 

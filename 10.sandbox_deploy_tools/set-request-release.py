@@ -16,7 +16,7 @@ def main():
     request=json.loads(Path(a.request_json).read_text())
     release=json.loads(Path(a.release_json).read_text())
     request['source']={key:release[key] for key in ['release_id','archive_uri','generation','sha256']}
-    if not request['source']['archive_uri'].startswith('gs://pjt-d-host01-sbxtest01-bundles/platform-releases/'):
+    if not request['source']['archive_uri'].startswith('gs://gcp-sbx-edp-gke01-sbxtest01-bundles/platform-releases/'):
         raise ValueError('release archive must belong to GCP_SBX_Test01 bundle bucket')
     Path(a.output_json).write_text(json.dumps(request,indent=2)+'\n')
     print('Source updated. Review and approve the output JSON before submitting it.')

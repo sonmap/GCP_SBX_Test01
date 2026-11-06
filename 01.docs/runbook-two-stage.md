@@ -14,10 +14,10 @@ git clone https://github.com/sonmap/GCP_SBX_Test01.git
 cd GCP_SBX_Test01
 
 # 아래 계정·프로젝트는 현재 PoC 코드의 실제 대상입니다.
-export ADMIN_ACCOUNT="admin@sonmap.net"
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
-export SBX_GKE_PROJECT="pjt-d-host01"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
+export ADMIN_ACCOUNT="son@sonmap.net"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export SBX_PROJECT="pjt-net-hub-base"
 export REGION="asia-northeast3"
 export MAIN_CLUSTER="gke-sbx-main-an3"
@@ -48,7 +48,7 @@ gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --for
 mkdir -p .local
 ```
 
-완료 기준: 도구가 실행되고 관리자 계정이 인증되어 있으며 통합 프로젝트 pjt-d-host01이 조회됩니다. 새 터미널에서는 위 변수를 다시 설정합니다. 실제 계정·CIDR을 바꿀 경우 02 폴더의 각 변수 선언, YAML 및 JSON Schema에 고정된 대상도 함께 맞춰야 합니다.
+완료 기준: 도구가 실행되고 관리자 계정이 인증되어 있으며 통합 프로젝트 gcp-sbx-edp-gke01이 조회됩니다. 새 터미널에서는 위 변수를 다시 설정합니다. 실제 계정·CIDR을 바꿀 경우 02 폴더의 각 변수 선언, YAML 및 JSON Schema에 고정된 대상도 함께 맞춰야 합니다.
 
 ## 1. 관리자 API·서비스 계정·IAM 준비
 
@@ -74,15 +74,15 @@ gcloud services list --enabled --project="${SBX_GKE_PROJECT}" --account="${ADMIN
 [02-network.md](../02.sandbox_setup_01_gcloud/02-network.md)의 변수를 확인한 뒤, 각 조회 결과를 보고 필요한 생성/갱신 명령만 실행합니다. 기존 Main GKE 대역과 Private Pool PSA만 기본 대상으로 유지합니다. Cloud Run 전용·과제별 서브넷은 생성하지 않습니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 생성 후 실제 연결과 대역을 조회합니다.
 gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format=json
-gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network=vpc-d-shared-base --service=servicenetworking.googleapis.com --account="${VPC_ADMIN_ACCOUNT}" --format=json
+gcloud services vpc-peerings list --project="${VPC_HOST_PROJECT}" --network=vpc-prod-edp-hub --service=servicenetworking.googleapis.com --account="${VPC_ADMIN_ACCOUNT}" --format=json
 gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format=json
 ```
 
-완료 기준: GKE/CI-CD 프로젝트의 Host가 pjt-d-shared-base이고, Primary·Secondary·Control Plane·PSA 대역에 중복이 없으며 설정한 Pod Range와 방화벽이 확인됩니다. **PSA 연결 성공만으로 Private Pool에서 GKE API 접속이 보장되지는 않습니다.**
+완료 기준: GKE/CI-CD 프로젝트의 Host가 gcp-prod-edp-hub-vpchost이고, Primary·Secondary·Control Plane·PSA 대역에 중복이 없으며 설정한 Pod Range와 방화벽이 확인됩니다. **PSA 연결 성공만으로 Private Pool에서 GKE API 접속이 보장되지는 않습니다.**
 
 ## 2-1. 서브넷별 사용 권한 부여
 
@@ -106,7 +106,7 @@ VPC Admin이 [02-subnet-iam.md](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)�
 기존 GKE/버킷/ALB 자원은 조회 결과를 비교하고 create를 건너뜁니다. Secret은 여기서 이름만 준비하고 실제 값은 4단계에서 등록합니다. SSL 인증서 `cert-jupyter-sbx01-self`가 없으면 HTTPS Proxy/443 명령 전에 인증서 담당자가 별도 등록해야 합니다. DNS/hosts 연결은 11단계에서 확인합니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 공통 기반 적용 후 확인합니다.
 gcloud builds worker-pools describe pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(status,autopilot,network,subnetwork,privateClusterConfig,ipAllocationPolicy)'
@@ -315,7 +315,7 @@ gcloud infra-manager deployments list --project="${SBX_GKE_PROJECT}" --location=
 관리 VM에서도 GKE Private IP에 도달할 수 있어야 합니다. 아래 환경변수는 이 터미널의 kubectl 인증에도 tf-manager를 사용하게 합니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT="${TF_MANAGER}"
 gcloud container clusters get-credentials "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --internal-ip
 kubectl -n "${SBX_NAME}" get pods,svc,pvc
@@ -326,7 +326,7 @@ gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_P
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 ```
 
-완료 기준: Hub/Proxy 정상, KSA annotation이 sbx-manager@pjt-d-host01.iam.gserviceaccount.com, Service NEG 정보 생성, Backend HEALTHY입니다. 사용자 Pod/PVC는 사용자가 로그인하여 서버를 시작한 뒤 생깁니다. 아직 로그인하지 않았다면 없는 것이 정상입니다.
+완료 기준: Hub/Proxy 정상, KSA annotation이 sbx-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com, Service NEG 정보 생성, Backend HEALTHY입니다. 사용자 Pod/PVC는 사용자가 로그인하여 서버를 시작한 뒤 생깁니다. 아직 로그인하지 않았다면 없는 것이 정상입니다.
 
 ### 11-3. 브라우저 로그인과 BQ
 

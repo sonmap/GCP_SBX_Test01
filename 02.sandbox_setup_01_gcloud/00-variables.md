@@ -2,12 +2,12 @@
 
 ## 프로젝트 기준과 변수명
 
-이 작업의 주 대상은 **SBX_GKE_PROJECT=pjt-d-host01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 SBX_GKE_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
+이 작업의 주 대상은 **SBX_GKE_PROJECT=gcp-sbx-edp-gke01**입니다. 공통 GKE와 Sandbox의 JupyterHub·Notebook Pod가 이 프로젝트에서 실행됩니다. 자동화 실행·이미지 보관은 SBX_GKE_PROJECT, Shared VPC는 VPC_HOST_PROJECT, 과제의 데이터·Query Job 자원은 SBX_PROJECT에 둡니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"          # 주 대상: Sandbox GKE
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"          # 주 대상: Sandbox GKE
 export SBX_NAME="sbx01"                      # 과제·Namespace 이름
-export VPC_HOST_PROJECT="pjt-d-shared-base"   # Shared VPC
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"   # Shared VPC
 export SBX_PROJECT="pjt-net-hub-base"         # 과제 자원·Query Job
 ```
 
@@ -17,29 +17,29 @@ export SBX_PROJECT="pjt-net-hub-base"         # 과제 자원·Query Job
 
 ```bash
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
-export ADMIN_ACCOUNT=admin@sonmap.net
-# VPC Admin 실제 계정으로 변경합니다. 같은 관리자가 겸임하면 아래 기본값을 사용합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
-export OPERATOR_MEMBER=user:admin@sonmap.net
-export SBX_GKE_PROJECT="pjt-d-host01"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
+export ADMIN_ACCOUNT=son@sonmap.net
+# 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export OPERATOR_MEMBER=user:son@sonmap.net
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export SBX_PROJECT="pjt-net-hub-base"
 export FOLDER_ID=154455658682
 export REGION=asia-northeast3
-export NETWORK=vpc-d-shared-base
+export NETWORK=vpc-prod-edp-hub
 # 내부 ALB 대역 후보: VPC Admin의 실제 중복 확인·승인 후 실행합니다.
-export ILB_VIP_SUBNET=subnet-sbx-ilb-vip-an3
-export ILB_VIP_CIDR=172.31.111.0/28
-export ILB_VIP_ADDRESS=172.31.111.5
-export ILB_PROXY_SUBNET=subnet-sbx-ilb-proxy-an3
+export ILB_VIP_SUBNET=subnet-prod-edp-alb-frontend-an3
+export ILB_VIP_CIDR=172.31.96.0/27
+export ILB_VIP_ADDRESS="" # 예약 후 실제 할당 주소 조회
+export ILB_PROXY_SUBNET=subnet-prod-sbx-ilb-proxy
 export ILB_PROXY_CIDR=172.31.111.64/26
 export MAIN_CLUSTER=gke-sbx-main-an3
-export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
+export MAIN_SUBNET=subnet-prod-sbx-gke-01
 export MAIN_NODE_CIDR=10.252.0.0/24
-export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
-export MAIN_POD_CIDR=10.240.0.0/20
-export MAIN_CP_CIDR=10.253.0.0/28
-export PSA_NAME=prip-dev-cicd-cbp-01-an3-psa
+export MAIN_POD_RANGE=subnet-prod-sbx-pod-01
+export MAIN_POD_CIDR=100.64.128.0/19
+export MAIN_CP_CIDR=10.253.3.0/28
+export PSA_NAME=psa-prod-edp-cloudbuild
 export PSA_CIDR=10.250.0.0/24
 export ADMIN_CIDR=172.31.10.0/24
 export SSL_CERTIFICATE=cert-jupyter-sbx01-self
@@ -54,7 +54,7 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 ## 조회 결과 확인
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 gcloud auth list
 gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='table(projectId,projectNumber)'
 ```

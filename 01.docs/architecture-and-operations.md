@@ -21,9 +21,9 @@
 
 | 프로젝트 | 코드에서 쓰는 역할 |
 |---|---|
-| pjt-d-host01 | SA·AR·Cloud Build·Private Pool·Run·Workflow·승인/Bundle/Source 버킷 |
-| pjt-d-shared-base | Shared VPC·서브넷·PSA·방화벽 |
-| pjt-d-host01 | 기존/신규 Main Autopilot GKE·공통 ALB |
+| gcp-sbx-edp-gke01 | SA·AR·Cloud Build·Private Pool·Run·Workflow·승인/Bundle/Source 버킷 |
+| gcp-prod-edp-hub-vpchost | Shared VPC·서브넷·PSA·방화벽 |
+| gcp-sbx-edp-gke01 | 기존/신규 Main Autopilot GKE·공통 ALB |
 | pjt-net-hub-base | 예제의 기존 과제 프로젝트·Dataset·GCS·Query Job |
 | pjt-c-admin 등 별도 데이터 프로젝트 | 기존 BQ 데이터; 조회 권한은 해당 관리자가 별도 관리 |
 
@@ -85,4 +85,4 @@
 
 ## Host IAM과 ALB 배포 경계
 
-VPC Admin이 네트워크·서브넷·방화벽·PSA와 Private Pool 초기 연결을 준비합니다. tf-manager에는 Host Network Viewer와 지정한 GKE·VIP 서브넷 Network User를 부여하며, Host 전체 Network User·Network Admin·Security Admin·Service Networking Admin은 기본 부여하지 않습니다. ALB·VIP·Backend의 생성 권한은 pjt-d-host01에서 유지합니다. [서브넷 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)과 [기존 권한 정리](../02.sandbox_setup_01_gcloud/06-iam-migration.md)를 확인합니다.
+VPC Admin이 네트워크·서브넷·방화벽·PSA와 Private Pool 초기 연결을 준비합니다. tf-manager에는 Host Network Viewer와 지정한 GKE·VIP 서브넷 Network User를 부여하며, Host 전체 Network User·Network Admin·Security Admin·Service Networking Admin은 기본 부여하지 않습니다. ALB·VIP·Backend의 생성 권한은 gcp-sbx-edp-gke01에서 유지합니다. [서브넷 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)과 [기존 권한 정리](../02.sandbox_setup_01_gcloud/06-iam-migration.md)를 확인합니다.

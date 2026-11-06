@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fully-managed Cloud Build intentionally downloads public upstream images/chart.
 set -euo pipefail
-SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-gcp-sbx-edp-gke01}"
 cd "$(dirname "$0")/.."
 REGION=asia-northeast3
 SA="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"

@@ -16,18 +16,18 @@ VPC Admin은 BigQuery 조회 권한의 요청 창구입니다. 네트워크 관�
 
 ## VPC Admin 요청 1 — Private Pool → GKE
 
-- 자동화 실행 프로젝트: SBX_GKE_PROJECT = pjt-d-host01
+- 자동화 실행 프로젝트: SBX_GKE_PROJECT = gcp-sbx-edp-gke01
 - Private Pool: pool-sbxtest01, 리전 asia-northeast3
-- VPC Host: VPC_HOST_PROJECT = pjt-d-shared-base
-- VPC: vpc-d-shared-base
-- GKE 대상: SBX_GKE_PROJECT = pjt-d-host01 / gke-sbx-main-an3
+- VPC Host: VPC_HOST_PROJECT = gcp-prod-edp-hub-vpchost
+- VPC: vpc-prod-edp-hub
+- GKE 대상: SBX_GKE_PROJECT = gcp-sbx-edp-gke01 / gke-sbx-main-an3
 - 요청: Private Pool에서 GKE 내부 API endpoint까지 TCP 443 왕복 통신이 가능하도록 경로와 방화벽을 구성·검증합니다. 실제 출발 대역과 endpoint는 현행 자원 조회값으로 확정합니다.
 - PSA Peering만으로 사설 접속이 보장되지 않으므로 필요한 VPN/BGP 등 경로는 VPC Admin이 설계·적용합니다.
 - 완료 확인: [Private Pool 접속 점검](runbook-two-stage.md#5-private-pool에서-gke-사설-api-연결-확인). 인증·Kubernetes 권한 오류는 GKE/IAM 담당자와 분리해 해결합니다.
 
 ## VPC Admin 요청 2 — 기존 BigQuery 데이터 조회
 
-- 조회 주체: sbx-manager@pjt-d-host01.iam.gserviceaccount.com
+- 조회 주체: sbx-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com
 - 데이터 프로젝트: pjt-c-admin. 실제 승인 Dataset·Table 범위를 데이터 담당자와 확정합니다.
 - 요청 권한: 승인 Dataset 범위의 roles/bigquery.dataViewer 등 필요한 최소 조회 권한. 특수한 뷰·정책 태그·행 수준 접근 제한은 데이터 관리자와 별도 확인합니다.
 - Query Job 프로젝트: SBX_PROJECT = pjt-net-hub-base. 데이터 조회 권한과 Query Job 실행 권한은 별개입니다.
@@ -57,7 +57,7 @@ VPC Admin 요청과 인증서·DNS 별도 준비를 먼저 착수합니다. 작�
 
 ## VPC Admin 요청 3 — 내부 ALB
 
-VIP용 172.31.111.0/28과 VIP 172.31.111.5는 중복 확인 전 후보입니다. 같은 VPC·리전의 ACTIVE REGIONAL_MANAGED_PROXY가 있으면 재사용하고, 없으면 172.31.111.64/26 후보를 검증합니다. Subnet 소유는 pjt-d-shared-base, ALB·VIP 소유는 pjt-d-host01입니다. 프록시 CIDR → GKE Pod CIDR TCP 8000과 Google Health Check 소스 → Pod TCP 8000을 허용하고 사내망·VPN/Interconnect에서 VIP로의 경로를 확인합니다. [내부 ALB 설계](internal-alb-design.md)
+VIP용 172.31.96.0/27과 VIP 실제 할당 VIP는 중복 확인 전 후보입니다. 같은 VPC·리전의 ACTIVE REGIONAL_MANAGED_PROXY가 있으면 재사용하고, 없으면 172.31.111.64/26 후보를 검증합니다. Subnet 소유는 gcp-prod-edp-hub-vpchost, ALB·VIP 소유는 gcp-sbx-edp-gke01입니다. 프록시 CIDR → GKE Pod CIDR TCP 8000과 Google Health Check 소스 → Pod TCP 8000을 허용하고 사내망·VPN/Interconnect에서 VIP로의 경로를 확인합니다. [내부 ALB 설계](internal-alb-design.md)
 
 ## VPC Admin 요청 4 — 서브넷 IAM·Pool 초기 준비
 

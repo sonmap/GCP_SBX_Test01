@@ -6,37 +6,37 @@
 
 | 항목 | 이름 / 후보 값 | 소유 프로젝트 | 담당 |
 |---|---|---|---|
-| VPC | vpc-d-shared-base | pjt-d-shared-base | VPC Admin |
-| VIP용 일반 Subnet | subnet-sbx-ilb-vip-an3 / 172.31.111.0/28 | pjt-d-shared-base | VPC Admin |
-| 사설 VIP 자원 | ip-alb-sbxtest01-shared / 172.31.111.5 | **pjt-d-host01** | 인프라 작업자 |
-| 프록시 전용 Subnet | subnet-sbx-ilb-proxy-an3 / 172.31.111.64/26 | pjt-d-shared-base | 기존 ACTIVE 재사용 우선, 없으면 VPC Admin 구성 |
-| URL Map·Target HTTP/HTTPS Proxy·Forwarding Rule | 기존 ALB 이름의 Regional 자원 | **pjt-d-host01** | 인프라 작업자 |
-| SSL 인증서 | cert-jupyter-sbx01-self — Regional | pjt-d-host01 | 인증서 담당자 별도 준비 |
-| 과제 Backend·Health Check·GKE NEG | bes-jupyter-sbx01 / hc-jupyter-sbx01 / proxy-public NEG | pjt-d-host01 | 과제 자동 Deploy |
-| Proxy Pod 대역 | 기존 10.240.0.0/20 | Shared VPC Secondary / GKE 사용 | 기존 재사용 |
+| VPC | vpc-prod-edp-hub | gcp-prod-edp-hub-vpchost | VPC Admin |
+| VIP용 일반 Subnet | subnet-prod-edp-alb-frontend-an3 / 172.31.96.0/27 | gcp-prod-edp-hub-vpchost | VPC Admin |
+| 사설 VIP 자원 | ip-alb-sbxtest01-shared / 실제 할당 VIP | **gcp-sbx-edp-gke01** | 인프라 작업자 |
+| 프록시 전용 Subnet | subnet-prod-sbx-ilb-proxy / 172.31.111.64/26 | gcp-prod-edp-hub-vpchost | 기존 ACTIVE 재사용 우선, 없으면 VPC Admin 구성 |
+| URL Map·Target HTTP/HTTPS Proxy·Forwarding Rule | 기존 ALB 이름의 Regional 자원 | **gcp-sbx-edp-gke01** | 인프라 작업자 |
+| SSL 인증서 | cert-jupyter-sbx01-self — Regional | gcp-sbx-edp-gke01 | 인증서 담당자 별도 준비 |
+| 과제 Backend·Health Check·GKE NEG | bes-jupyter-sbx01 / hc-jupyter-sbx01 / proxy-public NEG | gcp-sbx-edp-gke01 | 과제 자동 Deploy |
+| Proxy Pod 대역 | 기존 100.64.128.0/19 | Shared VPC Secondary / GKE 사용 | 기존 재사용 |
 
 172 대역은 실제 인벤토리 조회 없이 정한 **후보값**입니다. VPC Admin은 온프레미스·전체 VPC·VPN·Peering·PSA 중복을 확인한 뒤 승인하고, 변경한다면 00-variables·02-network·03-foundation의 ILB 변수들을 동일하게 수정합니다.
 
 ## /28 하나로 끝낼 수 없는 이유
 
-VIP는 일반 Subnet의 IP를 사용하므로 요청하신 /28로 구성할 수 있습니다. 프록시 전용 Subnet은 Envoy 작업자 IP용이며 최소 /26입니다. VIP를 프록시 전용 대역에서 할당할 수 없습니다. 같은 VPC·리전의 호환 ACTIVE 프록시 전용 Subnet이 있으면 재사용하므로 새 /26을 추가하지 않습니다.
+VIP는 기존 일반 서브넷 172.31.96.0/27의 가용 IP를 자동 예약하여 사용합니다. 프록시 전용 Subnet은 Envoy 작업자 IP용이며 최소 /26입니다. VIP를 프록시 전용 대역에서 할당할 수 없습니다. 같은 VPC·리전의 호환 ACTIVE 프록시 전용 Subnet이 있으면 재사용하므로 새 /26을 추가하지 않습니다.
 
-새 프록시 전용 Subnet까지 필요한 경우 후보 예약량은 /28의 16주소 + /26의 64주소입니다. 이는 전체 주소 수이며 사용 가능 주소·접속 수가 아닙니다. Google은 더 큰 프록시 범위를 권장하지만 현재는 IP 절약을 위해 최소 /26 후보로 두었습니다. 트래픽 증가 시 프록시 IP 사용량을 확인해야 합니다.
+VIP는 기존 /27 서브넷을 재사용하므로 VIP용 신규 대역을 예약하지 않습니다. 프록시 전용 /26이 새로 필요하면 전체 주소 64개가 추가됩니다. 이는 전체 주소 수이며 사용 가능 주소·접속 수가 아닙니다. Google은 더 큰 프록시 범위를 권장하지만 현재는 IP 절약을 위해 최소 /26 후보로 두었습니다. 트래픽 증가 시 프록시 IP 사용량을 확인해야 합니다.
 
-Shared VPC 사용 시 Subnet은 Host 프로젝트 소유입니다. pjt-d-host01에 별도 VPC를 만들어 그곳에 /28을 생성하는 방식은 기존 GKE 네트워크 설계와 다르므로 적용하지 않았습니다. ALB·사설 VIP 자원은 요청대로 pjt-d-host01에 둡니다.
+Shared VPC 사용 시 Subnet은 Host 프로젝트 소유입니다. gcp-sbx-edp-gke01에 별도 VPC를 만들어 그곳에 /28을 생성하는 방식은 기존 GKE 네트워크 설계와 다르므로 적용하지 않았습니다. ALB·사설 VIP 자원은 요청대로 gcp-sbx-edp-gke01에 둡니다.
 
 ## 실제 통신 흐름
 
 ```mermaid
 flowchart TD
     CLIENT["사내 PC / VPN·Interconnect"] --> VIP
-    subgraph SERVICE["pjt-d-host01: ALB·GKE"]
-        VIP["Regional 사설 VIP: 172.31.111.5 후보"]
+    subgraph SERVICE["gcp-sbx-edp-gke01: ALB·GKE"]
+        VIP["Regional 사설 VIP: 실제 할당 VIP 후보"]
         ROUTE["Regional URL Map·Backend"]
         POD["GKE NEG: Jupyter Proxy Pod"]
     end
-    subgraph HOST["pjt-d-shared-base: Shared VPC"]
-        FRONT["VIP용 일반 Subnet /28"]
+    subgraph HOST["gcp-prod-edp-hub-vpchost: Shared VPC"]
+        FRONT["VIP용 일반 Subnet /27"]
         PROXY["프록시 전용 Subnet /26 또는 기존 재사용"]
     end
     FRONT -. "VIP 주소 제공" .-> VIP

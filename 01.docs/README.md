@@ -1,6 +1,8 @@
+**[Git 최신 설정 동기화·현재 단계 재개](git-sync-current-environment.md)** — 로컬 Customer ID를 보존하고, 프로젝트 치환 없이 Private Pool 점검을 실행합니다.
+
 # 현재 실환경 실행 가이드
 
-**[개별 명령으로 따라 하는 실제 작업 가이드](operator-command-guide.md)** — `gcp-sbx-edp-gke01` / `gcp-prod-edp-hub-vpchost`, `son@sonmap.net` / `admin@sonmap.net` 계정 구분, 실제 대역·오류 해결·현재 진행 상태를 반영했습니다. 현재 환경의 명령 실행은 이 링크에서 시작하세요. 아래 기존 안내에는 이전 프로젝트 기본값이 남아 있습니다.
+**[개별 명령으로 따라 하는 실제 작업 가이드](operator-command-guide.md)** — `gcp-sbx-edp-gke01` / `gcp-prod-edp-hub-vpchost`, `son@sonmap.net` / `admin@sonmap.net` 계정 구분, 실제 대역·오류 해결·현재 진행 상태를 반영했습니다. 현재 환경의 명령 실행은 이 링크에서 시작하세요. 관련 기본값도 현재 환경으로 동기화했습니다.
 
 ---
 
@@ -8,17 +10,17 @@
 
 > **[서브넷별 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
 
-> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 gcp-sbx-edp-gke01, /27 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
 **[프로젝트·서브넷·Private Pool·GCP 자원 설계표](network-resource-design.md)** — 기존 과제 SBX 프로젝트 재사용 기준입니다.
 
-> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **gcp-sbx-edp-gke01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
 
 ## tf-manager 소속 프로젝트
 
-Terraform·Build 실행 계정은 **tf-manager@pjt-d-host01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](tf-manager-project.md)을 확인하세요.
+Terraform·Build 실행 계정은 **tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com**입니다. 두 서비스 계정과 Build·Infrastructure Manager·AR·GCS·Run·Workflow·GKE는 모두 SBX_GKE_PROJECT 하나에 구성합니다. [통합 프로젝트 구성과 사전 준비](tf-manager-project.md)을 확인하세요.
 
 > **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 

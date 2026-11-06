@@ -2,15 +2,15 @@
 
 > **[서브넷별 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
 
-> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 pjt-d-host01, /28 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
+> **[내부 사설 ALB 설계](internal-alb-design.md)**: ALB·VIP는 gcp-sbx-edp-gke01, /27 VIP Subnet과 최소 /26 프록시 Subnet은 Shared VPC Host에 둡니다. 후보 CIDR은 VPC Admin 승인 후 적용합니다.
 
 > **[IP 최소화 구성](minimal-ip-design.md)**: Cloud Run·과제별 서브넷은 기본 생성하지 않고, 기존 GKE·Private Pool PSA를 유지·재사용합니다.
 
-> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **pjt-d-host01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
+> **프로젝트 통합:** GKE·Build·Workflows·AR·GCS·Run·IM과 두 서비스 계정을 모두 **gcp-sbx-edp-gke01**에 구성합니다. [통합 자원·실행 순서·기존 배포 확인](tf-manager-project.md)
 
 > **담당 구분:** Private Pool → GKE 사설 경로와 기존 BigQuery 데이터 조회 권한은 **VPC Admin 요청사항**입니다. 인증서·DNS는 **별도 진행**합니다. tf-manager의 그룹 관리자 역할은 과제 Google Group 관리용, Jupyter OAuth는 사용자 로그인용입니다. [담당자 요청서·인증 설명](admin-requests.md)을 확인하세요.
 
-주 대상은 **SBX_GKE_PROJECT="pjt-d-host01"**입니다. 아래 Mermaid 번호와 표의 번호를 맞춰 작업합니다. **표의 실행 문서 링크를 눌러 명령을 확인하고, 관리 VM의 저장소 루트 GCP_SBX_Test01에서 한 단계씩 실행합니다.** 폴더 링크는 소스 확인용이며 링크 클릭만으로 GCP 작업이 실행되지는 않습니다. 하위 폴더로 이동해서 명령을 실행하면 상대경로가 달라질 수 있습니다.
+주 대상은 **SBX_GKE_PROJECT="gcp-sbx-edp-gke01"**입니다. 아래 Mermaid 번호와 표의 번호를 맞춰 작업합니다. **표의 실행 문서 링크를 눌러 명령을 확인하고, 관리 VM의 저장소 루트 GCP_SBX_Test01에서 한 단계씩 실행합니다.** 폴더 링크는 소스 확인용이며 링크 클릭만으로 GCP 작업이 실행되지는 않습니다. 하위 폴더로 이동해서 명령을 실행하면 상대경로가 달라질 수 있습니다.
 
 ## ① 공통 기반 준비 — 관리자 수동·반자동
 
@@ -74,7 +74,7 @@ flowchart TD
 | 배포 결과 확인 | 작업자가 Build·GKE·접속 결과 확인 | [Deploy 결과 확인](../02.sandbox_setup_01_gcloud/05-deploy.md#4-deploy-결과-확인) |
 | 이후 자동화 | GCS 이벤트 → Deploy 시작·완료 추적·포털 결과 전달 | 향후 작업, 현재 구축 필수 단계에서 제외 |
 
-주 대상은 SBX_GKE_PROJECT=pjt-d-host01입니다. Workflow 성공·ACCEPTED는 접수 성공이며, 배포 완료는 부모·자식 Build 결과로 확인합니다. 사용자 Notebook Pod는 로그인 후 서버를 시작할 때 생성됩니다.
+주 대상은 SBX_GKE_PROJECT=gcp-sbx-edp-gke01입니다. Workflow 성공·ACCEPTED는 접수 성공이며, 배포 완료는 부모·자식 Build 결과로 확인합니다. 사용자 Notebook Pod는 로그인 후 서버를 시작할 때 생성됩니다.
 
 ## 수동 연동 시험·장애 점검
 

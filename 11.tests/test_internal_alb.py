@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("reconcile", ROOT / "09.sandbox_gke_deployer/reconcile_postdeploy.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-PROJECT = "pjt-d-host01"
+PROJECT = "gcp-sbx-edp-gke01"
 REGION = "asia-northeast3"
-ENV = {"GCP_REGION": REGION, "SHARED_NETWORK_URI": "projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"}
+ENV = {"GCP_REGION": REGION, "SHARED_NETWORK_URI": "projects/gcp-prod-edp-hub-vpchost/global/networks/vpc-prod-edp-hub"}
 
 
 class InternalAlbTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class InternalAlbTests(unittest.TestCase):
         network = (ROOT / "02.sandbox_setup_01_gcloud/02-network.md").read_text()
         foundation = (ROOT / "02.sandbox_setup_01_gcloud/03-foundation.md").read_text()
         self.assertIn("--purpose=REGIONAL_MANAGED_PROXY --role=ACTIVE", network)
-        self.assertIn("export ILB_VIP_CIDR=172.31.111.0/28", network)
+        self.assertIn("export ILB_VIP_CIDR=172.31.96.0/27", network)
         self.assertIn("export ILB_PROXY_CIDR=172.31.111.64/26", network)
         self.assertIn("--source-ranges=\"${ILB_PROXY_CIDR}\"", network)
         for line in foundation.splitlines():

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run after bootstrap. No GCP calls occur unless --apply is supplied.
 set -euo pipefail
-SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-gcp-sbx-edp-gke01}"
 cd "$(dirname "$0")/.."
 REGION=asia-northeast3
 BUILD_SA="projects/${SBX_GKE_PROJECT}/serviceAccounts/tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"

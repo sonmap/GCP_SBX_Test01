@@ -10,7 +10,7 @@ fi
 
 REQUEST_ID="$1"
 APPROVED_JSON_FILE="$2"
-SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-gcp-sbx-edp-gke01}"
 REGION="asia-northeast3"
 WORKFLOW_NAME="workflow-sbxtest01-provision"
 REQUEST_BUCKET="${SBX_GKE_PROJECT}-sbxtest01-requests"

@@ -3,7 +3,7 @@
 # secret values to Git, Terraform variables, plan files, or Terraform state.
 set -euo pipefail
 
-SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-pjt-d-host01}"
+SBX_GKE_PROJECT="${SBX_GKE_PROJECT:-gcp-sbx-edp-gke01}"
 CLIENT_ID_SECRET="jupyter-oauth-client-id"
 CLIENT_SECRET_SECRET="jupyter-oauth-client-secret"
 

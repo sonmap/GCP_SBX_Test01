@@ -18,6 +18,30 @@ def blocks(name):
 
 
 class CommandbookTests(unittest.TestCase):
+    def test_private_check_runs_directly_with_current_project(self):
+        check = yaml.safe_load((ROOT / '01.docs/check-private-gke.yaml').read_text())
+        self.assertEqual(check['options']['pool']['name'],
+            'projects/gcp-sbx-edp-gke01/locations/asia-northeast3/workerPools/pool-sbxtest01')
+        step = check['steps'][0]
+        self.assertTrue(step['name'].startswith(
+            'asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/'))
+        self.assertIn('--project=gcp-sbx-edp-gke01', step['args'][-1])
+        self.assertIn('--internal-ip', step['args'][-1])
+
+    def test_current_network_defaults_and_request_schemas_agree(self):
+        sample = json.loads((ROOT / '05.sandbox_json/sbx01-approved-request.json').read_text())
+        self.assertEqual(sample['network']['host_project_id'], 'gcp-prod-edp-hub-vpchost')
+        self.assertEqual(sample['network']['network_name'], 'vpc-prod-edp-hub')
+        rule = json.loads((ROOT / '06.sandbox_json_rules/sandbox-request.schema.json').read_text())
+        runtime = json.loads((ROOT / '07.sandbox_request_api/sandbox-request.schema.json').read_text())
+        self.assertEqual(rule, runtime)
+        self.assertEqual(rule['properties']['gke']['properties']['project_id']['const'],
+                         sample['gke']['project_id'])
+        variables = '\n'.join(blocks('00-variables.md'))
+        for expected in ['100.64.128.0/19', '10.253.3.0/28',
+                         'subnet-prod-sbx-gke-01', 'psa-prod-edp-cloudbuild']:
+            self.assertIn(expected, variables)
+
     def test_all_blocks_are_valid_bash_and_no_python_executor(self):
         self.assertFalse((ROOT / '02.sandbox_setup_01_gcloud/bootstrap.py').exists())
         self.assertFalse((ROOT / '02.sandbox_setup_01_gcloud/config.example.json').exists())
@@ -65,17 +89,17 @@ esac
             creates = [c for c in calls if c.startswith('iam service-accounts create ')]
             self.assertEqual(len(creates), 2)
             self.assertTrue(any('create sbx-manager ' in c for c in creates))
-            self.assertTrue(any('create tf-manager ' in c and '--project=pjt-d-host01' in c for c in creates))
-            self.assertTrue(any('create sbx-manager ' in c and '--project=pjt-d-host01' in c for c in creates))
+            self.assertTrue(any('create tf-manager ' in c and '--project=gcp-sbx-edp-gke01' in c for c in creates))
+            self.assertTrue(any('create sbx-manager ' in c and '--project=gcp-sbx-edp-gke01' in c for c in creates))
             account_calls=[c for c in calls if c.startswith('iam service-accounts ') and ' tf-manager@' in c]
             self.assertTrue(account_calls)
-            self.assertTrue(all('--project=pjt-d-host01' in c for c in account_calls))
+            self.assertTrue(all('--project=gcp-sbx-edp-gke01' in c for c in account_calls))
             self.assertFalse(any('iam.disableCrossProjectServiceAccountUsage' in c for c in calls))
             self.assertIn('_RELEASE_ID=git-$SHORT_SHA,_COMMIT_SHA=$COMMIT_SHA', (ROOT / '02.sandbox_setup_01_gcloud/03-foundation.md').read_text())
             self.assertFalse(any('${' in c for c in calls))
             for call in calls:
                 if call.startswith(('compute ', 'storage ', 'builds ', 'run ', 'workflows ')):
-                    network_admin_call = call.startswith('compute ') and (('--project=pjt-d-shared-base' in call) or call.startswith('compute shared-vpc ')) and '--impersonate-service-account=' not in call
+                    network_admin_call = call.startswith('compute ') and (('--project=gcp-prod-edp-hub-vpchost' in call) or call.startswith('compute shared-vpc ')) and '--impersonate-service-account=' not in call
                     pool_admin_call = call.startswith('builds worker-pools ')
                     if network_admin_call or pool_admin_call:
                         self.assertIn('--account=vpc-admin@sonmap.net', call)
@@ -86,12 +110,12 @@ esac
             self.assertEqual(len(subnet_grants),4)
             self.assertTrue(all('--condition=' not in c for c in subnet_grants))
             self.assertFalse(any(c.startswith('projects add-iam-policy-binding ') and 'serviceAccount:tf-manager@' in c and '--role=roles/cloudbuild.workerPoolOwner' in c for c in calls))
-            self.assertTrue(all('--project=pjt-d-shared-base' in c and '--role=roles/compute.networkUser' in c for c in subnet_grants))
-            self.assertEqual(sum('add-iam-policy-binding subnet-dev-sbx-gke-01-an3-main ' in c for c in subnet_grants),3)
-            vip_grants=[c for c in subnet_grants if 'add-iam-policy-binding subnet-sbx-ilb-vip-an3 ' in c]
+            self.assertTrue(all('--project=gcp-prod-edp-hub-vpchost' in c and '--role=roles/compute.networkUser' in c for c in subnet_grants))
+            self.assertEqual(sum('add-iam-policy-binding subnet-prod-sbx-gke-01 ' in c for c in subnet_grants),3)
+            vip_grants=[c for c in subnet_grants if 'add-iam-policy-binding subnet-prod-edp-alb-frontend-an3 ' in c]
             self.assertEqual(len(vip_grants),1)
-            self.assertIn('tf-manager@pjt-d-host01.iam.gserviceaccount.com',vip_grants[0])
-            host_grants=[c for c in calls if c.startswith('projects add-iam-policy-binding pjt-d-shared-base ')]
+            self.assertIn('tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com',vip_grants[0])
+            host_grants=[c for c in calls if c.startswith('projects add-iam-policy-binding gcp-prod-edp-hub-vpchost ')]
             self.assertFalse(any('--role=roles/compute.networkUser ' in c for c in host_grants))
             for role in ['compute.networkAdmin','compute.securityAdmin','servicenetworking.networksAdmin']:
                 self.assertFalse(any('serviceAccount:tf-manager@' in c and '--role=roles/'+role+' ' in c for c in host_grants))
@@ -100,9 +124,9 @@ esac
     def test_static_configs_match_runtime_targets_and_reference_files_exist(self):
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
-        self.assertEqual(env['SBX_GKE_PROJECT'], 'pjt-d-host01')
+        self.assertEqual(env['SBX_GKE_PROJECT'], 'gcp-sbx-edp-gke01')
         self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')
-        self.assertEqual(env['SBX_GKE_PROJECT'], 'pjt-d-host01')
+        self.assertEqual(env['SBX_GKE_PROJECT'], 'gcp-sbx-edp-gke01')
         build = yaml.safe_load((configs / 'bootstrap-build.yaml').read_text())
         self.assertEqual(build['options']['logging'], 'CLOUD_LOGGING_ONLY')
         self.assertEqual(len(build['images']), 2)
@@ -114,7 +138,7 @@ esac
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
         project = env['SBX_GKE_PROJECT']
-        self.assertEqual(project, 'pjt-d-host01')
+        self.assertEqual(project, 'gcp-sbx-edp-gke01')
         self.assertEqual(env['REQUEST_BUCKET'], project + '-sbxtest01-requests')
         self.assertEqual(env['BUNDLE_BUCKET'], project + '-sbxtest01-bundles')
         self.assertEqual(env['WORKER_POOL'], f'projects/{project}/locations/asia-northeast3/workerPools/pool-sbxtest01')

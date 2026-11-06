@@ -14,8 +14,8 @@
 OAuth Client 등록·정책은 담당자가 설정합니다. Google Group 관리는 tf-manager의 Cloud Identity 그룹 관리자 역할로 수행하며, Jupyter OAuth Client Secret과 별개입니다.
 
 ```bash
-export ADMIN_ACCOUNT="admin@sonmap.net"
-export SBX_GKE_PROJECT="pjt-d-host01"
+export ADMIN_ACCOUNT="son@sonmap.net"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export REGION="asia-northeast3"
 export SBX_NAME="sbx01"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
@@ -49,7 +49,7 @@ gcloud secrets versions describe latest --secret=jupyter-oauth-client-secret --p
 Regional Internal ALB용 인증서는 asia-northeast3 리전 자원으로 준비합니다. 기존 Global 인증서를 그대로 연결하지 않습니다. 03-foundation의 인증서 조회 명령으로 `cert-jupyter-sbx01-self` 존재를 먼저 확인합니다. 인증서 담당자가 실제 도메인에 맞는 인증서를 별도 등록한 뒤 HTTPS Proxy/443 구성을 진행합니다. PEM/개인키는 저장소에 넣지 않습니다.
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 gcloud compute ssl-certificates describe cert-jupyter-sbx01-self --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(address)'
 ```
@@ -59,7 +59,7 @@ VPC Admin의 사설 경로 준비 후 내부 DNS 담당자가 Jupyter 도메인�
 ## 3. 과제 배포 후 Backend 확인
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 gcloud compute backend-services get-health "bes-jupyter-${SBX_NAME}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='yaml(hostRules,pathMatchers)'
 ```

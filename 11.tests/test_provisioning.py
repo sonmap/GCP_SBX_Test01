@@ -14,10 +14,10 @@ from unittest import mock
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('provisioner',ROOT/'07.sandbox_request_api/main.py')
 p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
-ENV={'SBX_GKE_PROJECT':'pjt-d-host01','GCP_REGION':'asia-northeast3',
-     'BUNDLE_BUCKET':'pjt-d-host01-sbxtest01-bundles',
-     'REQUEST_BUCKET':'pjt-d-host01-sbxtest01-requests',
-     'WORKER_POOL':'projects/pjt-d-host01/locations/asia-northeast3/workerPools/pool-sbxtest01',
+ENV={'SBX_GKE_PROJECT':'gcp-sbx-edp-gke01','GCP_REGION':'asia-northeast3',
+     'BUNDLE_BUCKET':'gcp-sbx-edp-gke01-sbxtest01-bundles',
+     'REQUEST_BUCKET':'gcp-sbx-edp-gke01-sbxtest01-requests',
+     'WORKER_POOL':'projects/gcp-sbx-edp-gke01/locations/asia-northeast3/workerPools/pool-sbxtest01',
      'CLOUD_IDENTITY_CUSTOMER_ID':'C123test',
      'JUPYTER_CHART_URI':'oci://example/jupyterhub','JUPYTER_CHART_VERSION':'4.2.0'}
 
@@ -51,7 +51,7 @@ class ProvisioningTests(unittest.TestCase):
         data_zip=next(v for k,v in written.items() if k.endswith('/data.zip'))
         with zipfile.ZipFile(io.BytesIO(data_zip)) as archive:
             variables=json.loads(archive.read('terraform.auto.tfvars.json'))
-            self.assertEqual(variables['jupyter_gsa_email'],'sbx-manager@pjt-d-host01.iam.gserviceaccount.com')
+            self.assertEqual(variables['jupyter_gsa_email'],'sbx-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com')
             imports=archive.read('imports.tf').decode()
             self.assertIn('google_bigquery_dataset.sandbox',imports)
             self.assertIn('google_storage_bucket.sandbox',imports)
@@ -62,7 +62,7 @@ class ProvisioningTests(unittest.TestCase):
     def test_build_execution_identities_and_group_order(self):
         with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient') as client:
             p.start_build(payload(),'gs://example/request.json','gs://example/bundle')
-            self.assertEqual(client.return_value.create_build.call_args.kwargs['parent'], 'projects/pjt-d-host01/locations/asia-northeast3')
+            self.assertEqual(client.return_value.create_build.call_args.kwargs['parent'], 'projects/gcp-sbx-edp-gke01/locations/asia-northeast3')
             build=client.return_value.create_build.call_args.kwargs['build']
         spec=json.loads(p.cloudbuild_v1.Build.to_json(build))
         self.assertEqual(spec['serviceAccount'],f"projects/{ENV['SBX_GKE_PROJECT']}/serviceAccounts/tf-manager@{ENV['SBX_GKE_PROJECT']}.iam.gserviceaccount.com")
@@ -73,11 +73,11 @@ class ProvisioningTests(unittest.TestCase):
         self.assertLess(commands.index('sleep 60'),commands.index('/project.zip'))
         self.assertIn('deployments/sbxtest01-',commands)
         self.assertNotIn('sa-im-',commands)
-        self.assertEqual(commands.count('tf-manager@pjt-d-host01.iam.gserviceaccount.com'),5)
+        self.assertEqual(commands.count('tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com'),5)
         group_vars=p.stage_variables(payload())
-        self.assertEqual(group_vars['10-project']['project_iam_service_account'],'tf-manager@pjt-d-host01.iam.gserviceaccount.com')
+        self.assertEqual(group_vars['10-project']['project_iam_service_account'],'tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com')
         child_config=spec['steps'][1]['args'][1]
-        self.assertIn('projects/pjt-d-host01/serviceAccounts/tf-manager@pjt-d-host01.iam.gserviceaccount.com',child_config)
+        self.assertIn('projects/gcp-sbx-edp-gke01/serviceAccounts/tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com',child_config)
         self.assertIn('pool-sbxtest01',spec['options']['pool']['name'])
 
     @mock.patch.dict(os.environ,ENV)

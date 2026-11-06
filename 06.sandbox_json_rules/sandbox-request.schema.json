@@ -181,10 +181,10 @@
           "type": "boolean"
         },
         "host_project_id": {
-          "const": "pjt-d-shared-base"
+          "const": "gcp-prod-edp-hub-vpchost"
         },
         "network_name": {
-          "const": "vpc-d-shared-base"
+          "const": "vpc-prod-edp-hub"
         },
         "region": {
           "const": "asia-northeast3"
@@ -286,7 +286,7 @@
       ],
       "properties": {
         "project_id": {
-          "const": "pjt-d-host01"
+          "const": "gcp-sbx-edp-gke01"
         },
         "cluster_name": {
           "const": "gke-sbx-main-an3"

@@ -8,8 +8,8 @@
 | Workflows·AR·GCS·Secret Manager | 전용 Subnet 없이 관리형 API 사용 | 전용 Subnet 0 |
 | 과제 프로젝트 | 기존 프로젝트 사용, network.required=false | 과제별 Subnet 0 |
 | 과제 JupyterHub·Notebook | 중앙 GKE Namespace와 기존 Pod 대역 사용 | 과제별 Pod CIDR 별도 예약 0, 실제 Pod IP는 소비 |
-| Main GKE | Node 10.252.0.0/24·Pod 10.240.0.0/20·제어 영역 10.253.0.0/28 유지·재사용 | 기존 사용이면 새 대역 추가 없음 |
-| 내부 ALB | VIP용 172.31.111.0/28 후보, 기존 프록시 전용 Subnet 재사용 우선 | VIP용 16주소, 프록시 신규 시 /26 64주소 추가 |
+| Main GKE | Node 10.252.0.0/24·Pod 100.64.128.0/19·제어 영역 10.253.3.0/28 유지·재사용 | 기존 사용이면 새 대역 추가 없음 |
+| 내부 ALB | 기존 VIP 서브넷 172.31.96.0/27 재사용, 기존 프록시 전용 Subnet 재사용 우선 | VIP용 신규 대역 예약 없음, 프록시 신규 시 /26 64주소 추가 |
 | Private Pool | 기존 호환 PSA 할당에 여유가 있으면 재사용, 없으면 현재 10.250.0.0/24 설계 검증 | 신규 PSA는 최소 /24 단위 |
 
 ## 유지하는 대역을 줄이지 않은 이유
@@ -35,8 +35,8 @@
 아래는 작업자가 실행할 명령입니다. 소스 수정 과정에서 실제 GCP에 실행하지 않았습니다. 조회 후 현재 서비스가 요청 API인지 확인하고 연결 해제 명령을 실행합니다.
 
 ```bash
-export ADMIN_ACCOUNT="admin@sonmap.net"
-export SBX_GKE_PROJECT="pjt-d-host01"
+export ADMIN_ACCOUNT="son@sonmap.net"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export REGION="asia-northeast3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 
@@ -49,4 +49,4 @@ gcloud run services update run-sbxtest01-provisioner --project="${SBX_GKE_PROJEC
 
 ## 내부 ALB 추가 요구 반영
 
-사용자 사설 접속을 위해 VIP용 /28을 추가합니다. 프록시 전용 Subnet은 /28로 만들 수 없으며 최소 /26입니다. 같은 VPC·리전에 이미 있다면 공유하여 추가 /26 예약을 피합니다. 후보 CIDR·소유 프로젝트는 [내부 ALB 설계](internal-alb-design.md)에서 확인합니다.
+사용자 사설 접속의 VIP는 기존 172.31.96.0/27 서브넷에서 할당합니다. 프록시 전용 Subnet은 /28로 만들 수 없으며 최소 /26입니다. 같은 VPC·리전에 이미 있다면 공유하여 추가 /26 예약을 피합니다. 후보 CIDR·소유 프로젝트는 [내부 ALB 설계](internal-alb-design.md)에서 확인합니다.

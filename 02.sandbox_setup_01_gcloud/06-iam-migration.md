@@ -3,10 +3,10 @@
 신규 설치의 필수 단계가 아닙니다. 이전 저장소의 명령으로 부여한 **동일한 무조건부 바인딩**만 정리합니다. 현재 권한이 다른 시스템에도 사용되는지, 조직·Folder·그룹 상속이나 조건부 정책이 있는지 먼저 확인합니다. 서브넷별 권한을 먼저 추가하고 VPC Admin이 네트워크·PSA·Pool 준비를 맡은 뒤 실제 GKE·내부 ALB·배포가 정상인지 확인해야 합니다. 실제 IAM을 이 소스 수정 과정에서 변경하지 않았습니다.
 
 ```bash
-export ADMIN_ACCOUNT="admin@sonmap.net"
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
-export SBX_GKE_PROJECT="pjt-d-host01"
+export ADMIN_ACCOUNT="son@sonmap.net"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export FOLDER_ID="154455658682"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format='value(projectNumber)')"

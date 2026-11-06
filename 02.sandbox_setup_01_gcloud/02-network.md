@@ -7,23 +7,23 @@
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT=admin@sonmap.net
-# VPC Admin 실제 계정으로 변경합니다. 같은 관리자가 겸임하면 아래 기본값을 사용합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
-export SBX_GKE_PROJECT="pjt-d-host01"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
+# 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export REGION=asia-northeast3
-export NETWORK=vpc-d-shared-base
+export NETWORK=vpc-prod-edp-hub
 # 내부 ALB 대역 후보: VPC Admin의 실제 중복 확인·승인 후 실행합니다.
-export ILB_VIP_SUBNET=subnet-sbx-ilb-vip-an3
-export ILB_VIP_CIDR=172.31.111.0/28
-export ILB_VIP_ADDRESS=172.31.111.5
-export ILB_PROXY_SUBNET=subnet-sbx-ilb-proxy-an3
+export ILB_VIP_SUBNET=subnet-prod-edp-alb-frontend-an3
+export ILB_VIP_CIDR=172.31.96.0/27
+export ILB_VIP_ADDRESS="" # 예약 후 실제 할당 주소 조회
+export ILB_PROXY_SUBNET=subnet-prod-sbx-ilb-proxy
 export ILB_PROXY_CIDR=172.31.111.64/26
-export MAIN_SUBNET=subnet-dev-sbx-gke-01-an3-main
+export MAIN_SUBNET=subnet-prod-sbx-gke-01
 export MAIN_NODE_CIDR=10.252.0.0/24
-export MAIN_POD_RANGE=pods-dev-sbx-gke-01-an3-main
-export MAIN_POD_CIDR=10.240.0.0/20
-export PSA_NAME=prip-dev-cicd-cbp-01-an3-psa
+export MAIN_POD_RANGE=subnet-prod-sbx-pod-01
+export MAIN_POD_CIDR=100.64.128.0/19
+export PSA_NAME=psa-prod-edp-cloudbuild
 export PSA_ADDRESS="10.250.0.0"
 export PSA_PREFIX_LENGTH="24"
 # 이 문서는 VPC Admin 계정으로 수행합니다. 초기 Shared VPC 연결·Subnet·방화벽·PSA를 관리할 권한이 필요합니다.
@@ -35,43 +35,43 @@ export PSA_PREFIX_LENGTH="24"
 # ── 기존 대역 먼저 확인 ──
 gcloud compute networks subnets list --project="${VPC_HOST_PROJECT}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 1. compute networks create vpc-d-shared-base ──
+# ── 1. compute networks create vpc-prod-edp-hub ──
 # 기존 자원 확인
 gcloud compute networks describe "${NETWORK}" --project="${VPC_HOST_PROJECT}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # 기존 자원 확인값: {"autoCreateSubnetworks": false} — 다르면 중단합니다.
 gcloud compute networks create "${NETWORK}" --project="${VPC_HOST_PROJECT}" --subnet-mode=custom --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 2. compute shared-vpc get-host-project pjt-d-shared-base ──
+# ── 2. compute shared-vpc get-host-project gcp-prod-edp-hub-vpchost ──
 # 기존 자원 확인
 gcloud compute shared-vpc get-host-project "${VPC_HOST_PROJECT}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 3. compute shared-vpc enable pjt-d-shared-base ──
+# ── 3. compute shared-vpc enable gcp-prod-edp-hub-vpchost ──
 # 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
 gcloud compute shared-vpc enable "${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 4. compute shared-vpc get-host-project pjt-d-host01 ──
+# ── 4. compute shared-vpc get-host-project gcp-sbx-edp-gke01 ──
 # 기존 자원 확인
 gcloud compute shared-vpc get-host-project "${SBX_GKE_PROJECT}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 5. compute shared-vpc associated-projects add pjt-d-host01 ──
+# ── 5. compute shared-vpc associated-projects add gcp-sbx-edp-gke01 ──
 # 앞의 조회에서 이미 같은 Host에 연결되어 있으면 아래 명령은 건너뜁니다. 다른 Host면 중단합니다.
 gcloud compute shared-vpc associated-projects add "${SBX_GKE_PROJECT}" --host-project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 6. compute networks subnets create subnet-dev-sbx-gke-01-an3-main ──
+# ── 6. compute networks subnets create subnet-prod-sbx-gke-01 ──
 # 기존 자원 확인
 gcloud compute networks subnets describe "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"ipCidrRange": "10.252.0.0/24", "network": "https://www.googleapis.com/compute/v1/projects/pjt-d-shared-base/global/networks/vpc-d-shared-base"} — 다르면 중단합니다.
+# 기존 자원 확인값: {"ipCidrRange": "10.252.0.0/24", "network": "https://www.googleapis.com/compute/v1/projects/gcp-prod-edp-hub-vpchost/global/networks/vpc-prod-edp-hub"} — 다르면 중단합니다.
 gcloud compute networks subnets create "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --network="${NETWORK}" --range="${MAIN_NODE_CIDR}" --enable-private-ip-google-access --secondary-range="${MAIN_POD_RANGE}=${MAIN_POD_CIDR}" --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 7. compute networks subnets update subnet-dev-sbx-gke-01-an3-main ──
+# ── 7. compute networks subnets update subnet-prod-sbx-gke-01 ──
 gcloud compute networks subnets update "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --enable-private-ip-google-access --account="${VPC_ADMIN_ACCOUNT}"
 
 # IP 최소화: Cloud Run·과제 전용 Subnet을 생성하지 않습니다.
 # 과제 Namespace는 기존 Main GKE Pod 대역을 공유합니다.
 
-# ── 8. compute addresses create prip-dev-cicd-cbp-01-an3-psa ──
+# ── 8. compute addresses create psa-prod-edp-cloudbuild ──
 # 기존 자원 확인
 gcloud compute addresses describe "${PSA_NAME}" --project="${VPC_HOST_PROJECT}" --global --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
@@ -90,10 +90,10 @@ gcloud services vpc-peerings connect --project="${VPC_HOST_PROJECT}" --network="
 # 기존 자원 확인
 gcloud compute firewall-rules describe fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-# 기존 자원 확인값: {"sourceRanges": ["35.191.0.0/16", "130.211.0.0/22"], "destinationRanges": ["10.240.0.0/20"]} — 다르면 중단합니다.
+# 기존 자원 확인값: {"sourceRanges": ["35.191.0.0/16", "130.211.0.0/22"], "destinationRanges": ["100.64.128.0/19"]} — 다르면 중단합니다.
 gcloud compute firewall-rules create fw-sbxtest01-alb-hc --project="${VPC_HOST_PROJECT}" --network="${NETWORK}" --direction=INGRESS --allow=tcp:8000 --source-ranges=35.191.0.0/16,130.211.0.0/22 --destination-ranges="${MAIN_POD_CIDR}" --account="${VPC_ADMIN_ACCOUNT}"
 
-# ── 내부 ALB VIP용 일반 Subnet /28 — Shared VPC Host 소유 ──
+# ── 내부 ALB VIP용 일반 Subnet /27 — Shared VPC Host 소유 ──
 # 후보 CIDR은 반드시 VPC Admin이 전체 사내망과 중복 여부를 확인합니다.
 gcloud compute networks subnets describe "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 명시적 Not Found일 때만 생성합니다. 403이면 중단합니다.

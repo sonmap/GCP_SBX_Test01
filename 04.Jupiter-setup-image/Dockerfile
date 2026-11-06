@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0
+ARG BASE_IMAGE=asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=4.2.0-r1-test

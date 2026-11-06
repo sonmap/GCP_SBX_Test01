@@ -110,11 +110,11 @@ steps:
           --quiet
 
 substitutions:
-  _SBX_GKE_PROJECT: pjt-d-host01
+  _SBX_GKE_PROJECT: gcp-sbx-edp-gke01
   _REGION: asia-northeast3
-  _BUNDLE_BUCKET: pjt-d-host01-sbxtest01-bundles
-  _AUTOMATION_IMAGE_REPO: asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/sbxtest01-automation-runner
-  _PROVISIONER_IMAGE_REPO: asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/run-sbxtest01-provisioner
+  _BUNDLE_BUCKET: gcp-sbx-edp-gke01-sbxtest01-bundles
+  _AUTOMATION_IMAGE_REPO: asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/sbxtest01-automation-runner
+  _PROVISIONER_IMAGE_REPO: asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/run-sbxtest01-provisioner
   _RELEASE_ID: git-manual
   _COMMIT_SHA: manual
 

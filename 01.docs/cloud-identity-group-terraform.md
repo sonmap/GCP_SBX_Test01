@@ -2,7 +2,7 @@
 
 ## 실행 계정과 순서
 
-실행 계정은 tf-manager@pjt-d-host01.iam.gserviceaccount.com입니다. 그룹과 구성원 생성은 08.sandbox_setup_02_terraform/deployments/05-group에서 Cloud Identity Groups API로 수행합니다. 사용자 위임과 Python 그룹 생성 실행기는 제거했습니다.
+실행 계정은 tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com입니다. 그룹과 구성원 생성은 08.sandbox_setup_02_terraform/deployments/05-group에서 Cloud Identity Groups API로 수행합니다. 사용자 위임과 Python 그룹 생성 실행기는 제거했습니다.
 
 ```mermaid
 flowchart TD

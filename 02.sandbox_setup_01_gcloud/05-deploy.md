@@ -29,10 +29,10 @@ tf-manager 그룹 관리자 역할 준비·DNS·인증서와 기존 BQ 데이터
 
 ```bash
 # 저장소 루트에서 한 줄씩 실행합니다.
-export ADMIN_ACCOUNT="admin@sonmap.net"
-export SBX_GKE_PROJECT="pjt-d-host01"
+export ADMIN_ACCOUNT="son@sonmap.net"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export SBX_NAME="sbx01"
-export VPC_HOST_PROJECT="pjt-d-shared-base"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export SBX_PROJECT="pjt-net-hub-base"
 export REGION="asia-northeast3"
 export WORKFLOW_NAME="workflow-sbxtest01-provision"
@@ -69,7 +69,7 @@ gcloud workflows run "${WORKFLOW_NAME}" --project="${SBX_GKE_PROJECT}" --locatio
 ## 4. Deploy 결과 확인
 
 ```bash
-export SBX_GKE_PROJECT="pjt-d-host01"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 
 # 이번 요청의 실행 시각과 결과를 확인합니다.

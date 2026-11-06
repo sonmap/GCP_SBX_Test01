@@ -8,6 +8,6 @@
 # 개별 명령: 02.sandbox_setup_01_gcloud/04-manual-gcloud.md 의 7단계
 ```
 
-이미지: `asia-northeast3-docker.pkg.dev/pjt-d-host01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test`.
+이미지: `asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard:4.2.0-r1-test`.
 
 이 이미지는 apply_gke_workload.py가 새 사용자 Pod에 지정합니다. 이미 실행 중인 Pod는 자동 교체되지 않습니다. 이미지 적용 테스트에서 사용자 PVC를 삭제하지 않습니다. `/home/jovyan`의 PVC 데이터와 컨테이너의 설치 프로그램은 별도입니다. Notebook KSA는 중앙 sbx-manager를 사용하므로 이 버전은 과제별 IAM 격리가 없는 PoC용입니다.
