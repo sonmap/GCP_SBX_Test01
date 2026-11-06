@@ -1,3 +1,9 @@
+# 현재 실환경 실행 가이드
+
+**[개별 명령으로 따라 하는 실제 작업 가이드](operator-command-guide.md)** — `gcp-sbx-edp-gke01` / `gcp-prod-edp-hub-vpchost`, `son@sonmap.net` / `admin@sonmap.net` 계정 구분, 실제 대역·오류 해결·현재 진행 상태를 반영했습니다. 현재 환경의 명령 실행은 이 링크에서 시작하세요. 아래 기존 안내에는 이전 프로젝트 기본값이 남아 있습니다.
+
+---
+
 # 여기서 시작하세요 — 실제 수행 순서
 
 > **[서브넷별 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
