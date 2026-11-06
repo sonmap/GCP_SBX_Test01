@@ -1,3 +1,5 @@
+**[현재 실환경: 개별 명령 작업 가이드](01.docs/operator-command-guide.md)** — `gcp-sbx-edp-gke01` 기반 실제 수행 순서·계정 구분·오류 해결·미완료 확인사항. 현재 환경에서는 이 가이드의 값을 우선 사용하세요. 아래 기존 설명에는 이전 프로젝트 기본값이 남아 있습니다.
+
 # GCP_SBX_Test01
 
 > **[서브넷별 IAM](02.sandbox_setup_01_gcloud/02-subnet-iam.md)**: VPC Admin이 네트워크를 준비한 뒤 GKE·ALB VIP 서브넷에 필요한 계정만 사용 권한을 부여합니다. 이후 tf-manager로 내부 ALB를 구성합니다.
