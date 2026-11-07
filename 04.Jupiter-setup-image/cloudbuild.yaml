@@ -23,7 +23,7 @@ images:
 substitutions:
   _BASE_IMAGE: asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0
   _IMAGE_REPO: asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard
-  _IMAGE_TAG: 4.2.0-r1-test
+  _IMAGE_TAG: 4.2.0-r2-home
 
 options:
   logging: CLOUD_LOGGING_ONLY

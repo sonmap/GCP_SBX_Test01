@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REGION="${REGION:-asia-northeast3}"
 REPOSITORY="${REPOSITORY:-ar-sbxtest01-platform}"
 IMAGE_NAME="${IMAGE_NAME:-jupyterhub-k8s-singleuser-standard}"
-IMAGE_TAG="${IMAGE_TAG:-4.2.0-r1-test}"
+IMAGE_TAG="${IMAGE_TAG:-4.2.0-r2-home}"
 BASE_IMAGE="${BASE_IMAGE:-${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/${REPOSITORY}/jupyterhub-k8s-singleuser-sample:4.2.0}"
 IMAGE_REPO="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/${REPOSITORY}/${IMAGE_NAME}"
 

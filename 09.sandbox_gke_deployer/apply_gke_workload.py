@@ -176,7 +176,7 @@ def main():
     )
     singleuser_image_tag = os.environ.get(
         "JUPYTER_SINGLEUSER_IMAGE_TAG",
-        "4.2.0-r1-test",
+        "4.2.0-r2-home",
     )
     allowed_users = [
         member.split("@", 1)[0]
@@ -254,6 +254,17 @@ def main():
         "scheduling": {"userScheduler": {"enabled": False}},
         "cull": {"enabled": True, "timeout": 3600},
     }
+    # Only the standard image version with the startup script opts into
+    # per-user homes. Explicit overrides to older/custom images keep their defaults.
+    if (
+        singleuser_image == f"{image_prefix}/jupyterhub-k8s-singleuser-standard"
+        and singleuser_image_tag == "4.2.0-r2-home"
+    ):
+        notebook_home = "/home/{username}"
+        values["singleuser"]["storage"]["homeMountPath"] = notebook_home
+        values["singleuser"]["extraEnv"] = {"SANDBOX_NOTEBOOK_HOME": notebook_home}
+        values["singleuser"]["cmd"] = ["/usr/local/bin/start-sandbox-notebook"]
+
     values_file = Path("/workspace/jupyter-values.json")
     values_file.write_text(json.dumps(values, indent=2), encoding="utf-8")
 

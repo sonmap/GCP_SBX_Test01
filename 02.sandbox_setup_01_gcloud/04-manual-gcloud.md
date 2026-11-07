@@ -104,7 +104,7 @@ export BUILD_STAGING_BUCKET="${SBX_GKE_PROJECT}-sbxtest01-build-source"
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
 export IMAGE_REPO="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-standard"
-export IMAGE_TAG="4.2.0-r1-test"
+export IMAGE_TAG="4.2.0-r2-home"
 export BASE_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
 
 # 버킷 location이 asia-northeast3인지 확인합니다. 다르면 중단합니다.

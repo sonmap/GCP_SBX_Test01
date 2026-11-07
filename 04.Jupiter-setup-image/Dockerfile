@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0
 FROM ${BASE_IMAGE}
 
-ARG IMAGE_VERSION=4.2.0-r1-test
+ARG IMAGE_VERSION=4.2.0-r2-home
 
 USER root
 
@@ -32,6 +32,8 @@ RUN python -m pip install --no-cache-dir \
       google-cloud-storage
 
 RUN printf '%s\n' "sandbox-jupyter-standard ${IMAGE_VERSION}" > /etc/sandbox-image-version
+
+COPY --chmod=0755 start-sandbox-notebook.sh /usr/local/bin/start-sandbox-notebook
 
 USER jovyan
 WORKDIR /home/jovyan
