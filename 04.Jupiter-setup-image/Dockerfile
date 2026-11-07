@@ -33,7 +33,8 @@ RUN python -m pip install --no-cache-dir \
 
 RUN printf '%s\n' "sandbox-jupyter-standard ${IMAGE_VERSION}" > /etc/sandbox-image-version
 
-COPY --chmod=0755 start-sandbox-notebook.sh /usr/local/bin/start-sandbox-notebook
+COPY start-sandbox-notebook.sh /usr/local/bin/start-sandbox-notebook
+RUN chmod 0755 /usr/local/bin/start-sandbox-notebook
 
 USER jovyan
 WORKDIR /home/jovyan
