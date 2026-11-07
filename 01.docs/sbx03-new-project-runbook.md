@@ -120,7 +120,9 @@ gcloud storage cat gs://gcp-sbx-edp-gke01-sbxtest01-bundles/platform-releases/sb
 
 기존 요청은 `identity.create_jupyter_gsa`를 생략하면 기존 공통 SA를 사용합니다. 신규 프로젝트 요청은 이 값을 true로 지정해야 합니다. 전용 GSA 이름 제한 때문에 task.name은 최대 18자입니다.
 
-## 5. 아직 남은 수동 작업
+## 5. 초기 배포 시 별도로 확인할 수동 작업
+
+실제 시험 결과와 재시험 순서는 아래 6절을 따릅니다.
 
 - 내부 ALB VIP 172.31.96.2와 공통 헬스 체크·백엔드·URL Map은 준비됨.
 - 인증서·HTTPS 프록시·전달 규칙·DNS 연결은 별도 진행. 이것이 완료되어야 사용자 HTTPS 접속 가능.
@@ -129,3 +131,171 @@ gcloud storage cat gs://gcp-sbx-edp-gke01-sbxtest01-bundles/platform-releases/sb
 - GCS 저장 자동 트리거는 후속 작업. 현재는 작업자가 Deploy만 시작하고 이후 과제 생성은 자동 실행.
 
 로컬 테스트는 통과했지만 실제 새 프로젝트 생성, GSA 토큰 발급, BQ 쿼리는 클라우드 배포 후 검증해야 합니다.
+
+## 6. 실제 작업 기록과 다음 테스트 순서
+
+2026-11-07 시험 기준입니다. 기존 환경의 재시험은 6.1에서 보존할 자원을 확인한 뒤 시작합니다. 처음 만드는 환경이라면 위 1~3단계에서 관리자 준비와 릴리스를 먼저 완료합니다.
+
+```mermaid
+flowchart TD
+    A["보존 대상 확인 · 사용자 파일 백업"] --> B["GKE Autopilot 복구 · DNS 접속 확인"]
+    B --> C["Private Pool · GKE 접속과 CPU 확인"]
+    C --> D["승인 요청 제출 · 기존 과제 상태 재사용"]
+    D --> E["내부 HTTPS ALB · 새 NEG 정상 확인"]
+    E --> F["Windows 브라우저 · TLS와 Google 로그인"]
+    F --> G["Notebook 시작 · 홈 경로와 BigQuery 확인"]
+```
+
+### 6.1 삭제 전 확인과 백업
+
+관리 VM `infra-son01`에서 아래 명령으로 테스트 네임스페이스와 사용자 PVC를 확인합니다. GKE에는 다른 과제의 네임스페이스도 있을 수 있으므로 클러스터 삭제 범위를 먼저 확인합니다.
+
+```bash
+CLOUDSDK_CORE_ACCOUNT=son@sonmap.net kubectl --kubeconfig="$HOME/.kube/config-sbx-dns" get namespaces
+CLOUDSDK_CORE_ACCOUNT=son@sonmap.net kubectl --kubeconfig="$HOME/.kube/config-sbx-dns" -n sbx03 get pods,pvc -o wide
+```
+
+1. 사용자에게 작업 저장을 요청하고, 재사용할 Notebook 파일을 승인된 GCS 버킷 또는 별도 저장 위치에 복사해 열어봅니다. 디스크 단위 복원이 필요하면 PVC에 연결된 PV와 디스크를 기록하고 스냅샷을 준비합니다.
+2. 과제 프로젝트, Workspace 그룹, Terraform 상태·번들, AR 이미지·Helm 차트, 요청 GCS, OAuth Secrets와 ALB·DNS를 보존 대상으로 기록합니다. GKE만 삭제할 때는 이 자원들을 다음 시험에서 재사용합니다.
+3. GKE 삭제 후에도 Windows VM, 별도 디스크·스냅샷, ALB 등 보존 자원은 과금될 수 있습니다. 테스트 VM이 필요 없으면 종료하고, 인터넷 RDP를 위해 추가한 테스트용 방화벽 규칙과 외부 IP 예외 정책의 정리 여부도 확인합니다.
+
+새 클러스터에서 같은 이름의 PVC를 생성해도 이전 파일이 자동으로 연결되는 것은 아닙니다. 파일 백업을 복원하거나 스냅샷에서 복구한 볼륨을 별도로 연결합니다.
+
+### 6.2 GKE 복구와 Private Pool 점검
+
+[공통 기반 18번의 Autopilot 생성 명령](../02.sandbox_setup_01_gcloud/03-foundation.md)으로 `gcp-sbx-edp-gke01` / `asia-northeast3`의 `gke-sbx-main-an3`을 다시 만듭니다. 기존 Shared VPC `vpc-prod-edp-hub`, 노드 서브넷 `subnet-prod-sbx-gke-01`, Pod 보조 대역 `subnet-prod-sbx-pod-01`을 사용합니다.
+
+생성이 끝나면 관리 VM에서 DNS 엔드포인트를 설정하고 kubeconfig를 다시 받습니다.
+
+```bash
+gcloud container clusters update gke-sbx-main-an3 --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --enable-dns-access --account=son@sonmap.net
+KUBECONFIG="$HOME/.kube/config-sbx-dns" gcloud container clusters get-credentials gke-sbx-main-an3 --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --dns-endpoint --account=son@sonmap.net
+CLOUDSDK_CORE_ACCOUNT=son@sonmap.net kubectl --kubeconfig="$HOME/.kube/config-sbx-dns" get namespaces
+```
+
+관리 VM 접속에 성공한 뒤 [Private Pool에서 GKE 접속 확인](git-sync-current-environment.md)을 실행합니다. 배포 설정은 `GKE_ENDPOINT_MODE=dns`를 사용합니다.
+
+```bash
+gcloud builds worker-pools describe pool-sbxtest01 --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --account=son@sonmap.net --format='yaml(state,privatePoolV1Config.workerConfig.machineType)'
+```
+
+실제 시험에서 풀을 `e2-standard-4`에서 `e2-standard-2`로 줄였습니다. 기존 하위 빌드가 계속 대기해 해당 빌드를 취소했고, 상위 빌드도 종료된 뒤 새 요청으로 재시도했습니다. 동시 CPU 한도 4 vCPU에서 새 상위·하위 빌드가 각각 2 vCPU를 사용해 실행됐습니다. 풀 설정을 바꾼 뒤에는 기존 실행 상태를 먼저 확인합니다.
+
+```mermaid
+flowchart TD
+    A["Cloud Run · 승인 요청 검증"] --> B["상위 Cloud Build · 2 vCPU"]
+    B -->|"각 단계 결과 대기"| C["Terraform 하위 Build · 2 vCPU"]
+    C --> D["그룹 → 프로젝트 → IAM → 데이터 순차 적용"]
+    D --> E["GKE 하위 Build · 2 vCPU"]
+    B -.-> F["Private Pool 동시 한도 · 4 vCPU"]
+    C -.-> F
+    E -.-> F
+    classDef cpu fill:#fce7f3,stroke:#be185d,color:#831843,stroke-width:2px
+    class B,C,E cpu
+```
+
+### 6.3 같은 sbx03을 다시 배포
+
+1. 포털에서 재시험용 승인 요청을 새 ID로 준비합니다. 대상 프로젝트 `gcp-sbx-edp-sbx03`, 과제 이름 `sbx03`, 검증한 릴리스의 `source` 필드를 확인합니다. 시험에서 성공한 릴리스는 `sbx03-20261107-v2`, 최종 요청은 `REQ-20261107-SBX03-003`이었습니다.
+2. [승인 JSON 업로드 및 Workflow 제출](operator-command-guide.md)에서 새 요청 ID와 GCS 객체 버전·SHA256을 지정합니다. 기존 요청 ID를 그대로 제출하면 이전 빌드 기록이 반환될 수 있습니다.
+3. Workflow 접수 이후 상위 빌드와 Infrastructure Manager의 각 적용 상태를 확인합니다. 같은 과제의 기존 Terraform 배포 상태를 유지해야 이미 만든 그룹·프로젝트·데이터 자원을 이어서 사용합니다.
+
+```bash
+gcloud builds list --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --account=son@sonmap.net --limit=8 --format='table(id,createTime,status)'
+gcloud infra-manager deployments describe projects/gcp-sbx-edp-gke01/locations/asia-northeast3/deployments/sbxtest01-sbx03-67245d15-project --account=son@sonmap.net --format='yaml(state,latestRevision,latestSuccessfulRevision,errorCode)'
+```
+
+| 실제 진행 중 만난 문제 | 조치와 확인 |
+|---|---|
+| Workflow 400, Cloud Build API 제출 오류 | Cloud Run에 SDK 수정 버전 적용. Workflow에서 승인 요청 접수 확인 |
+| 하위 빌드 `QUEUED` | 상위·하위 상태와 동시 CPU 한도 확인. 시험에서는 풀을 2 vCPU로 변경하고 새 요청으로 재시도 |
+| 프로젝트 단계 `REVISION_FAILED`와 Cloud Billing API `SERVICE_DISABLED` | 플랫폼 프로젝트 `gcp-sbx-edp-gke01`에서 `cloudbilling.googleapis.com` 활성화 후 새 요청 제출 |
+
+### 6.4 내부 ALB와 테스트 Windows 접속
+
+재배포 후 과제 백엔드에 새 클러스터의 NEG가 연결되어 `HEALTHY`인지 확인합니다. 기존 VIP·프록시·인증서가 남아 있다면 이를 재사용합니다.
+
+```bash
+gcloud compute backend-services get-health bes-jupyter-sbx03 --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --account=son@sonmap.net
+```
+
+Windows 시험 VM은 Shared VPC의 `subnet-prod-edp-admin-an3`에 배치했습니다. 기존 VM이 있으면 이를 사용합니다. 새 VM이 필요하면 이미지 최소 디스크 크기를 확인하고 외부 IP 없는 Spot VM을 생성합니다.
+
+```bash
+WIN_DISK_GB="$(gcloud compute images describe-from-family windows-2022 --project=windows-cloud --account=admin@sonmap.net --format='value(diskSizeGb)')"
+if [[ "$WIN_DISK_GB" =~ ^[1-9][0-9]*$ ]]; then
+  gcloud compute instances create vm-sbx03-win-test --project=gcp-prod-edp-hub-vpchost \
+    --zone=asia-northeast3-c --subnet=subnet-prod-edp-admin-an3 --machine-type=e2-small \
+    --provisioning-model=SPOT --instance-termination-action=STOP \
+    --no-address --no-service-account --no-scopes \
+    --image-family=windows-2022 --image-project=windows-cloud \
+    --boot-disk-type=pd-standard --boot-disk-size="${WIN_DISK_GB}GB" --account=admin@sonmap.net
+fi
+```
+
+부팅이 끝나면 Windows 시험 계정의 비밀번호를 발급합니다. VM이 `RUNNING`이어도 Windows 초기화 중에는 발급이 실패할 수 있습니다. 이때는 부팅 완료 후 다시 실행합니다.
+
+```bash
+gcloud compute reset-windows-password vm-sbx03-win-test --project=gcp-prod-edp-hub-vpchost --zone=asia-northeast3-c --user=sbx-test-admin --account=admin@sonmap.net
+```
+
+내부 접속 경로가 필요할 때는 IAP용 태그가 적용된 VM에 로컬 PC에서 아래 명령으로 터널을 엽니다. 기존 IAP IAM과 방화벽이 적용돼 있어야 합니다.
+
+```powershell
+gcloud compute start-iap-tunnel vm-sbx03-win-test 3389 --project=gcp-prod-edp-hub-vpchost --zone=asia-northeast3-c --local-host-port=localhost:13389 --account=admin@sonmap.net
+```
+
+별도 창에서 `mstsc /v:localhost:13389`로 접속합니다. 지난 시험에서는 인터넷 직접 RDP를 위해 테스트 VM 한 대에만 외부 IP 정책 예외를 적용했고, 접속 PC 공인 IP 범위로 RDP를 제한했습니다. 조직 정책과 방화벽 권한을 확인한 뒤 필요한 시험 경로만 사용합니다.
+
+```mermaid
+flowchart TD
+    A["Windows 테스트 VM"] -->|"hosts 또는 내부 DNS"| B["내부 VIP · 172.31.96.2:443"]
+    B -->|"인증서 신뢰 확인"| C["HTTPS 프록시와 URL Map"]
+    C --> D["sbx03 Backend · 새 NEG"]
+    D --> E["JupyterHub 로그인 화면"]
+```
+
+[HTTPS 인증서 문서](sbx03-https-certificate-runbook.md)에서 Windows hosts, `CurrentUser\Root` 공개 인증서 등록, TCP 443과 HTTP GET 점검을 순서대로 실행합니다. `curl -I`에서 `405`와 JupyterHub 헤더가 나오면 GET 요청으로 로그인 화면을 확인합니다.
+
+### 6.5 Google 로그인과 Notebook 시작
+
+[Google OAuth 문서](sbx03-google-oauth-runbook.md)에 따라 `Web client 1`의 승인된 리디렉션 URI에 `https://jupyter-sbx03.sonmap.net/hub/oauth_callback`이 있는지 확인합니다. 시험에서는 이 값을 등록해 `redirect_uri_mismatch`를 해결했고, Hub 로그에서 `user01`의 OAuth 콜백과 서버 시작 요청이 확인됐습니다.
+
+```mermaid
+sequenceDiagram
+    participant B as Windows 브라우저
+    participant G as Google OAuth
+    participant H as JupyterHub
+    participant K as GKE
+    B->>H: Google 로그인 시작
+    H-->>B: Google로 리디렉션
+    B->>G: 로그인
+    G-->>B: 승인된 콜백으로 복귀
+    B->>H: 사용자 서버 시작
+    H->>K: Notebook Pod와 PVC 요청
+    K-->>H: Notebook 서버 응답
+```
+
+서버가 열리지 않으면 관리 VM에서 Pod와 이벤트를 확인합니다. 지난 시험은 OAuth 이후 Pod 배치·디스크 연결·이미지 다운로드·컨테이너 시작까지 갔지만, 한 차례 Hub가 30초 안에 Notebook 응답을 받지 못했습니다. 이 경우 Notebook 로그를 먼저 확인합니다.
+
+```bash
+CLOUDSDK_CORE_ACCOUNT=son@sonmap.net kubectl --kubeconfig="$HOME/.kube/config-sbx-dns" -n sbx03 get pods,pvc -o wide
+CLOUDSDK_CORE_ACCOUNT=son@sonmap.net kubectl --kubeconfig="$HOME/.kube/config-sbx-dns" -n sbx03 get events --sort-by=.lastTimestamp | tail -n 20
+```
+
+### 6.6 사용자별 홈과 BigQuery 최종 확인
+
+[Notebook 이미지 빌드 및 Helm 적용](../04.Jupiter-setup-image/README.md)에서 `4.2.0-r2-home`을 적용합니다. 시험 중 Docker 빌더가 `COPY --chmod`를 지원하지 않아 Dockerfile을 `COPY`와 `RUN chmod`로 나눴습니다. 수정 후 빌드가 완료됐고, 기존 `sbx03` Helm 업데이트는 `REVISION: 2`, `STATUS: deployed`로 확인했습니다. 이전 runner 릴리스로 다시 배포하면 현재 Helm 값과 Notebook 이미지 태그를 확인하고 필요하면 홈 설정을 다시 적용합니다.
+
+```mermaid
+flowchart TD
+    A["Cloud Build · 4.2.0-r2-home"] --> B["Artifact Registry에 새 이미지 저장"]
+    B --> C["Helm 업데이트 · 이미지와 PVC 경로 지정"]
+    C --> D["user01 · 기존 서버 중지 후 다시 시작"]
+    D --> E["새 Pod · HOME과 PVC가 /home/user01"]
+```
+
+1. [JupyterHub 제어판](https://jupyter-sbx03.sonmap.net/hub/home)에서 작업을 저장한 뒤 **Stop My Server → Start My Server**를 실행합니다. JupyterLab 터미널에서 `echo "$HOME"`과 `pwd`가 `/home/user01`을 표시하고, 복원한 파일이 보이는지 확인합니다.
+2. 같은 Notebook에서 과제 프로젝트 `gcp-sbx-edp-sbx03`, 위치 `asia-northeast3`로 BigQuery 작업을 실행합니다. 승인된 테이블 `pjt-c-admin.dlk_sample.sales_sample`의 `SELECT ... LIMIT 1`이 성공하면 Workload Identity와 조회 권한까지 검증한 것입니다.
+
+기록상 확인된 완료 지점은 **Google 로그인과 Helm 업데이트 성공**입니다. 새 Pod의 홈 경로와 BigQuery 조회는 재시험에서 결과를 확인합니다.

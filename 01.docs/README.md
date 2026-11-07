@@ -72,3 +72,7 @@ Terraform·Build 실행 계정은 **tf-manager@gcp-sbx-edp-gke01.iam.gserviceacc
 기존 별도 BQ 프로젝트의 조회 권한은 해당 관리자가 부여합니다. 별도 데이터레이크 권한 자동화 서비스는 제거되어 있습니다. 현재 과제별 40-data의 Dataset/GCS 구성은 유지되어 있으므로, 기존 BQ만 사용하는 설계와 구분해서 신청값을 확인합니다.
 
 관리자 준비 작업은 [개별 gcloud 실행 문서](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md)를 사용합니다. shell 실행 없이 OAuth 등록·릴리스·미러링·Notebook 빌드를 수행합니다. 과제 요청은 포털→GCS가 운영 기준이며, 수동 요청 제출은 연동 시험용입니다. GCS 이벤트 시작과 배포 결과의 포털 전달은 추가 구현 대상입니다.
+
+## sbx03 시험 기록과 재실행
+
+[지금까지의 작업과 GKE 삭제 후 재시험 순서](sbx03-new-project-runbook.md#6-실제-작업-기록과-다음-테스트-순서)를 따라 진행합니다. 백업, GKE·Private Pool 확인, 승인 요청 재제출, Windows·HTTPS·OAuth, Notebook 검증 순서로 실행 명령과 Mermaid 흐름도를 정리했습니다.
