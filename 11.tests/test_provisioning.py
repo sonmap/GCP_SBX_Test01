@@ -56,7 +56,43 @@ class ProvisioningTests(unittest.TestCase):
             self.assertIn('google_bigquery_dataset.sandbox',imports)
             self.assertIn('google_storage_bucket.sandbox',imports)
             self.assertNotIn('google_service_account',imports)
-            self.assertNotIn('resource "google_service_account"',archive.read('main.tf').decode())
+            self.assertFalse(variables['create_jupyter_gsa'])
+
+    @mock.patch.dict(os.environ,ENV)
+    def test_new_project_dedicated_gsa_and_parent_validation(self):
+        data=json.loads((ROOT/'05.sandbox_json/sbx03-request.template.json').read_text())
+        # The checked-in template must never be accepted as an approved request.
+        self.assertTrue(list(p.VALIDATOR.iter_errors(data)))
+        data['approval']={'status':'APPROVED','approval_id':'test-approval','approved_at':'2026-11-07T00:00:00Z'}
+        data['source']['sha256']='b'*64
+        p.VALIDATOR.validate(data)
+        p.validate_semantics(data)
+        variables=p.stage_variables(data)
+        self.assertEqual(variables['10-project']['org_id'],'51654893849')
+        self.assertIsNone(variables['10-project']['folder_id'])
+        self.assertTrue(variables['40-data']['create_jupyter_gsa'])
+        self.assertEqual(variables['40-data']['identity_project_id'],'gcp-sbx-edp-sbx03')
+        self.assertEqual(variables['40-data']['jupyter_gsa_email'],'gsa-jupyter-sbx03@gcp-sbx-edp-sbx03.iam.gserviceaccount.com')
+        self.assertEqual(variables['40-data']['gke_project_id'],'gcp-sbx-edp-gke01')
+        self.assertEqual(variables['40-data']['datalake_datasets'],[{'project_id':'pjt-c-admin','dataset_id':'dlk_sample'}])
+        data['project']['folder_id']='123'
+        self.assertTrue(list(p.VALIDATOR.iter_errors(data)))
+        del data['project']['folder_id'];del data['project']['org_id']
+        self.assertTrue(list(p.VALIDATOR.iter_errors(data)))
+        data['identity']['create_jupyter_gsa']=False
+        with self.assertRaisesRegex(ValueError,'new projects require'):p.validate_semantics(data)
+
+    @mock.patch.dict(os.environ,ENV)
+    def test_old_source_cannot_silently_skip_dedicated_gsa(self):
+        data=json.loads((ROOT/'05.sandbox_json/sbx03-request.template.json').read_text())
+        bucket=mock.Mock();bucket.name=ENV['BUNDLE_BUCKET'];bucket.blob.side_effect=lambda name:name
+        def download(source,destination):
+            shutil.copytree(ROOT/'08.sandbox_setup_02_terraform',destination/'08.sandbox_setup_02_terraform')
+            (destination/'08.sandbox_setup_02_terraform/deployments/40-data/main.tf').write_text('provider "google" {}')
+            return destination
+        with mock.patch.object(p.storage,'Client') as client, mock.patch.object(p,'download_source_archive',side_effect=download),mock.patch.object(p,'upload_immutable'):
+            client.return_value.bucket.return_value=bucket
+            with self.assertRaisesRegex(ValueError,'does not support dedicated'):p.assemble_bundles(data,b'{}')
 
     @mock.patch.dict(os.environ,ENV)
     def test_build_execution_identities_and_group_order(self):

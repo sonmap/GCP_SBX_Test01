@@ -66,7 +66,11 @@ def verify_workload_identity(request, env):
     task = request["task"]["name"]
     namespace = request["gke"]["namespace"]
     ksa = f"ksa-jupyter-{task}"
-    expected_gsa = f"sbx-manager@{os.environ['SBX_GKE_PROJECT']}.iam.gserviceaccount.com"
+    expected_gsa = (
+        f"gsa-jupyter-{task}@{request['project']['project_id']}.iam.gserviceaccount.com"
+        if request["identity"].get("create_jupyter_gsa", False)
+        else f"sbx-manager@{os.environ['SBX_GKE_PROJECT']}.iam.gserviceaccount.com"
+    )
     actual_gsa = run([
         "kubectl", "get", "serviceaccount", ksa,
         f"--namespace={namespace}",

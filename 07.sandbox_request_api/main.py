@@ -82,6 +82,13 @@ def validate_semantics(payload: dict) -> None:
     if payload["gke"]["namespace"] != task:
         raise ValueError("GKE namespace must match the approved task name")
 
+    if identity.get("create_jupyter_gsa", False) and len(task) > 18:
+        raise ValueError("dedicated GSA task name must be at most 18 characters")
+    if payload["project"]["create_project"] and not identity.get("create_jupyter_gsa", False):
+        raise ValueError("new projects require identity.create_jupyter_gsa=true")
+    if payload["data"].get("datalake_datasets") and not identity.get("create_jupyter_gsa", False):
+        raise ValueError("datalake access requires a dedicated task GSA")
+
     network = payload["network"]
     if network["required"]:
         if network.get("create_subnet", True) or network["shared_vpc_join"]:
@@ -131,7 +138,10 @@ def stage_variables(payload: dict) -> dict[str, dict]:
     gke = payload["gke"]
     task_name = task["name"]
     jupyter_ksa = f"ksa-jupyter-{task_name}"
-    jupyter_gsa = f"sbx-manager@{os.environ['SBX_GKE_PROJECT']}.iam.gserviceaccount.com"
+    create_gsa = payload["identity"].get("create_jupyter_gsa", False)
+    identity_project = project["project_id"] if create_gsa else os.environ["SBX_GKE_PROJECT"]
+    jupyter_gsa = (f"gsa-jupyter-{task_name}@{identity_project}.iam.gserviceaccount.com"
+                   if create_gsa else f"sbx-manager@{identity_project}.iam.gserviceaccount.com")
     sandbox_project = os.environ["SBX_GKE_PROJECT"]
 
     return {
@@ -145,7 +155,8 @@ def stage_variables(payload: dict) -> dict[str, dict]:
         "10-project": {
             "create_project": project["create_project"],
             "project_id": project["project_id"], "project_name": project["project_name"],
-            "folder_id": project.get("folder_id"), "billing_account": project.get("billing_account"),
+            "folder_id": project.get("folder_id"), "org_id": project.get("org_id"),
+            "billing_account": project.get("billing_account"),
             "task_name": task_name, "expires_on": task["expires_on"], "region": network["region"],
             "project_iam_service_account": f"tf-manager@{sandbox_project}.iam.gserviceaccount.com",
             "data_admin_service_account": f"tf-manager@{sandbox_project}.iam.gserviceaccount.com",
@@ -169,7 +180,9 @@ def stage_variables(payload: dict) -> dict[str, dict]:
             "gke_project_id": gke["project_id"], "gke_namespace": gke["namespace"],
             "jupyter_ksa_name": jupyter_ksa,
             "jupyter_gsa_email": jupyter_gsa,
-            "identity_project_id": sandbox_project,
+            "identity_project_id": identity_project,
+            "create_jupyter_gsa": create_gsa,
+            "datalake_datasets": data.get("datalake_datasets", []),
         },
     }
 
@@ -253,6 +266,11 @@ def assemble_bundles(payload: dict, raw_request: bytes) -> tuple[str, dict]:
             source = deployment_root / stage
             if not source.is_dir():
                 raise ValueError(f"missing Terraform root module: {stage}")
+            if payload["identity"].get("create_jupyter_gsa", False):
+                if stage == "40-data" and 'resource "google_service_account" "jupyter"' not in (source / "main.tf").read_text():
+                    raise ValueError("source release does not support dedicated task GSA; publish a new release")
+                if stage == "10-project" and payload["project"].get("org_id") and 'variable "org_id"' not in (source / "variables.tf").read_text():
+                    raise ValueError("source release does not support org_id; publish a new release")
             work = temp / "work" / stage
             shutil.copytree(source, work)
             if stage == "05-group":

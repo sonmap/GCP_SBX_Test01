@@ -8,7 +8,7 @@ steps:
     args:
       - -ceu
       - |
-        gcloud container clusters get-credentials gke-sbx-main-an3 --project=gcp-sbx-edp-gke01 --location=asia-northeast3 --internal-ip
+        gcloud container clusters get-credentials gke-sbx-main-an3 --project=gcp-sbx-edp-gke01 --location=asia-northeast3 --dns-endpoint
         kubectl --request-timeout=20s get namespaces
 options:
   logging: CLOUD_LOGGING_ONLY

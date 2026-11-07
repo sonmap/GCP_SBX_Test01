@@ -90,7 +90,9 @@ def main():
     namespace = gke["namespace"]
     ksa = f"ksa-jupyter-{task}"
     jupyter_gsa = (
-        f"sbx-manager@{project}.iam.gserviceaccount.com"
+        f"gsa-jupyter-{task}@{request['project']['project_id']}.iam.gserviceaccount.com"
+        if request["identity"].get("create_jupyter_gsa", False)
+        else f"sbx-manager@{project}.iam.gserviceaccount.com"
     )
     manifest = {
         "apiVersion": "v1",

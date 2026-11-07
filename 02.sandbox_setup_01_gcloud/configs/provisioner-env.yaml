@@ -7,4 +7,4 @@ WORKER_POOL: projects/gcp-sbx-edp-gke01/locations/asia-northeast3/workerPools/po
 CLOUD_IDENTITY_CUSTOMER_ID: __SET_CUSTOMER_ID__
 JUPYTER_CHART_URI: oci://asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/ar-sbxtest01-platform/jupyterhub
 JUPYTER_CHART_VERSION: 4.2.0
-GKE_ENDPOINT_MODE: internal
+GKE_ENDPOINT_MODE: dns

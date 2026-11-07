@@ -6,8 +6,17 @@ resource "google_project" "sandbox" {
   project_id      = var.project_id
   name            = var.project_name
   folder_id       = var.folder_id
+  org_id          = var.org_id
+  auto_create_network = false
   billing_account = var.billing_account
   deletion_policy = "PREVENT"
+
+  lifecycle {
+    precondition {
+      condition = (var.folder_id != null) != (var.org_id != null)
+      error_message = "Specify exactly one of folder_id or org_id."
+    }
+  }
 
   labels = {
     environment = "sandbox"
@@ -30,6 +39,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
     "serviceusage.googleapis.com",
     "storage.googleapis.com",
   ])
@@ -57,6 +67,10 @@ locals {
     data_storage_admin = {
       member = "serviceAccount:${var.data_admin_service_account}"
       role   = "roles/storage.admin"
+    }
+    data_sa_admin = {
+      member = "serviceAccount:${var.data_admin_service_account}"
+      role   = "roles/iam.serviceAccountAdmin"
     }
     data_service_usage = {
       member = "serviceAccount:${var.data_admin_service_account}"

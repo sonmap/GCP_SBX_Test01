@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -14,6 +15,15 @@ ENV = {"GCP_REGION": REGION, "SHARED_NETWORK_URI": "projects/gcp-prod-edp-hub-vp
 
 
 class InternalAlbTests(unittest.TestCase):
+    @mock.patch.dict(os.environ,{'SBX_GKE_PROJECT':PROJECT})
+    def test_dedicated_cross_project_ksa_annotation_is_verified(self):
+        request={'task':{'name':'sbx03'},'gke':{'namespace':'sbx03'},'project':{'project_id':'gcp-sbx-edp-sbx03'},'identity':{'create_jupyter_gsa':True}}
+        email='gsa-jupyter-sbx03@gcp-sbx-edp-sbx03.iam.gserviceaccount.com'
+        with mock.patch.object(module,'run',return_value=email):
+            module.verify_workload_identity(request,ENV)
+        with mock.patch.object(module,'run',return_value='sbx-manager@'+PROJECT+'.iam.gserviceaccount.com'):
+            with self.assertRaisesRegex(RuntimeError,'KSA/GSA mismatch'):module.verify_workload_identity(request,ENV)
+
     def test_health_and_backend_are_regional_and_internal(self):
         neg = {"name": "neg-sbx01", "zone": REGION + "-a", "self_link": f"projects/{PROJECT}/zones/{REGION}-a/networkEndpointGroups/neg-sbx01"}
         with mock.patch.object(module, "gcloud_describe_or_none", side_effect=[None, None, {"backends": []}]) as describe, mock.patch.object(module, "gcloud", return_value="") as cloud:

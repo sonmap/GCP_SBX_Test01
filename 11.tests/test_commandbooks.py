@@ -26,7 +26,7 @@ class CommandbookTests(unittest.TestCase):
         self.assertTrue(step['name'].startswith(
             'asia-northeast3-docker.pkg.dev/gcp-sbx-edp-gke01/'))
         self.assertIn('--project=gcp-sbx-edp-gke01', step['args'][-1])
-        self.assertIn('--internal-ip', step['args'][-1])
+        self.assertIn('--dns-endpoint', step['args'][-1])
 
     def test_current_network_defaults_and_request_schemas_agree(self):
         sample = json.loads((ROOT / '05.sandbox_json/sbx01-approved-request.json').read_text())
@@ -125,7 +125,7 @@ esac
         configs = ROOT / '02.sandbox_setup_01_gcloud/configs'
         env = yaml.safe_load((configs / 'provisioner-env.yaml').read_text())
         self.assertEqual(env['SBX_GKE_PROJECT'], 'gcp-sbx-edp-gke01')
-        self.assertEqual(env['GKE_ENDPOINT_MODE'], 'internal')
+        self.assertEqual(env['GKE_ENDPOINT_MODE'], 'dns')
         self.assertEqual(env['SBX_GKE_PROJECT'], 'gcp-sbx-edp-gke01')
         build = yaml.safe_load((configs / 'bootstrap-build.yaml').read_text())
         self.assertEqual(build['options']['logging'], 'CLOUD_LOGGING_ONLY')

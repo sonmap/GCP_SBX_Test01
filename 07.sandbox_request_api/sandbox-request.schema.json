@@ -112,6 +112,11 @@
             "pattern": "^groups/[A-Za-z0-9_-]+/memberships/[A-Za-z0-9_-]+$"
           },
           "description": "Existing requested memberships to import, keyed by email; omit for new members."
+        },
+        "create_jupyter_gsa": {
+          "type": "boolean",
+          "default": false,
+          "description": "Create a dedicated gsa-jupyter-<task> in the task project; required for new projects."
         }
       }
     },
@@ -143,6 +148,10 @@
         "billing_account": {
           "type": "string",
           "pattern": "^[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$"
+        },
+        "org_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
         }
       },
       "allOf": [
@@ -159,8 +168,29 @@
           },
           "then": {
             "required": [
-              "folder_id",
               "billing_account"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "folder_id"
+                ],
+                "not": {
+                  "required": [
+                    "org_id"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "org_id"
+                ],
+                "not": {
+                  "required": [
+                    "folder_id"
+                  ]
+                }
+              }
             ]
           }
         }
@@ -271,6 +301,29 @@
           "type": "boolean",
           "default": false,
           "description": "Adopt the approved pre-existing BigQuery dataset and GCS bucket (central sbx-manager is read-only lookup) into Infrastructure Manager state."
+        },
+        "datalake_datasets": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "project_id",
+              "dataset_id"
+            ],
+            "properties": {
+              "project_id": {
+                "const": "pjt-c-admin"
+              },
+              "dataset_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,1023}$"
+              }
+            }
+          },
+          "description": "Approved datasets: grant task GSA dataViewer; caller must have delegated dataset IAM permission."
         }
       }
     },

@@ -1,5 +1,7 @@
 **[Git 최신 설정 동기화·현재 단계 재개](01.docs/git-sync-current-environment.md)** — 로컬 Customer ID를 보존하고, 프로젝트 치환 없이 Private Pool 점검을 실행합니다.
 
+> 신규 프로젝트·과제 전용 GSA 생성은 [sbx03 신규 과제 절차](01.docs/sbx03-new-project-runbook.md)를 우선 적용합니다. 기존 프로젝트 재사용 절차와 구분하세요.
+
 **[현재 실환경: 개별 명령 작업 가이드](01.docs/operator-command-guide.md)** — `gcp-sbx-edp-gke01` 기반 실제 수행 순서·계정 구분·오류 해결·미완료 확인사항. 현재 환경에서는 이 가이드의 값을 우선 사용하세요. 관련 기본값도 현재 환경으로 동기화했습니다.
 
 # GCP_SBX_Test01
