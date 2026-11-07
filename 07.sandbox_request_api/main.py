@@ -417,7 +417,11 @@ def start_build(payload: dict, request_uri: str, bundle_prefix: str):
             api_endpoint=f"{region}-cloudbuild.googleapis.com"
         )
     )
-    return client.create_build(parent=f"projects/{project}/locations/{region}", project_id=project, build=build)
+    return client.create_build(request=cloudbuild_v1.CreateBuildRequest(
+        parent=f"projects/{project}/locations/{region}",
+        project_id=project,
+        build=build,
+    ))
 
 
 def start_build_once(payload: dict, request_uri: str, bundle_prefix: str) -> tuple[str, bool]:

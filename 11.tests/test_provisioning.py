@@ -96,10 +96,10 @@ class ProvisioningTests(unittest.TestCase):
 
     @mock.patch.dict(os.environ,ENV)
     def test_build_execution_identities_and_group_order(self):
-        with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient') as client:
+        with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient',autospec=True) as client:
             p.start_build(payload(),'gs://example/request.json','gs://example/bundle')
-            self.assertEqual(client.return_value.create_build.call_args.kwargs['parent'], 'projects/gcp-sbx-edp-gke01/locations/asia-northeast3')
-            build=client.return_value.create_build.call_args.kwargs['build']
+            self.assertEqual(client.return_value.create_build.call_args.kwargs['request'].parent, 'projects/gcp-sbx-edp-gke01/locations/asia-northeast3')
+            build=client.return_value.create_build.call_args.kwargs['request'].build
         spec=json.loads(p.cloudbuild_v1.Build.to_json(build))
         self.assertEqual(spec['serviceAccount'],f"projects/{ENV['SBX_GKE_PROJECT']}/serviceAccounts/tf-manager@{ENV['SBX_GKE_PROJECT']}.iam.gserviceaccount.com")
         self.assertEqual(len(spec['steps']),2)
@@ -122,9 +122,9 @@ class ProvisioningTests(unittest.TestCase):
         self.assertFalse(data['network']['required'])
         self.assertFalse(data['network']['shared_vpc_join'])
         p.VALIDATOR.validate(data)
-        with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient') as client:
+        with mock.patch.object(p.cloudbuild_v1,'CloudBuildClient',autospec=True) as client:
             p.start_build(data,'gs://example/request.json','gs://example/bundle')
-        build=client.return_value.create_build.call_args.kwargs['build']
+        build=client.return_value.create_build.call_args.kwargs['request'].build
         text=build.steps[0].args[1]
         self.assertNotIn('/network.zip',text)
         self.assertIn('/data.zip',text)
