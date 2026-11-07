@@ -1,5 +1,7 @@
 # 내부 ALB Jupyter OAuth·HTTPS 수행과 확인
 
+> 실제 sbx03 접속 설정은 [내부 HTTPS ALB와 인증서](sbx03-https-certificate-runbook.md), [Google OAuth 로그인](sbx03-google-oauth-runbook.md)으로 나누어 정리했습니다. 아래 공통 설정 예시는 기존 과제의 참고용입니다.
+
 전체 단계는 [실행 절차](runbook-two-stage.md)의 4단계와 11단계입니다. 아래 명령은 저장소 루트에서 실행합니다.
 
 ## 1. OAuth 담당자 준비

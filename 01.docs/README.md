@@ -50,6 +50,14 @@ Terraform·Build 실행 계정은 **tf-manager@gcp-sbx-edp-gke01.iam.gserviceacc
 
 폴더 번호는 자료를 찾기 위한 흐름 표기입니다. 실제 최초 구축에서는 Cloud Run API와 GKE 배포 도구의 이미지가 3단계에서 함께 빌드됩니다. 07/08/09 폴더는 요청 후 자동 호출되는 코드이며, 폴더 안에서 프로그램을 차례로 수동 실행하지 않습니다.
 
+## sbx03 사용자 접속 설정
+
+| 구분 | 실행 문서 | 확인 기준 |
+|---|---|---|
+| 내부 HTTPS ALB·인증서 | [TLS 인증서와 Windows 신뢰 설정](sbx03-https-certificate-runbook.md) | 내부 VIP 443, 이름 해석, HTTPS 로그인 화면 |
+| Google OAuth | [웹 클라이언트와 콜백 주소 등록](sbx03-google-oauth-runbook.md) | Google 로그인 후 JupyterHub로 복귀 |
+| 사용자 Notebook 홈 | [Notebook 이미지 빌드 및 적용](../04.Jupiter-setup-image/README.md) | `user01`의 홈 `/home/user01` |
+
 ## 필요한 문서만 여세요
 
 | 문서 | 언제 보는가 |
