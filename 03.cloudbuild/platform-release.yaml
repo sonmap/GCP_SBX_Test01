@@ -1,15 +1,15 @@
 steps:
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     id: check-group-config
-    entrypoint: python3
+    entrypoint: bash
     args:
-      - -c
+      - -ceu
       - |
-        import pathlib, re
-        config = pathlib.Path("02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml").read_text()
-        value = next((line.split(":", 1)[1].strip() for line in config.splitlines() if line.startswith("CLOUD_IDENTITY_CUSTOMER_ID:")), "")
-        if not re.fullmatch(r"C[A-Za-z0-9]+", value):
-            raise SystemExit("Set actual CLOUD_IDENTITY_CUSTOMER_ID in provisioner-env.yaml and commit before release")
+        value="$$(awk '/^CLOUD_IDENTITY_CUSTOMER_ID:/ {print $$2; exit}' 02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml)"
+        if [[ ! "$$value" =~ ^C[A-Za-z0-9]+$ ]]; then
+          echo "Set actual CLOUD_IDENTITY_CUSTOMER_ID in provisioner-env.yaml before release" >&2
+          exit 1
+        fi
 
   - name: gcr.io/cloud-builders/docker
     id: build-automation-runner
@@ -49,23 +49,24 @@ steps:
     id: push-provisioner-latest
     args: ["push", "${_PROVISIONER_IMAGE_REPO}:latest"]
 
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+  - name: "${_AUTOMATION_IMAGE_REPO}:${_RELEASE_ID}"
     id: publish-sandbox-source
     entrypoint: bash
     args:
       - -ceu
       - |
+        set -o pipefail
         release_id="${_RELEASE_ID}"
-        bash 10.sandbox_deploy_tools/publish-sandbox-source.sh "${_BUNDLE_BUCKET}" "${release_id}" | tee /workspace/source.env
+        bash 10.sandbox_deploy_tools/publish-sandbox-source.sh "${_BUNDLE_BUCKET}" "$${release_id}" | tee /workspace/source.env
         . /workspace/source.env
 
-        export RELEASE_ID="${release_id}"
+        export RELEASE_ID="$${release_id}"
         export COMMIT_SHA_VALUE="${_COMMIT_SHA}"
-        export RUNNER_IMAGE="${_AUTOMATION_IMAGE_REPO}:${release_id}"
-        export PROVISIONER_IMAGE="${_PROVISIONER_IMAGE_REPO}:${release_id}"
-        export ARCHIVE_URI="${archive_uri}"
-        export GENERATION="${generation}"
-        export SHA256="${sha256}"
+        export RUNNER_IMAGE="${_AUTOMATION_IMAGE_REPO}:$${release_id}"
+        export PROVISIONER_IMAGE="${_PROVISIONER_IMAGE_REPO}:$${release_id}"
+        export ARCHIVE_URI="$${archive_uri}"
+        export GENERATION="$${generation}"
+        export SHA256="$${sha256}"
 
         python3 - <<'PY'
         import json
@@ -85,13 +86,13 @@ steps:
         PY
 
         gcloud storage cp /workspace/release.json \
-          "gs://${_BUNDLE_BUCKET}/platform-releases/${release_id}/release.json"
+          "gs://${_BUNDLE_BUCKET}/platform-releases/$${release_id}/release.json"
 
         echo "============================================================"
         echo "PLATFORM RELEASE READY"
-        echo "release_id=${release_id}"
-        echo "runner_image=${_AUTOMATION_IMAGE_REPO}:${release_id}"
-        echo "provisioner_image=${_PROVISIONER_IMAGE_REPO}:${release_id}"
+        echo "release_id=$${release_id}"
+        echo "runner_image=${_AUTOMATION_IMAGE_REPO}:$${release_id}"
+        echo "provisioner_image=${_PROVISIONER_IMAGE_REPO}:$${release_id}"
         cat /workspace/source.env
         echo "============================================================"
 
