@@ -14,14 +14,16 @@ git pull --ff-only
 
 ```mermaid
 flowchart TD
-    A["운영자와 관리자"] --> B["필요한 API 활성화"]
-    B --> C["Google 서비스 에이전트 준비"]
-    B --> D["tf-manager와 sbx-manager 준비"]
-    C --> E["IAM 역할 연결"]
-    D --> E
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      O["프로젝트 오너 · son@sonmap.net"] --> S["API 활성화와 프로젝트 IAM"]
+      S --> T["tf-manager · sbx-manager 준비"]
+    end
+    subgraph H["Shared VPC 호스트 · gcp-prod-edp-hub-vpchost"]
+      V["VPC 관리자 · admin@sonmap.net"] --> I["호스트 API와 서비스 에이전트 IAM"]
+    end
 ```
 
-**실행:** 운영자와 관리자. 명령에 적힌 `--account`를 사용합니다.  
+**실행:** 플랫폼 프로젝트의 API·계정·IAM은 프로젝트 오너 `son@sonmap.net`, Shared VPC 호스트의 API·IAM은 VPC 관리자 `admin@sonmap.net`이 맡습니다.  
 **다음으로:** `tf-manager`와 `sbx-manager`가 조회되고 API·권한 설정이 완료되면 2번으로 이동합니다.
 
 <details>
@@ -143,12 +145,15 @@ gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJEC
 
 ```mermaid
 flowchart TD
-    A["Shared VPC 호스트"] --> B["GKE 노드 서브넷과 Pod IP 범위"]
-    A --> C["내부 ALB VIP와 프록시 서브넷"]
-    A --> D["Private Pool용 PSA 피어링"]
-    B --> E["GKE 프로젝트에 서브넷 사용 권한 부여"]
-    C --> E
-    C -->|프록시에서 GKE 백엔드로 전달| B
+    subgraph H["Shared VPC 호스트 · gcp-prod-edp-hub-vpchost"]
+      V["VPC 관리자 · admin@sonmap.net"] --> N["vpc-prod-edp-hub"]
+      N --> G["subnet-prod-sbx-gke-01 · Pod IP 범위"]
+      N --> A["subnet-prod-edp-alb-frontend-an3 · subnet-prod-sbx-ilb-proxy"]
+      N --> S["psa-prod-edp-cloudbuild · 방화벽"]
+    end
+    G -->|서브넷 사용 권한| P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+    A -->|VIP 서브넷 사용 권한| P
+    S -->|PSA 피어링| P
 ```
 
 **실행:** VPC 관리자 `admin@sonmap.net`.  
@@ -311,16 +316,18 @@ gcloud compute networks subnets get-iam-policy "${ILB_VIP_SUBNET}" --project="${
 
 ```mermaid
 flowchart TD
-    P["플랫폼 프로젝트"]
-    P --> G["GKE Autopilot과 Private Pool"]
-    P --> S["GCS 버킷과 Artifact Registry"]
-    P --> A["내부 ALB 공통 URL Map"]
-    P --> W["Workflows"]
-    W -->|요청 전달| R["Cloud Run"]
-    R -->|요청과 배포 파일 사용| S
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      O["플랫폼 운영자 · son@sonmap.net"] -->|tf-manager로 실행| G["gke-sbx-main-an3 · 공통 ALB"]
+      O -->|tf-manager로 실행| S["GCS 버킷 · ar-sbxtest01-platform"]
+      O -->|tf-manager로 실행| W["workflow-sbxtest01-provision"]
+      W --> R["run-sbxtest01-provisioner"]
+      B["Private Pool · pool-sbxtest01"]
+    end
+    V["VPC 관리자 · admin@sonmap.net"] -->|초기 생성| B
+    B -.-> H["Shared VPC · gcp-prod-edp-hub-vpchost"]
 ```
 
-**실행:** 플랫폼 운영자. Private Pool 초기 구성은 VPC 관리자 명령을 사용합니다.  
+**실행:** 플랫폼 운영자 `son@sonmap.net`이 `tf-manager` 권한으로 공통 자원을 만듭니다. Private Pool 초기 생성은 VPC 관리자 `admin@sonmap.net`이 플랫폼 프로젝트에서 수행합니다.  
 **다음으로:** 버킷·Artifact Registry·GKE·Private Pool·Cloud Run·Workflow·공통 URL Map이 조회되면 4번으로 이동합니다.
 
 <details>
@@ -503,10 +510,17 @@ gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_
 
 ```mermaid
 flowchart TD
-    W["Workspace 최고 관리자"] -->|Groups Administrator 승인| T["tf-manager"]
-    T --> G["과제 그룹 생성 권한"]
-    O["Google OAuth 웹 클라이언트"] -->|클라이언트 ID와 시크릿 등록| S["Secret Manager"]
-    S -.-> J["JupyterHub Google 로그인 설정"]
+    subgraph W["Google Workspace 조직"]
+      A["Workspace 최고 관리자"]
+      G["과제 그룹 생성 권한"]
+    end
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      T["tf-manager"]
+      O["플랫폼 운영자 · son@sonmap.net"] -->|tf-manager로 등록| S["Secret Manager · Jupyter OAuth ID와 시크릿"]
+    end
+    A -->|Groups Administrator 승인| T
+    T --> G
+    C["Google OAuth 웹 클라이언트"] -.->|ID와 시크릿| S
 ```
 
 1. Workspace 최고 관리자는 [그룹 관리 역할 승인](reference/cloud-identity-group-terraform.md)에 따라 `tf-manager`에 Groups Administrator 역할을 부여합니다.
@@ -548,10 +562,12 @@ unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 ```mermaid
 flowchart TD
-    V["관리 VM"] -->|kubectl로 조회| E["GKE DNS 엔드포인트"]
-    Y["check-private-gke.yaml"] --> P["Cloud Build Private Pool"]
-    P -->|kubectl로 조회| E
-    E --> N["Namespace 목록"]
+    V["관리 VM infra-son01 · son@sonmap.net"] -->|kubectl로 직접 조회| E
+    V -->|점검 Build 제출| B
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      B["pool-sbxtest01 · tf-manager"] -->|kubectl로 조회| E["gke-sbx-main-an3 · DNS 엔드포인트"]
+      E --> N["Namespace 목록"]
+    end
 ```
 
 **실행:** 관리 VM `infra-son01`. 첫 명령은 새 클러스터에서 DNS 엔드포인트를 활성화할 때 사용합니다.  
@@ -573,13 +589,13 @@ gcloud builds submit --no-source --config=03.cloudbuild/check-private-gke.yaml \
 
 ```mermaid
 flowchart TD
-    A["Cloud Build"] --> R["플랫폼 릴리스"]
-    R --> B["GCS 릴리스 파일"]
-    R --> I["Artifact Registry"]
-    A -->|미러링| C["JupyterHub Chart와 기본 이미지"]
-    A -->|빌드| N["Notebook 이미지"]
-    C --> I
-    N --> I
+    O["플랫폼 운영자 · son@sonmap.net"] -->|Build 제출| B
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      B["Cloud Build · tf-manager"] --> G["GCS 번들 버킷 · release.json"]
+      B --> A["ar-sbxtest01-platform"]
+      A --> R["배포 도구 이미지"]
+      A --> C["JupyterHub Chart와 Notebook 이미지"]
+    end
 ```
 
 **다음으로:** 플랫폼 릴리스의 `release.json`, JupyterHub Chart, Notebook 이미지가 게시됐는지 확인합니다. 같은 릴리스와 이미지가 이미 있으면 해당 빌드는 건너뜁니다.
@@ -672,12 +688,14 @@ gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="
 
 ```mermaid
 flowchart TD
-    D["내부 DNS"] -->|호스트 이름을 VIP로 해석| V["내부 ALB VIP 443"]
-    V --> P["HTTPS 프록시"]
-    C["TLS 인증서"] -.-> P
-    P --> U["공통 URL Map"]
-    U -->|과제 경로 연결 후| J["sbx03 JupyterHub"]
-    O["Google OAuth 웹 클라이언트"] -->|콜백 주소 등록| J
+    D["내부 DNS 담당자"] -->|호스트 이름을 VIP로 연결| V
+    O["플랫폼 운영자 · son@sonmap.net"] -->|HTTPS 프런트엔드 구성| V
+    subgraph P["플랫폼 프로젝트 · gcp-sbx-edp-gke01"]
+      V["ip-alb-sbxtest01-shared · TCP 443"] --> H["HTTPS 프록시 · TLS 인증서"]
+      H --> U["urlmap-alb-sbxtest01-shared"]
+      U -->|과제 경로 연결 후| J["sbx03 JupyterHub"]
+    end
+    C["Google OAuth 웹 클라이언트 관리자"] -->|sbx03 콜백 등록| J
 ```
 
 **실행:** 플랫폼 운영자와 인증서·DNS 담당자. 아래는 `sbx03` Windows 시험에서 사용한 프런트엔드 명령입니다. 이미 HTTPS가 연결된 공유 ALB라면 먼저 기존 인증서와 전달 규칙을 조회합니다.
