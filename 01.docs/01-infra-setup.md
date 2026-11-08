@@ -12,6 +12,15 @@ git pull --ff-only
 
 ## 1. 작업에 쓸 계정과 권한 만들기
 
+```mermaid
+flowchart TD
+    A["운영자와 관리자"] --> B["필요한 API 활성화"]
+    B --> C["Google 서비스 에이전트 준비"]
+    B --> D["tf-manager와 sbx-manager 준비"]
+    C --> E["IAM 역할 연결"]
+    D --> E
+```
+
 **실행:** 운영자와 관리자. 명령에 적힌 `--account`를 사용합니다.  
 **다음으로:** `tf-manager`와 `sbx-manager`가 조회되고 API·권한 설정이 완료되면 2번으로 이동합니다.
 
@@ -131,6 +140,16 @@ gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJEC
 </details>
 
 ## 2. GKE와 ALB가 사용할 네트워크 준비
+
+```mermaid
+flowchart TD
+    A["Shared VPC 호스트"] --> B["GKE 노드 서브넷과 Pod IP 범위"]
+    A --> C["내부 ALB VIP와 프록시 서브넷"]
+    A --> D["Private Pool용 PSA 피어링"]
+    B --> E["GKE 프로젝트에 서브넷 사용 권한 부여"]
+    C --> E
+    C -->|프록시에서 GKE 백엔드로 전달| B
+```
 
 **실행:** VPC 관리자 `admin@sonmap.net`.  
 **다음으로:** Shared VPC 연결, 서브넷, PSA 피어링, 방화벽, 서브넷 사용 권한을 확인합니다.
@@ -289,6 +308,17 @@ gcloud compute networks subnets get-iam-policy "${ILB_VIP_SUBNET}" --project="${
 </details>
 
 ## 3. 공통 서비스와 GKE 만들기
+
+```mermaid
+flowchart TD
+    P["플랫폼 프로젝트"]
+    P --> G["GKE Autopilot과 Private Pool"]
+    P --> S["GCS 버킷과 Artifact Registry"]
+    P --> A["내부 ALB 공통 URL Map"]
+    P --> W["Workflows"]
+    W -->|요청 전달| R["Cloud Run"]
+    R -->|요청과 배포 파일 사용| S
+```
 
 **실행:** 플랫폼 운영자. Private Pool 초기 구성은 VPC 관리자 명령을 사용합니다.  
 **다음으로:** 버킷·Artifact Registry·GKE·Private Pool·Cloud Run·Workflow·공통 URL Map이 조회되면 4번으로 이동합니다.
@@ -471,6 +501,14 @@ gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_
 
 ## 4. 그룹 생성 승인과 Google 로그인 준비
 
+```mermaid
+flowchart TD
+    W["Workspace 최고 관리자"] -->|Groups Administrator 승인| T["tf-manager"]
+    T --> G["과제 그룹 생성 권한"]
+    O["Google OAuth 웹 클라이언트"] -->|클라이언트 ID와 시크릿 등록| S["Secret Manager"]
+    S -.-> J["JupyterHub Google 로그인 설정"]
+```
+
 1. Workspace 최고 관리자는 [그룹 관리 역할 승인](reference/cloud-identity-group-terraform.md)에 따라 `tf-manager`에 Groups Administrator 역할을 부여합니다.
 2. 배포 환경의 `02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml`에서 `CLOUD_IDENTITY_CUSTOMER_ID`를 실제 값으로 설정합니다. `__SET_CUSTOMER_ID__`는 예시 값입니다.
 3. 아래 명령으로 Google OAuth 값을 Secret Manager에 등록합니다. 기존 값을 계속 사용하는 경우 버전 상태만 확인합니다.
@@ -508,6 +546,14 @@ unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 
 ## 5. GKE 접속이 되는지 확인
 
+```mermaid
+flowchart TD
+    V["관리 VM"] -->|kubectl로 조회| E["GKE DNS 엔드포인트"]
+    Y["check-private-gke.yaml"] --> P["Cloud Build Private Pool"]
+    P -->|kubectl로 조회| E
+    E --> N["Namespace 목록"]
+```
+
 **실행:** 관리 VM `infra-son01`. 첫 명령은 새 클러스터에서 DNS 엔드포인트를 활성화할 때 사용합니다.  
 **다음으로:** 관리 VM과 Private Pool 양쪽에서 Namespace 목록이 나오고, 점검 Build가 `SUCCESS`이면 통과입니다.
 
@@ -524,6 +570,17 @@ gcloud builds submit --no-source --config=03.cloudbuild/check-private-gke.yaml \
 ```
 
 ## 6. 배포 도구와 Notebook 이미지 준비
+
+```mermaid
+flowchart TD
+    A["Cloud Build"] --> R["플랫폼 릴리스"]
+    R --> B["GCS 릴리스 파일"]
+    R --> I["Artifact Registry"]
+    A -->|미러링| C["JupyterHub Chart와 기본 이미지"]
+    A -->|빌드| N["Notebook 이미지"]
+    C --> I
+    N --> I
+```
 
 **다음으로:** 플랫폼 릴리스의 `release.json`, JupyterHub Chart, Notebook 이미지가 게시됐는지 확인합니다. 같은 릴리스와 이미지가 이미 있으면 해당 빌드는 건너뜁니다.
 
@@ -612,6 +669,16 @@ gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="
 </details>
 
 ## 7. 내부 HTTPS와 Google 로그인 주소 연결
+
+```mermaid
+flowchart TD
+    D["내부 DNS"] -->|호스트 이름을 VIP로 해석| V["내부 ALB VIP 443"]
+    V --> P["HTTPS 프록시"]
+    C["TLS 인증서"] -.-> P
+    P --> U["공통 URL Map"]
+    U -->|과제 경로 연결 후| J["sbx03 JupyterHub"]
+    O["Google OAuth 웹 클라이언트"] -->|콜백 주소 등록| J
+```
 
 **실행:** 플랫폼 운영자와 인증서·DNS 담당자. 아래는 `sbx03` Windows 시험에서 사용한 프런트엔드 명령입니다. 이미 HTTPS가 연결된 공유 ALB라면 먼저 기존 인증서와 전달 규칙을 조회합니다.
 
