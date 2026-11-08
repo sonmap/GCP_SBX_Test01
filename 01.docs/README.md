@@ -63,7 +63,7 @@ Terraform·Build 실행 계정은 **tf-manager@gcp-sbx-edp-gke01.iam.gserviceacc
 | 문서 | 언제 보는가 |
 |---|---|
 | [runbook-two-stage.md](runbook-two-stage.md) | 처음부터 끝까지 실제 실행 |
-| [cloudbuild-private-gke-vpn-design.md](cloudbuild-private-gke-vpn-design.md) | 5단계 Private GKE 접속 점검이 실패할 때 |
+| [cloudbuild-private-gke-vpn-design.md](cloudbuild-private-gke-vpn-design.md) | 5단계 Private Pool → GKE DNS 접속 점검 YAML 설명·실행·오류 확인 |
 | [jupyterhub-internal-alb-oauth-runbook.md](jupyterhub-internal-alb-oauth-runbook.md) | 4단계 OAuth 준비·11단계 접속 확인 |
 | [architecture-and-operations.md](architecture-and-operations.md) | 실행 계정·자동화 경계·현재 코드 제한 확인 |
 | [file-relationships.md](file-relationships.md) | 사람이 실행하는 작업과 자동 호출 관계 확인 |

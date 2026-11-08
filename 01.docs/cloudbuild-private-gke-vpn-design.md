@@ -1,40 +1,53 @@
-# Private Pool → GKE 사설 접속 실제 점검
+# Private Pool에서 GKE API 접속 점검
 
-[실제 수행 절차](runbook-two-stage.md)의 5단계에서 사용합니다. 현재 `02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml`은 GKE_ENDPOINT_MODE=internal입니다. 이 문서와 YAML은 **접속 점검**이며 VPN/BGP를 자동 구축하지 않습니다.
+[실제 수행 절차](runbook-two-stage.md)의 5단계에서 [check-private-gke.yaml](check-private-gke.yaml)을 사용합니다. Cloud Build에 넘기는 실행 설정으로, 운영자가 점검 절차와 YAML을 한 곳에서 찾을 수 있도록 `01.docs`에 두었습니다. 실행 설정을 모으기 위해 `03.cloudbuild`로 옮길 수도 있으며, 이때는 문서 링크, `--config` 경로, 테스트 참조를 함께 수정해야 합니다.
 
-## 1. 먼저 실제 Pool에서 검사
+## 1. 무엇을 확인하는가
 
-공통 기반 bootstrap 이미지가 빌드된 뒤 저장소 루트에서 실행합니다. 이 블록에 필요한 변수를 모두 포함했습니다.
+| YAML 항목 | 동작 |
+|---|---|
+| `steps[0].name` | Artifact Registry에 게시된 `sbxtest01-automation-runner:bootstrap` 이미지 사용 |
+| `options.pool` | 서울 리전의 `pool-sbxtest01`에서 실행 |
+| `KUBECONFIG` | 빌드 작업 공간의 `/workspace/kubeconfig`에 접속 정보 저장 |
+| `get-credentials --dns-endpoint` | `gke-sbx-main-an3`의 DNS 엔드포인트 설정 가져오기 |
+| `kubectl --request-timeout=20s get namespaces` | GKE API 접속과 Namespace 목록 조회 권한 확인 |
+| `CLOUD_LOGGING_ONLY`, `timeout: 300s` | Cloud Logging에 결과를 기록하고 빌드 실행 시간을 제한 |
+
+Namespace 목록만 조회하는 점검입니다. 운영 VM의 kubeconfig와 Kubernetes 리소스에는 변경을 가하지 않습니다. 현재 YAML과 배포 환경 파일의 기본값은 DNS 모드입니다.
+
+## 2. 언제, 어떻게 실행하는가
+
+공통 기반의 **GKE와 DNS 엔드포인트, Private Pool, bootstrap 이미지**가 준비된 뒤 실행합니다. GKE를 다시 만들거나 Pool·접속 권한을 바꾼 뒤 과제 배포 전에 이 점검을 다시 실행합니다.
+
+관리 VM의 저장소 루트에서 `son@sonmap.net`으로 빌드를 제출합니다. 실제 빌드 실행 계정은 `--service-account`로 지정한 `tf-manager`입니다. `--no-source`를 사용하므로 저장소 소스를 업로드할 필요가 없습니다.
 
 ```bash
-export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
-export ADMIN_ACCOUNT="son@sonmap.net"
-export REGION="asia-northeast3"
-export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
-export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
-
-gcloud builds submit --no-source --config=01.docs/check-private-gke.yaml --project="${SBX_GKE_PROJECT}" --region="${REGION}" --service-account="${TF_MANAGER_RESOURCE}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds submit --no-source \
+  --config=01.docs/check-private-gke.yaml \
+  --project=gcp-sbx-edp-gke01 --region=asia-northeast3 \
+  --account=son@sonmap.net \
+  --service-account=projects/gcp-sbx-edp-gke01/serviceAccounts/tf-manager@gcp-sbx-edp-gke01.iam.gserviceaccount.com
 ```
 
-`check-private-gke.yaml`은 Private Pool에서 `get-credentials --internal-ip` 후 `kubectl get namespaces`만 실행합니다. 성공 기준은 Build SUCCESS와 Namespace 목록입니다. 사용자 환경을 설치하거나 네트워크를 변경하지 않습니다.
+**통과 기준은 빌드 상태 `SUCCESS`와 로그의 Namespace 목록입니다.** 제출 결과에서 Build ID를 확인하고, 빌드 상세 화면에서 Cloud Logging 로그를 확인합니다. 관리 VM에서의 `kubectl` 성공과 별개로 이 빌드의 결과를 확인합니다.
 
-## 2. 실패 원인을 구분
-
-| 실패 지점/로그 | 실제 확인 사항 |
+| 실패 지점 | 확인할 항목 |
 |---|---|
-| bootstrap 이미지 Pull 실패 | 기반 Build 성공 여부·AR 이미지·Build 계정 권한 |
-| container.clusters.get 403 | tf-manager의 GKE 프로젝트 권한 |
-| get-credentials 성공 후 kubectl timeout | Private IP 라우팅·VPN/BGP·방화벽·Authorized Networks |
-| kubectl Unauthorized/Forbidden | Build 인증·GKE IAM/Kubernetes 접근 권한 |
-| Google API/DNS 연결 실패 | Private Pool의 API/DNS 접근 경로 |
+| 빌드 제출 또는 실행 계정 지정 실패 | 제출 계정의 Cloud Build 권한, Pool 사용 권한, 실행 계정의 `actAs` 권한 |
+| `bootstrap` 이미지 Pull 실패 | 이미지 태그 존재 여부와 Artifact Registry 읽기 권한 |
+| `get-credentials`에서 403 | 실행 계정의 GKE 조회·접속 권한 |
+| `kubectl` 시간 초과 또는 DNS 오류 | Pool에서 DNS 엔드포인트까지의 이름 해석과 네트워크 경로 |
+| `kubectl Unauthorized/Forbidden` | Build 실행 계정 인증과 Namespace 조회 권한 |
 
-관리 VM에서 kubectl이 된다는 사실만으로 Pool의 경로가 된다고 판단하지 않습니다. VM과 Pool은 소스 대역/라우팅 경로가 다릅니다.
+## 3. DNS 점검과 사설 IP 점검의 범위
 
-## 3. 라우팅이 준비되지 않았다면 네트워크 담당 작업
+이 YAML의 성공은 **Private Pool에서 DNS 엔드포인트를 통해 GKE API 조회가 성공했다는 의미**입니다. GKE Control Plane의 사설 IP 경로 또는 VPN/BGP 경로를 검증해야 한다면, 그 경로에 맞춰 별도의 `--internal-ip` 점검을 수행합니다.
+
+## 4. 라우팅이 준비되지 않았다면 네트워크 담당 작업
 
 Cloud Build Pool와 GKE Control Plane은 Google 관리 네트워크에서 VPC에 연결됩니다. PSA/VPC Peering은 전이 라우팅을 제공하지 않으므로 같은 Shared VPC에 연결하는 기본 명령만으로 상호 Private IP 경로가 완성되지는 않습니다.
 
-네트워크 담당자는 승인된 토폴로지에서 Pool CIDR과 GKE Control Plane CIDR의 양방향 경로·BGP 광고·커스텀 경로 전파, Authorized Networks, 방화벽을 준비합니다. Pool 전용 VPC+HA VPN을 선택하면 다음 관계를 실제 구성한 뒤 1번 점검을 다시 실행합니다.
+네트워크 담당자는 승인된 토폴로지에서 Pool CIDR과 GKE Control Plane CIDR의 양방향 경로·BGP 광고·커스텀 경로 전파, Authorized Networks, 방화벽을 준비합니다. Pool 전용 VPC+HA VPN을 선택하면 다음 관계를 실제 구성한 뒤 사설 IP 전용 점검을 실행합니다. 아래 기본 DNS 점검은 별도로 유지합니다.
 
 ```mermaid
 flowchart TD
@@ -44,13 +57,3 @@ flowchart TD
 ```
 
 현재 03-foundation의 Pool은 기존 Shared VPC를 대상으로 생성합니다. 다른 Pool VPC 설계를 적용할 때는 Pool peered-network/PSA 대상도 함께 맞춰야 합니다. 기존 Pool의 연결 대상을 문서 읽기만으로 자동 전환하지 않습니다. 전용 VPC/VPN/BGP 생성 명령은 이 저장소의 기본 구축 범위에 포함되어 있지 않습니다.
-
-## 4. 승인된 DNS endpoint 대안
-
-사설 IP 경로 대신 DNS endpoint를 쓰기로 별도 결정한 경우에만 다음 작업을 수행합니다.
-
-1. GKE 담당자가 해당 Cluster의 DNS endpoint/token 접근 설정과 IAM/API/DNS 경로를 검토·준비합니다.
-2. provisioner-env.yaml의 GKE_ENDPOINT_MODE를 dns로 바꾸고, 운영자가 해당 환경 파일을 Run에 반영합니다. 이때 기존 다른 환경변수도 파일 내용으로 함께 설정되므로 먼저 확인합니다.
-3. DNS 전용 점검용 YAML에서 get-credentials 옵션을 --dns-endpoint로 바꾸어 실제 Pool Build를 검사합니다. 기본 check-private-gke.yaml은 사설 IP 검사이므로 그대로 성공 기준으로 쓰지 않습니다.
-
-최종 선택한 접속 방식이 실제 Pool에서 통과한 후에만 과제 요청을 제출합니다. 기본 사설 IP 설정을 DNS로 자동 완화하지 않습니다.
