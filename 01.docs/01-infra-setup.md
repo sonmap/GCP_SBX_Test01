@@ -23,7 +23,7 @@ flowchart TD
     end
 ```
 
-**실행:** 플랫폼 프로젝트의 API·계정·IAM은 프로젝트 오너 `son@sonmap.net`, Shared VPC 호스트의 API·IAM은 VPC 관리자 `admin@sonmap.net`이 맡습니다.  
+**실행:** 플랫폼 프로젝트의 API·계정·IAM은 `GKE_PRJ_ACCOUNT` (`son@sonmap.net`)로 실행합니다. Shared VPC 호스트는 `VPC_ADMIN_ACCOUNT`를 사용하며, 기본값은 `ADMIN_ACCOUNT` (`admin@sonmap.net`)입니다.  
 **다음으로:** `tf-manager`와 `sbx-manager`가 조회되고 API·권한 설정이 완료되면 2번으로 이동합니다.
 
 <details>
@@ -33,29 +33,30 @@ flowchart TD
 # ── 이 문서에서 사용하는 변수 선언 ──
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
-export ADMIN_ACCOUNT=son@sonmap.net
+export ADMIN_ACCOUNT="admin@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 # 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export OPERATOR_MEMBER=user:son@sonmap.net
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_MANAGER="sbx-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
-export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --format='value(projectNumber)')"
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
-gcloud services enable servicenetworking.googleapis.com serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable servicenetworking.googleapis.com serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
-gcloud services enable container.googleapis.com compute.googleapis.com iam.googleapis.com iamcredentials.googleapis.com cloudresourcemanager.googleapis.com orgpolicy.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud services enable container.googleapis.com compute.googleapis.com iam.googleapis.com iamcredentials.googleapis.com cloudresourcemanager.googleapis.com orgpolicy.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 2. Google 서비스 에이전트 준비 — API별로 필요한 시스템 계정 ──
-gcloud beta services identity create --service=cloudbuild.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=config.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=run.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=workflows.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
-gcloud beta services identity create --service=container.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}"
+gcloud beta services identity create --service=cloudbuild.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
+gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
+gcloud beta services identity create --service=config.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
+gcloud beta services identity create --service=run.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
+gcloud beta services identity create --service=workflows.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
+gcloud beta services identity create --service=container.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 # 호스트 PSA 조회 오류 시 Service Networking 에이전트 역할도 확인합니다.
 gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
@@ -63,44 +64,44 @@ export VPC_HOST_PROJECT_NUMBER="$(gcloud projects describe "${VPC_HOST_PROJECT}"
 gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${VPC_HOST_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 
 # Service Networking 시스템 계정의 역할은 사용자 계정에 부여하지 않습니다.
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 3. 사용자 관리 서비스 계정 — sbx-manager · tf-manager ──
 
 # sbx-manager: 조회 성공(이미 존재)이면 바로 다음 create 한 줄은 건너뜁니다.
 # 명시적 Not Found일 때만 create를 실행합니다. 403·인증·연결 오류면 중단합니다.
-gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts create sbx-manager --project="${SBX_GKE_PROJECT}" --display-name=sbx_manager --account="${ADMIN_ACCOUNT}"
+gcloud iam service-accounts describe "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --format=json --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts create sbx-manager --project="${SBX_GKE_PROJECT}" --display-name=sbx_manager --account="${GKE_PRJ_ACCOUNT}"
 
 # tf-manager: 조회 성공(이미 존재)이면 바로 다음 create 한 줄은 건너뜁니다.
 # 명시적 Not Found일 때만 create를 실행합니다. 403·인증·연결 오류면 중단합니다.
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts create tf-manager --project="${SBX_GKE_PROJECT}" --display-name=tf_manager --account="${ADMIN_ACCOUNT}"
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --format=json --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts create tf-manager --project="${SBX_GKE_PROJECT}" --display-name=tf_manager --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 4. tf-manager 권한 — CI/CD 기반 구축 · Build · Infrastructure Manager ──
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/resourcemanager.projectIamAdmin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/artifactregistry.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.builds.editor --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.workerPoolUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.agent --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/run.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/workflows.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/container.admin --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.viewer --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageAdmin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountAdmin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/resourcemanager.projectIamAdmin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/artifactregistry.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.builds.editor --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/cloudbuild.workerPoolUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/config.agent --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/run.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/workflows.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/container.admin --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.viewer --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 5. sbx-manager 권한 — 요청 처리 · Workflow · Build 제출 ──
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/cloudbuild.builds.editor --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/cloudbuild.workerPoolUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/workflows.invoker --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/cloudbuild.builds.editor --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/cloudbuild.workerPoolUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/workflows.invoker --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 6. Shared VPC 조회와 VPC Admin의 Pool 초기 구성 권한 ──
 # tf-manager에는 Host 전체 Network User/Network Admin/Security Admin을 부여하지 않습니다.
@@ -109,34 +110,34 @@ gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAc
 gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 # VPC Admin은 Host 네트워크 관리 권한을 이미 보유한 계정입니다.
 # Pool 자원은 gcp-sbx-edp-gke01에 생성하므로 해당 프로젝트의 초기 Pool 관리 권한을 부여합니다.
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/cloudbuild.workerPoolOwner --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/cloudbuild.workerPoolOwner --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 7. tf-manager 권한 — GKE · 공통 로드밸런서 ──
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.loadBalancerAdmin --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.loadBalancerAdmin --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 8. 서비스 계정 사용·위임 권한 — 운영자 · 두 계정 · 서비스 에이전트 ──
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-config.iam.gserviceaccount.com" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-cloudbuild.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${SBX_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-config.iam.gserviceaccount.com" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-cloudbuild.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 11. GCP 서비스 에이전트 권한 — Shared VPC 사용 ──
 gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/container.hostServiceAgentUser --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 
 # ── 12. GKE 노드 기본 계정 권한 — 노드 실행 · tf-manager의 계정 사용 ──
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/container.defaultNodeServiceAccount --condition=None --account="${ADMIN_ACCOUNT}"
-gcloud iam service-accounts add-iam-policy-binding "${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/container.defaultNodeServiceAccount --condition=None --account="${GKE_PRJ_ACCOUNT}"
+gcloud iam service-accounts add-iam-policy-binding "${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/iam.serviceAccountUser --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── Cloud Identity 그룹 관리자 역할 직접 부여에 사용할 서비스 계정 Unique ID ──
 # Workspace 최고 관리자는 tf-manager에 Groups Administrator 역할을 직접 부여합니다.
 # GCP IAM 역할과 별개이며 사용자 대신 실행하는 Domain-wide Delegation은 사용하지 않습니다.
-gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(uniqueId)'
+gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --format='value(uniqueId)'
 ```
 
 </details>
@@ -166,9 +167,9 @@ flowchart TD
 # ── 이 문서에서 사용하는 변수 선언 ──
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
-export ADMIN_ACCOUNT=admin@sonmap.net
+export ADMIN_ACCOUNT="admin@sonmap.net"
 # 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export REGION=asia-northeast3
@@ -275,9 +276,10 @@ gcloud compute firewall-rules create fw-sbxtest01-ilb-proxy --project="${VPC_HOS
 서브넷을 확인한 다음 사용 권한을 적용합니다.
 
 ```bash
-export ADMIN_ACCOUNT="son@sonmap.net"
+export ADMIN_ACCOUNT="admin@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 # 실제 VPC Admin 계정으로 변경합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export REGION="asia-northeast3"
@@ -337,9 +339,10 @@ flowchart TD
 # ── 이 문서에서 사용하는 변수 선언 ──
 # 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
-export ADMIN_ACCOUNT=son@sonmap.net
+export ADMIN_ACCOUNT="admin@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 # 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
-export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-admin@sonmap.net}"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export OPERATOR_MEMBER=user:son@sonmap.net
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
@@ -359,7 +362,7 @@ export PSA_CIDR=10.250.0.0/24
 export ADMIN_CIDR=172.31.10.0/24
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export SBX_MANAGER="sbx-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
-export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --format='value(projectNumber)')"
 # 프로젝트 번호는 자동 조회합니다. 조회 실패 또는 숫자가 아닌 결과이면 이후 명령을 중단합니다.
 
 # 02-network.md와 02-subnet-iam.md 완료 후 저장소 루트에서 실행합니다.
@@ -368,68 +371,68 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 
 # ── 1. storage buckets create gs://gcp-sbx-edp-gke01-sbxtest01-requests ──
 # 기존 자원 확인
-gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 2. storage buckets update gs://gcp-sbx-edp-gke01-sbxtest01-requests ──
-gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --versioning --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --versioning --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 3. storage buckets create gs://gcp-sbx-edp-gke01-sbxtest01-bundles ──
 # 기존 자원 확인
-gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 4. storage buckets update gs://gcp-sbx-edp-gke01-sbxtest01-bundles ──
-gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --versioning --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --versioning --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 5. storage buckets create gs://gcp-sbx-edp-gke01-sbxtest01-build-source ──
 # 기존 자원 확인
-gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets describe "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets create "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --project="${SBX_GKE_PROJECT}" --location="${REGION}" --uniform-bucket-level-access --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 6. storage buckets update gs://gcp-sbx-edp-gke01-sbxtest01-build-source ──
-gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --versioning --public-access-prevention --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets update "gs://${SBX_GKE_PROJECT}-sbxtest01-build-source" --versioning --public-access-prevention --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 7. storage buckets add-iam-policy-binding gs://gcp-sbx-edp-gke01-sbxtest01-requests · roles/storage.objectAdmin ──
-gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --member="serviceAccount:${SBX_MANAGER}" --role=roles/storage.objectAdmin --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --member="serviceAccount:${SBX_MANAGER}" --role=roles/storage.objectAdmin --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 8. storage buckets add-iam-policy-binding gs://gcp-sbx-edp-gke01-sbxtest01-bundles · roles/storage.objectAdmin ──
-gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="serviceAccount:${SBX_MANAGER}" --role=roles/storage.objectAdmin --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="serviceAccount:${SBX_MANAGER}" --role=roles/storage.objectAdmin --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 9. storage buckets add-iam-policy-binding gs://gcp-sbx-edp-gke01-sbxtest01-bundles · roles/storage.objectViewer ──
-gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-config.iam.gserviceaccount.com" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-config.iam.gserviceaccount.com" --role=roles/storage.objectViewer --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 10. artifacts repositories create ar-sbxtest01-platform ──
 # 기존 자원 확인
-gcloud artifacts repositories describe ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts repositories describe ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud artifacts repositories create ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --repository-format=docker --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts repositories create ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --repository-format=docker --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 11. artifacts repositories add-iam-policy-binding ar-sbxtest01-platform · roles/artifactregistry.reader ──
-gcloud artifacts repositories add-iam-policy-binding ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/artifactregistry.reader --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts repositories add-iam-policy-binding ar-sbxtest01-platform --project="${SBX_GKE_PROJECT}" --location="${REGION}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/artifactregistry.reader --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 12. artifacts repositories add-iam-policy-binding ar-sbxtest01-platform · roles/artifactregistry.reader ──
 
 # ── 13. secrets create jupyter-oauth-client-id ──
 # 기존 자원 확인
-gcloud secrets describe jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets describe jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud secrets create jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --replication-policy=user-managed --locations="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets create jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --replication-policy=user-managed --locations="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 14. secrets add-iam-policy-binding jupyter-oauth-client-id · roles/secretmanager.secretAccessor ──
-gcloud secrets add-iam-policy-binding jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets add-iam-policy-binding jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 15. secrets create jupyter-oauth-client-secret ──
 # 기존 자원 확인
-gcloud secrets describe jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets describe jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
-gcloud secrets create jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --replication-policy=user-managed --locations="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets create jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --replication-policy=user-managed --locations="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 16. secrets add-iam-policy-binding jupyter-oauth-client-secret · roles/secretmanager.secretAccessor ──
-gcloud secrets add-iam-policy-binding jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud secrets add-iam-policy-binding jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 17. VPC Admin: Private Pool 초기 구성 ──
 # 이 절만 VPC_ADMIN_ACCOUNT로 실행합니다. 이후 GKE·ALB 등은 tf-manager 위임입니다.
@@ -440,68 +443,68 @@ gcloud builds worker-pools create pool-sbxtest01 --project="${SBX_GKE_PROJECT}" 
 
 # ── 18. container clusters create-auto gke-sbx-main-an3 ──
 # 기존 자원 확인
-gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 # 기존 자원 확인값: {"autopilot.enabled": true, "privateClusterConfig.enablePrivateNodes": true, "privateClusterConfig.enablePrivateEndpoint": true, "ipAllocationPolicy.clusterSecondaryRangeName": "subnet-prod-sbx-pod-01"} — 다르면 중단합니다.
-gcloud container clusters create-auto "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${MAIN_SUBNET}" --cluster-secondary-range-name="${MAIN_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${MAIN_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud container clusters create-auto "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --subnetwork="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${MAIN_SUBNET}" --cluster-secondary-range-name="${MAIN_POD_RANGE}" --enable-private-nodes --enable-private-endpoint --master-ipv4-cidr="${MAIN_CP_CIDR}" --enable-master-authorized-networks --master-authorized-networks="${ADMIN_CIDR},${PSA_CIDR}" --enable-master-global-access --release-channel=regular --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 19. builds submit . ──
-gcloud builds submit . --project="${SBX_GKE_PROJECT}" --region="${REGION}" --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${SBX_GKE_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud builds submit . --project="${SBX_GKE_PROJECT}" --region="${REGION}" --service-account="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}" --gcs-source-staging-dir="gs://${SBX_GKE_PROJECT}-sbxtest01-build-source/source" --config=02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 20. run deploy run-sbxtest01-provisioner ──
-gcloud run deploy run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --clear-network --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud run deploy run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --image="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/run-sbxtest01-provisioner:bootstrap" --service-account="${SBX_MANAGER}" --no-allow-unauthenticated --ingress=all --timeout=300 --max-instances=2 --env-vars-file=02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml --clear-network --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 21. run services add-iam-policy-binding run-sbxtest01-provisioner · roles/run.invoker ──
-gcloud run services add-iam-policy-binding run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/run.invoker --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud run services add-iam-policy-binding run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/run.invoker --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 22. run services describe run-sbxtest01-provisioner ──
-gcloud run services describe run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" '--format=value(status.url)' --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud run services describe run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" '--format=value(status.url)' --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── Workflow 입력 파일 준비 ──
 # Cloud Run URL 조회가 성공했고 값이 비어 있지 않은지 확인합니다.
 # URL만 치환합니다. Workflows의 ${args}, ${response.body}는 그대로 유지합니다.
-export PROVISIONER_URL="$(gcloud run services describe run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(status.url)')"
+export PROVISIONER_URL="$(gcloud run services describe run-sbxtest01-provisioner --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(status.url)')"
 mkdir -p .local
 sed "s|__PROVISIONER_URL__|${PROVISIONER_URL}|g" 02.sandbox_setup_01_gcloud/configs/workflow.template.yaml > .local/workflow.yaml
 
 # ── 23. workflows deploy workflow-sbxtest01-provision ──
-gcloud workflows deploy workflow-sbxtest01-provision --project="${SBX_GKE_PROJECT}" --location="${REGION}" --service-account="${SBX_MANAGER}" --source=.local/workflow.yaml --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud workflows deploy workflow-sbxtest01-provision --project="${SBX_GKE_PROJECT}" --location="${REGION}" --service-account="${SBX_MANAGER}" --source=.local/workflow.yaml --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 24. projects add-iam-policy-binding gcp-sbx-edp-gke01 · roles/workflows.invoker ──
-gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/workflows.invoker --condition=None --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="${OPERATOR_MEMBER}" --role=roles/workflows.invoker --condition=None --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 25. storage buckets add-iam-policy-binding gs://gcp-sbx-edp-gke01-sbxtest01-requests · roles/storage.objectAdmin ──
-gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectAdmin --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-requests" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectAdmin --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 26. storage buckets add-iam-policy-binding gs://gcp-sbx-edp-gke01-sbxtest01-bundles · roles/storage.objectViewer ──
-gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${SBX_GKE_PROJECT}-sbxtest01-bundles" --member="${OPERATOR_MEMBER}" --role=roles/storage.objectViewer --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── ALB 사전 확인: tf-manager로 VIP Subnet 조회 ──
-gcloud compute networks subnets describe "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute networks subnets describe "${ILB_VIP_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 조회는 Network Viewer로도 성공할 수 있습니다. 실제 사용 권한은 02-subnet-iam.md의 바인딩을 확인합니다.
 # 조회 실패 또는 바인딩 미확인 상태에서는 VPC Admin에게 요청하고 ALB 생성을 중단합니다.
 
 # ── 27. Regional Internal ALB: 사설 VIP 예약 ──
 # 서브넷·프록시 전용 Subnet·방화벽 준비가 완료된 뒤 실행합니다.
 # 기존 Global 외부 ALB를 제자리 변환하지 않습니다. Regional 자원을 별도로 생성합니다.
-gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 명시적 Not Found일 때만 생성합니다.
-gcloud compute addresses create ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${ILB_VIP_SUBNET}" --purpose=SHARED_LOADBALANCER_VIP --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute addresses create ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --subnet="projects/${VPC_HOST_PROJECT}/regions/${REGION}/subnetworks/${ILB_VIP_SUBNET}" --purpose=SHARED_LOADBALANCER_VIP --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 자동 예약된 실제 VIP를 이후 프런트엔드 구성에 사용합니다.
-export ILB_VIP_ADDRESS="$(gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(address)')"
+export ILB_VIP_ADDRESS="$(gcloud compute addresses describe ip-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(address)')"
 
 # ── 28. 기본 Regional Health Check·Backend ──
-gcloud compute health-checks describe hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute health-checks describe hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 명시적 Not Found일 때만 생성합니다.
-gcloud compute health-checks create http hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --port=8000 --request-path=/_chp_healthz --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
-gcloud compute backend-services describe bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute health-checks create http hc-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --port=8000 --request-path=/_chp_healthz --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute backend-services describe bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 명시적 Not Found일 때만 생성합니다. 기존 scheme은 INTERNAL_MANAGED여야 합니다.
-gcloud compute backend-services create bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --protocol=HTTP --load-balancing-scheme=INTERNAL_MANAGED --health-checks=hc-alb-sbxtest01-shared-default --health-checks-region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute backend-services create bes-alb-sbxtest01-shared-default --project="${SBX_GKE_PROJECT}" --region="${REGION}" --protocol=HTTP --load-balancing-scheme=INTERNAL_MANAGED --health-checks=hc-alb-sbxtest01-shared-default --health-checks-region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # ── 29. Regional URL Map ──
-gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute url-maps describe urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 # 명시적 Not Found일 때만 생성합니다.
-gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --default-service="projects/${SBX_GKE_PROJECT}/regions/${REGION}/backendServices/bes-alb-sbxtest01-shared-default" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud compute url-maps create urlmap-alb-sbxtest01-shared --project="${SBX_GKE_PROJECT}" --region="${REGION}" --default-service="projects/${SBX_GKE_PROJECT}/regions/${REGION}/backendServices/bes-alb-sbxtest01-shared-default" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 </details>
@@ -533,7 +536,7 @@ flowchart TD
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
-export ADMIN_ACCOUNT="son@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 export REGION="asia-northeast3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
@@ -550,8 +553,8 @@ test -n "${OAUTH_CLIENT_ID}" && test -n "${OAUTH_CLIENT_SECRET}"
 
 # 입력이 비어 있으면 중단합니다. 값은 표준입력으로만 전달합니다.
 if [ -n "${OAUTH_CLIENT_ID}" ] && [ -n "${OAUTH_CLIENT_SECRET}" ]; then
-  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
-  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_ID}" | gcloud secrets versions add jupyter-oauth-client-id --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
+  printf '%s' "${OAUTH_CLIENT_SECRET}" | gcloud secrets versions add jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --data-file=-
 fi
 unset OAUTH_CLIENT_ID OAUTH_CLIENT_SECRET
 ```
@@ -608,7 +611,7 @@ flowchart TD
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
-export ADMIN_ACCOUNT="son@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 export REGION="asia-northeast3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
@@ -620,7 +623,7 @@ export COMMIT_SHA="$(git rev-parse HEAD)"
 export RELEASE_ID="git-${COMMIT_SHA:0:12}-$(date -u +%Y%m%d%H%M%S)"
 if grep -Eq '^CLOUD_IDENTITY_CUSTOMER_ID:[[:space:]]+C[[:alnum:]]+[[:space:]]*$' 02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml; then
   gcloud builds submit . \
-    --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" \
+    --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" \
     --service-account="${TF_MANAGER_RESOURCE}" \
     --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/source" \
     --config=03.cloudbuild/platform-release.yaml \
@@ -635,7 +638,7 @@ fi
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
-export ADMIN_ACCOUNT="son@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 export REGION="asia-northeast3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
@@ -645,11 +648,11 @@ unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
 # 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
 # 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
 # 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
-gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
+gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 ```
 
 **두 미러링 Build가 성공하면 표준 Notebook 이미지를 빌드합니다.**
@@ -657,7 +660,7 @@ gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGI
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
-export ADMIN_ACCOUNT="son@sonmap.net"
+export GKE_PRJ_ACCOUNT="son@sonmap.net"
 export REGION="asia-northeast3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
 export TF_MANAGER_RESOURCE="projects/${SBX_GKE_PROJECT}/serviceAccounts/${TF_MANAGER}"
@@ -669,13 +672,13 @@ export IMAGE_TAG="4.2.0-r2-home"
 export BASE_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/jupyterhub-k8s-singleuser-sample:4.2.0"
 
 # 버킷 location이 asia-northeast3인지 확인합니다. 다르면 중단합니다.
-gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
+gcloud storage buckets describe "gs://${BUILD_STAGING_BUCKET}" --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --format='value(location)'
 
 # Build 실행 계정의 소스 읽기 권한을 준비합니다.
-gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.objectViewer --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --member="serviceAccount:${TF_MANAGER}" --role=roles/storage.objectViewer --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 
 # Notebook 이미지를 빌드합니다. 성공한 뒤 이미지 조회로 확인합니다.
-gcloud builds submit 04.Jupiter-setup-image --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
+gcloud builds submit 04.Jupiter-setup-image --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
 ```
 
 ```bash
