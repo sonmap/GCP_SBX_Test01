@@ -1,6 +1,6 @@
 # 실제 실행 구조·계정·관리 범위
 
-실제 명령은 [실행 절차](runbook-two-stage.md), 전체 순서는 [시작 안내](README.md)를 따릅니다. 이 문서는 현재 코드가 누가 무엇을 실행하는지 정리합니다.
+실제 명령은 [실행 절차](runbook-two-stage.md), 전체 순서는 [시작 안내](../README.md)를 따릅니다. 이 문서는 현재 코드가 누가 무엇을 실행하는지 정리합니다.
 
 ## 사람이 실행하는 작업과 자동 작업
 
@@ -85,4 +85,4 @@
 
 ## Host IAM과 ALB 배포 경계
 
-VPC Admin이 네트워크·서브넷·방화벽·PSA와 Private Pool 초기 연결을 준비합니다. tf-manager에는 Host Network Viewer와 지정한 GKE·VIP 서브넷 Network User를 부여하며, Host 전체 Network User·Network Admin·Security Admin·Service Networking Admin은 기본 부여하지 않습니다. ALB·VIP·Backend의 생성 권한은 gcp-sbx-edp-gke01에서 유지합니다. [서브넷 IAM](../02.sandbox_setup_01_gcloud/02-subnet-iam.md)과 [기존 권한 정리](../02.sandbox_setup_01_gcloud/06-iam-migration.md)를 확인합니다.
+VPC Admin이 네트워크·서브넷·방화벽·PSA와 Private Pool 초기 연결을 준비합니다. tf-manager에는 Host Network Viewer와 지정한 GKE·VIP 서브넷 Network User를 부여하며, Host 전체 Network User·Network Admin·Security Admin·Service Networking Admin은 기본 부여하지 않습니다. ALB·VIP·Backend의 생성 권한은 gcp-sbx-edp-gke01에서 유지합니다. [서브넷 IAM](../../02.sandbox_setup_01_gcloud/02-subnet-iam.md)과 [기존 권한 정리](../../02.sandbox_setup_01_gcloud/06-iam-migration.md)를 확인합니다.

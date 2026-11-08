@@ -1,19 +1,10 @@
-# GKE Sandbox 실행 안내
+# GKE Sandbox 시작하기
 
-관리 VM `infra-son01`에서 **처음에는 1차**, 공통 기반이 이미 있으면 **2차**부터 진행합니다.
+**아래 두 문서만 순서대로 여세요.**
 
-| 할 일 | 이 문서부터 열기 |
-|---|---|
-| **1차 · 공통 인프라 구축** | [1차 인프라 구축](01-infra-setup.md) — 계정·네트워크·GKE·Private Pool·배포 서비스와 HTTPS 준비 |
-| **2차 · sbx03 Sandbox 배포** | [2차 Sandbox 배포](02-sandbox-deploy.md) — 승인 요청 확인, Workflow 제출, 빌드·Notebook 확인 |
-| **GKE 삭제 후 다시 시험** | [sbx03 재시험 절차](sbx03-new-project-runbook.md#6-실제-작업-기록과-다음-테스트-순서) — 백업·클러스터 복구·동일 과제 재배포 |
+1. **[1차 · 인프라 만들기](01-infra-setup.md)** — 계정, 네트워크, GKE, 배포 도구를 준비합니다. 각 단계의 **명령 보기**를 펼쳐 하나씩 실행합니다.
+2. **[2차 · Sandbox 배포하기](02-sandbox-deploy.md)** — 승인된 요청 ID를 넣고 배포한 뒤 JupyterHub 접속을 확인합니다.
 
-<details>
-<summary>상세 절차와 참고 문서</summary>
+이미 공통 인프라가 있으면 **2차**부터 시작합니다. GKE만 지웠다면 [GKE 복구 절차](reference/sbx03-new-project-runbook.md#6-실제-작업-기록과-다음-테스트-순서)를 먼저 따릅니다.
 
-- [전체 실행 절차](runbook-two-stage.md) · [실환경 개별 명령](operator-command-guide.md) · [작업 순서](work-order.md)
-- [폴더·파일 Mermaid 구성도](file-relationships.md) · [파일별 역할](file-catalog.md)
-- [Private Pool GKE 접속 점검](cloudbuild-private-gke-vpn-design.md) · [Workspace 그룹 관리자 승인](cloud-identity-group-terraform.md)
-- [HTTPS·인증서](sbx03-https-certificate-runbook.md) · [Google OAuth](sbx03-google-oauth-runbook.md)
-
-</details>
+설계·오류 대응 자료는 [참고 문서](reference)에 있습니다.
