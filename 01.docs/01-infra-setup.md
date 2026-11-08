@@ -1,6 +1,17 @@
 # 1차 인프라 만들기
 
-**관리 VM `infra-son01`의 같은 터미널에서, 1번부터 차례대로 실행하세요.** 각 단계에서 **명령 보기**를 펼치고 한 줄씩 실행합니다. 이미 있는 자원은 조회 결과를 확인하고 생성 명령을 건너뜁니다. `403`이나 연결 오류가 나면 그 단계에서 멈춥니다.
+1번부터 차례대로 진행하고, 명령 위에 적힌 창에서 한 줄씩 실행하세요.
+
+| 창 | 실제 실행 위치 | 로그인 계정 | 작업 |
+|---|---|---|---|
+| A | 소유자 PC의 Bash | `admin@sonmap.net` | Shared VPC 호스트 설정, Private Pool 최초 생성 |
+| B | 관리 VM `infra-son01`의 별도 Bash | `son@sonmap.net` | 플랫폼 프로젝트 `gcp-sbx-edp-gke01`의 API·IAM·GKE·배포 작업 |
+
+**창 전환 순서**는 1번 B → A, 2번 A, 3번 B → A → B, 4~7번 B입니다. Workspace 승인과 내부 DNS 작업은 해당 담당자가 별도로 수행합니다.
+
+각 창에서 `gcloud auth list --filter=status:ACTIVE --format='value(account)'`로 계정을 먼저 확인하세요. 창을 바꿀 때는 해당 창의 기존 세션을 사용합니다. 이미 있는 자원은 조회 결과를 확인하고 생성 명령을 건너뜁니다. `403`이나 연결 오류가 나면 그 단계에서 멈춥니다.
+
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
 
 ```bash
 cd ~/GCP_SBX_Test01
@@ -27,11 +38,11 @@ flowchart TD
 **다음으로:** `tf-manager`와 `sbx-manager`가 조회되고 API·권한 설정이 완료되면 2번으로 이동합니다.
 
 <details>
-<summary>1번 명령 보기 · API, 서비스 계정, IAM</summary>
+<summary>1번 명령 보기 · B 창에서 플랫폼 설정 → A 창에서 호스트 설정</summary>
+
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`** · 먼저 플랫폼 API·서비스 계정·IAM을 설정합니다.
 
 ```bash
-# ── 이 문서에서 사용하는 변수 선언 ──
-# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export GKE_PRJ_ACCOUNT="son@sonmap.net"
@@ -47,7 +58,6 @@ export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" -
 
 # ── 1. 필요한 API 활성화 — CI/CD · Shared VPC Host · GKE 프로젝트 ──
 gcloud services enable servicenetworking.googleapis.com serviceusage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com compute.googleapis.com container.googleapis.com cloudbuild.googleapis.com config.googleapis.com run.googleapis.com workflows.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com cloudbilling.googleapis.com cloudidentity.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
-gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
 gcloud services enable container.googleapis.com compute.googleapis.com iam.googleapis.com iamcredentials.googleapis.com cloudresourcemanager.googleapis.com orgpolicy.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 2. Google 서비스 에이전트 준비 — API별로 필요한 시스템 계정 ──
@@ -57,11 +67,6 @@ gcloud beta services identity create --service=config.googleapis.com --project="
 gcloud beta services identity create --service=run.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 gcloud beta services identity create --service=workflows.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
 gcloud beta services identity create --service=container.googleapis.com --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}"
-gcloud beta services identity create --service=container.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
-# 호스트 PSA 조회 오류 시 Service Networking 에이전트 역할도 확인합니다.
-gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
-export VPC_HOST_PROJECT_NUMBER="$(gcloud projects describe "${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format='value(projectNumber)')"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${VPC_HOST_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 
 # Service Networking 시스템 계정의 역할은 사용자 계정에 부여하지 않습니다.
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${GKE_PRJ_ACCOUNT}"
@@ -103,11 +108,6 @@ gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAcc
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/logging.logWriter --condition=None --account="${GKE_PRJ_ACCOUNT}"
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
-# ── 6. Shared VPC 조회와 VPC Admin의 Pool 초기 구성 권한 ──
-# tf-manager에는 Host 전체 Network User/Network Admin/Security Admin을 부여하지 않습니다.
-# 서브넷 사용 권한은 서브넷 생성 후 02-subnet-iam.md에서 부여합니다.
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.networkViewer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 # VPC Admin은 Host 네트워크 관리 권한을 이미 보유한 계정입니다.
 # Pool 자원은 gcp-sbx-edp-gke01에 생성하므로 해당 프로젝트의 초기 Pool 관리 권한을 부여합니다.
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="user:${VPC_ADMIN_ACCOUNT}" --role=roles/cloudbuild.workerPoolOwner --condition=None --account="${GKE_PRJ_ACCOUNT}"
@@ -128,7 +128,6 @@ gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${
 gcloud iam service-accounts add-iam-policy-binding "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@gcp-sa-cloudbuild.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator --condition=None --account="${GKE_PRJ_ACCOUNT}"
 
 # ── 11. GCP 서비스 에이전트 권한 — Shared VPC 사용 ──
-gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/container.hostServiceAgentUser --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 
 # ── 12. GKE 노드 기본 계정 권한 — 노드 실행 · tf-manager의 계정 사용 ──
 gcloud projects add-iam-policy-binding "${SBX_GKE_PROJECT}" --member="serviceAccount:${SBX_GKE_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/container.defaultNodeServiceAccount --condition=None --account="${GKE_PRJ_ACCOUNT}"
@@ -138,6 +137,33 @@ gcloud iam service-accounts add-iam-policy-binding "${SBX_GKE_PROJECT_NUMBER}-co
 # Workspace 최고 관리자는 tf-manager에 Groups Administrator 역할을 직접 부여합니다.
 # GCP IAM 역할과 별개이며 사용자 대신 실행하는 Domain-wide Delegation은 사용하지 않습니다.
 gcloud iam service-accounts describe "${TF_MANAGER}" --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --format='value(uniqueId)'
+
+
+printf '플랫폼 프로젝트 번호: %s\n' "${SBX_GKE_PROJECT_NUMBER}"
+```
+
+**A 창 · 소유자 PC의 Bash · `admin@sonmap.net`** · B 창에 나온 플랫폼 프로젝트 번호만 옮겨 입력합니다. 숫자가 비어 있거나 다르면 중단하세요.
+
+```bash
+unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
+export ADMIN_ACCOUNT="admin@sonmap.net"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
+export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
+read -r -p 'B 창에 출력된 플랫폼 프로젝트 번호: ' SBX_GKE_PROJECT_NUMBER
+[[ "${SBX_GKE_PROJECT_NUMBER}" =~ ^[0-9]+$ ]]
+gcloud services enable compute.googleapis.com container.googleapis.com servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
+gcloud beta services identity create --service=container.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
+# 호스트 PSA 조회 오류 시 Service Networking 에이전트 역할도 확인합니다.
+gcloud beta services identity create --service=servicenetworking.googleapis.com --project="${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}"
+export VPC_HOST_PROJECT_NUMBER="$(gcloud projects describe "${VPC_HOST_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format='value(projectNumber)')"
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${VPC_HOST_PROJECT_NUMBER}@service-networking.iam.gserviceaccount.com" --role=roles/servicenetworking.serviceAgent --condition=None --account="${VPC_ADMIN_ACCOUNT}"
+# tf-manager에는 Host 전체 Network User/Network Admin/Security Admin을 부여하지 않습니다.
+# 서브넷 사용 권한은 서브넷 생성 후 02-subnet-iam.md에서 부여합니다.
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/compute.networkViewer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/serviceusage.serviceUsageConsumer --condition=None --account="${VPC_ADMIN_ACCOUNT}"
+gcloud projects add-iam-policy-binding "${VPC_HOST_PROJECT}" --member="serviceAccount:service-${SBX_GKE_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com" --role=roles/container.hostServiceAgentUser --condition=None --account="${VPC_ADMIN_ACCOUNT}"
 ```
 
 </details>
@@ -157,15 +183,17 @@ flowchart TD
     S -->|PSA 피어링| P
 ```
 
-**실행:** VPC 관리자 `admin@sonmap.net`.  
+**실행:** A 창의 VPC 관리자 `admin@sonmap.net`.  
 **다음으로:** Shared VPC 연결, 서브넷, PSA 피어링, 방화벽, 서브넷 사용 권한을 확인합니다.
 
 <details>
 <summary>2번 명령 보기 · 네트워크와 서브넷 권한</summary>
 
+**A 창 · 소유자 PC의 Bash · `admin@sonmap.net`**
+
 ```bash
 # ── 이 문서에서 사용하는 변수 선언 ──
-# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
+# A 창에서 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT="admin@sonmap.net"
 # 실행 프로젝트 작업자는 son, Shared VPC·초기 권한 관리자는 admin으로 구분합니다.
@@ -275,9 +303,10 @@ gcloud compute firewall-rules create fw-sbxtest01-ilb-proxy --project="${VPC_HOS
 
 서브넷을 확인한 다음 사용 권한을 적용합니다.
 
+**A 창 · 소유자 PC의 Bash · `admin@sonmap.net`**
+
 ```bash
 export ADMIN_ACCOUNT="admin@sonmap.net"
-export GKE_PRJ_ACCOUNT="son@sonmap.net"
 # 실제 VPC Admin 계정으로 변경합니다.
 export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
 export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
@@ -286,8 +315,8 @@ export REGION="asia-northeast3"
 export MAIN_SUBNET="subnet-prod-sbx-gke-01"
 export ILB_VIP_SUBNET="subnet-prod-edp-alb-frontend-an3"
 export TF_MANAGER="tf-manager@${SBX_GKE_PROJECT}.iam.gserviceaccount.com"
-export SBX_GKE_PROJECT_NUMBER="$(gcloud projects describe "${SBX_GKE_PROJECT}" --account="${VPC_ADMIN_ACCOUNT}" --format='value(projectNumber)')"
-# 프로젝트 번호가 숫자인지 확인하고 조회 실패 시 중단합니다.
+# 1번 A 창에서 입력한 플랫폼 프로젝트 번호를 사용합니다.
+[[ "${SBX_GKE_PROJECT_NUMBER:-}" =~ ^[0-9]+$ ]]
 
 # 존재 여부와 현재 IAM을 확인합니다.
 gcloud compute networks subnets describe "${MAIN_SUBNET}" --project="${VPC_HOST_PROJECT}" --region="${REGION}" --account="${VPC_ADMIN_ACCOUNT}"
@@ -333,11 +362,13 @@ flowchart TD
 **다음으로:** 버킷·Artifact Registry·GKE·Private Pool·Cloud Run·Workflow·공통 URL Map이 조회되면 4번으로 이동합니다.
 
 <details>
-<summary>3번 명령 보기 · 버킷, GKE, Private Pool, Run, Workflow, ALB 기반</summary>
+<summary>3번 명령 보기 · B 창에서 저장소 → A 창에서 Pool → B 창에서 GKE와 공통 서비스</summary>
+
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`** · 공통 저장소와 Secret을 준비합니다.
 
 ```bash
 # ── 이 문서에서 사용하는 변수 선언 ──
-# 아래 값을 확인하고 이 블록부터 같은 터미널에서 실행합니다.
+# B 창에서 아래 값을 확인하고 실행합니다.
 unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 export ADMIN_ACCOUNT="admin@sonmap.net"
 export GKE_PRJ_ACCOUNT="son@sonmap.net"
@@ -433,14 +464,30 @@ gcloud secrets create jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}"
 
 # ── 16. secrets add-iam-policy-binding jupyter-oauth-client-secret · roles/secretmanager.secretAccessor ──
 gcloud secrets add-iam-policy-binding jupyter-oauth-client-secret --project="${SBX_GKE_PROJECT}" --member="serviceAccount:${TF_MANAGER}" --role=roles/secretmanager.secretAccessor --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+```
 
+**A 창 · 소유자 PC의 Bash · `admin@sonmap.net`** · 이 블록은 대상 프로젝트가 `gcp-sbx-edp-gke01`이어도 A 창에서 실행합니다.
+
+```bash
+unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
+export ADMIN_ACCOUNT="admin@sonmap.net"
+export VPC_ADMIN_ACCOUNT="${VPC_ADMIN_ACCOUNT:-${ADMIN_ACCOUNT}}"
+export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
+export VPC_HOST_PROJECT="gcp-prod-edp-hub-vpchost"
+export REGION=asia-northeast3
+export NETWORK=vpc-prod-edp-hub
+export PSA_CIDR=10.250.0.0/24
 # ── 17. VPC Admin: Private Pool 초기 구성 ──
 # 이 절만 VPC_ADMIN_ACCOUNT로 실행합니다. 이후 GKE·ALB 등은 tf-manager 위임입니다.
 # 기존 자원 확인
 gcloud builds worker-pools describe pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${VPC_ADMIN_ACCOUNT}"
 # 조회 결과가 명시적 Not Found일 때만 아래 생성 명령을 실행합니다.
 gcloud builds worker-pools create pool-sbxtest01 --project="${SBX_GKE_PROJECT}" --region="${REGION}" --worker-machine-type=e2-standard-2 --worker-disk-size=100GB --no-public-egress --peered-network="projects/${VPC_HOST_PROJECT}/global/networks/${NETWORK}" --peered-network-ip-range="${PSA_CIDR}" --account="${VPC_ADMIN_ACCOUNT}"
+```
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`** · A 창에서 Private Pool을 확인한 뒤, 이전 B 창에서 이어서 실행합니다.
+
+```bash
 # ── 18. container clusters create-auto gke-sbx-main-an3 ──
 # 기존 자원 확인
 gcloud container clusters describe "${MAIN_CLUSTER}" --project="${SBX_GKE_PROJECT}" --region="${REGION}" --format=json --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
@@ -533,6 +580,8 @@ flowchart TD
 <details>
 <summary>4번 명령 보기 · OAuth Secret 등록</summary>
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
@@ -576,6 +625,8 @@ flowchart TD
 **실행:** 관리 VM `infra-son01`. 첫 명령은 새 클러스터에서 DNS 엔드포인트를 활성화할 때 사용합니다.  
 **다음으로:** 관리 VM과 Private Pool 양쪽에서 Namespace 목록이 나오고, 점검 Build가 `SUCCESS`이면 통과입니다.
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 gcloud container clusters update gke-sbx-main-an3 --project=gcp-sbx-edp-gke01 --region=asia-northeast3 --enable-dns-access --account=son@sonmap.net
 
@@ -608,6 +659,8 @@ flowchart TD
 
 **먼저 플랫폼 릴리스를 게시합니다.** 환경 파일의 실제 Customer ID가 릴리스 소스에 포함되어 있어야 합니다.
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
@@ -635,6 +688,8 @@ fi
 
 **릴리스 Build가 성공하면 Chart와 기본 이미지를 미러링합니다.**
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
@@ -656,6 +711,8 @@ gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGI
 ```
 
 **두 미러링 Build가 성공하면 표준 Notebook 이미지를 빌드합니다.**
+
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
 
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
@@ -681,8 +738,10 @@ gcloud storage buckets add-iam-policy-binding "gs://${BUILD_STAGING_BUCKET}" --m
 gcloud builds submit 04.Jupiter-setup-image --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --gcs-source-staging-dir="gs://${BUILD_STAGING_BUCKET}/jupyter-source" --config=04.Jupiter-setup-image/cloudbuild.yaml --substitutions="_BASE_IMAGE=${BASE_IMAGE},_IMAGE_REPO=${IMAGE_REPO},_IMAGE_TAG=${IMAGE_TAG}"
 ```
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
-gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="${SBX_GKE_PROJECT}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
+gcloud artifacts docker images describe "${IMAGE_REPO}:${IMAGE_TAG}" --project="${SBX_GKE_PROJECT}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
 </details>
@@ -708,6 +767,8 @@ flowchart TD
 
 테스트용 인증서가 없을 때만 아래 순서로 만듭니다. 운영에서는 해당 도메인의 신뢰 인증서를 사용합니다.
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 umask 077
 openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 90 \
@@ -716,6 +777,8 @@ openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 90 \
   -addext "subjectAltName=DNS:jupyter-sbx03.sonmap.net"
 ```
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 gcloud compute ssl-certificates create cert-jupyter-sbx03-self \
   --project=gcp-sbx-edp-gke01 --region=asia-northeast3 \
@@ -723,12 +786,16 @@ gcloud compute ssl-certificates create cert-jupyter-sbx03-self \
   --account=son@sonmap.net
 ```
 
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
+
 ```bash
 gcloud compute target-https-proxies create https-proxy-alb-sbxtest01-shared \
   --project=gcp-sbx-edp-gke01 --region=asia-northeast3 \
   --url-map=urlmap-alb-sbxtest01-shared --url-map-region=asia-northeast3 \
   --ssl-certificates=cert-jupyter-sbx03-self --account=son@sonmap.net
 ```
+
+**B 창 · 관리 VM `infra-son01`의 별도 Bash · `son@sonmap.net`**
 
 ```bash
 gcloud compute forwarding-rules create fr-alb-sbxtest01-shared-https \
