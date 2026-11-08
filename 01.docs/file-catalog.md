@@ -7,6 +7,8 @@
 | 저장소 루트 기준 파일 경로 | 역할 |
 |---|---|
 | `.gitignore` | 로컬 설정·인증서·State·캐시 제외 |
+| `01.docs/01-infra-setup.md` | 1차 인프라 작업 순서와 접속 점검 명령 |
+| `01.docs/02-sandbox-deploy.md` | sbx03 승인 요청 확인·Workflow 제출·검증 명령 |
 | `01.docs/README.md` | 실제 수행 단계·실행 계정·완료 기준의 시작 안내 |
 | `01.docs/admin-requests.md` | 관리자별 네트워크·데이터·인증 준비 요청 |
 | `01.docs/architecture-and-operations.md` | 구조·권한 통합 영향·State 전환 |
