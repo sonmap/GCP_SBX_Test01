@@ -67,7 +67,7 @@
 | `02.sandbox_setup_01_gcloud/configs` | [`bootstrap-build.yaml`](../../02.sandbox_setup_01_gcloud/configs/bootstrap-build.yaml) | 초기 두 실행 이미지 Build 입력 | 1차 3 · Build 설정 |
 | `02.sandbox_setup_01_gcloud/configs` | [`provisioner-env.yaml`](../../02.sandbox_setup_01_gcloud/configs/provisioner-env.yaml) | Cloud Run 환경변수 입력 | 1차 3·6 · Cloud Run 입력 |
 | `02.sandbox_setup_01_gcloud/configs` | [`workflow.template.yaml`](../../02.sandbox_setup_01_gcloud/configs/workflow.template.yaml) | Workflows OIDC 호출 템플릿, URL만 치환 | 1차 3 · Workflow 입력 |
-| `02.sandbox_setup_01_gcloud` | [`mirror-jupyter.sh`](../../02.sandbox_setup_01_gcloud/mirror-jupyter.sh) | Chart·기본 이미지를 내부 AR로 복사하는 Build 제출 | 1차 6 · 선택 보조 |
+| `02.sandbox_setup_01_gcloud` | [`mirror-jupyter.sh`](../../02.sandbox_setup_01_gcloud/mirror-jupyter.sh) | 기본 이미지를 내부 AR로 복사하는 Build 제출 | 1차 6 · 선택 보조 |
 | `02.sandbox_setup_01_gcloud` | [`release.sh`](../../02.sandbox_setup_01_gcloud/release.sh) | 현재 Git 커밋 기준 플랫폼 릴리스 Build 제출 | 1차 6 · 선택 보조 |
 
 </details>
@@ -78,7 +78,6 @@
 | 폴더 | 파일명 | 역할 | 수행 순서 |
 |---|---|---|---|
 | `03.cloudbuild` | [`check-private-gke.yaml`](../../03.cloudbuild/check-private-gke.yaml) | Private Pool에서 DNS 엔드포인트를 통해 Namespace 조회 | 1차 5 · Build 설정 |
-| `03.cloudbuild` | [`mirror-jupyterhub-chart.yaml`](../../03.cloudbuild/mirror-jupyterhub-chart.yaml) | JupyterHub Chart 내부 미러링 | 1차 6 · Build 설정 |
 | `03.cloudbuild` | [`mirror-jupyterhub-images.yaml`](../../03.cloudbuild/mirror-jupyterhub-images.yaml) | JupyterHub 이미지 내부 미러링 | 1차 6 · Build 설정 |
 | `03.cloudbuild` | [`platform-release.yaml`](../../03.cloudbuild/platform-release.yaml) | Runner/Provisioner 빌드·소스 ZIP 게시·Cloud Run 갱신 | 1차 6 · Build 설정 |
 

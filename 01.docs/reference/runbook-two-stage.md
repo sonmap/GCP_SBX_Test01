@@ -200,22 +200,18 @@ jq '{release_id,git_commit,archive_uri,generation,sha256,runner_image,provisione
 
 ## 7. Chart와 기본 이미지 미러링
 
-실행 계정: tf-manager Build. 아래 두 gcloud 명령은 bootstrap Runner로 외부 Chart/이미지를 받아 내부 AR에 저장하는 Build를 각각 제출합니다.
+먼저 [센트럴 1호기에서 Helm 차트 수동 반입](../../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#센트럴-1호기에서-helm-차트-수동-반입)을 완료합니다. 아래 명령은 tf-manager Build로 기본 이미지를 복사합니다.
 
 ```bash
 export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
-# 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
-
-# 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
-# 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
+# Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
 gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 
 gcloud artifacts docker images list "${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform" --include-tags --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}"
 ```
 
-완료 기준: 두 Build SUCCESS. JupyterHub Chart 4.2.0, Hub 4.2.0, CHP 4.6.3, SingleUser sample 4.2.0이 내부 AR에 게시됩니다. 이 미러링은 외부 다운로드가 가능한 완전관리형 Build를 사용합니다. Private Pool에 외부 IP를 추가하는 작업이 아닙니다.
+완료 기준은 AR의 차트 조회 성공과 기본 이미지 복사 Build SUCCESS입니다. JupyterHub Chart 4.2.0, Hub 4.2.0, CHP 4.6.3, SingleUser sample 4.2.0이 내부 AR에 게시됩니다. 기본 이미지 복사는 외부 다운로드가 가능한 완전관리형 Build를 사용합니다. Private Pool에 외부 IP를 추가하는 작업이 아닙니다.
 
 ## 8. 사용자 Notebook 표준 이미지 빌드
 

@@ -649,6 +649,7 @@ flowchart TD
       B --> A["ar-sbxtest01-platform"]
       A --> R["배포 도구 이미지"]
       A --> C["JupyterHub Chart와 Notebook 이미지"]
+      VM["센트럴 1호기 · Helm 수동 실행"] -->|차트 업로드| A
     end
 ```
 
@@ -686,7 +687,7 @@ else
 fi
 ```
 
-**릴리스 Build가 성공하면 Chart와 기본 이미지를 미러링합니다.**
+**릴리스 Build가 성공하면 [센트럴 1호기에서 Helm 차트를 수동 반입](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#센트럴-1호기에서-helm-차트-수동-반입)합니다.** 차트가 AR에서 조회되면 아래 명령으로 기본 이미지를 복사합니다.
 
 **[프로젝트소유 관리계정] · `son@sonmap.net`**
 
@@ -702,15 +703,11 @@ unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
 export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
-# 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
-
-# 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
-# 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
+# Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
 gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${GKE_PRJ_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 ```
 
-**두 미러링 Build가 성공하면 표준 Notebook 이미지를 빌드합니다.**
+**기본 이미지 복사 Build가 성공하면 표준 Notebook 이미지를 빌드합니다.**
 
 **[프로젝트소유 관리계정] · `son@sonmap.net`**
 

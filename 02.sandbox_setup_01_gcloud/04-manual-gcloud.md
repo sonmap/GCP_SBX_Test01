@@ -69,6 +69,78 @@ Build SUCCESS 후 bundles 버킷의 platform-releases/${RELEASE_ID}/release.json
 
 ## 6. Chart와 기본 이미지 미러링
 
+**기존 · Cloud Build에서 차트 반입**
+
+```mermaid
+sequenceDiagram
+    participant O as 운영자
+    participant B as Cloud Build
+    participant H as 공개 Helm 저장소
+    participant A as Artifact Registry
+    O->>B: gcloud builds submit
+    B->>H: helm repo add 및 helm pull
+    H-->>B: JupyterHub 차트
+    B->>A: helm push
+```
+
+**변경 · 센트럴 1호기에서 차트 반입**
+
+```mermaid
+sequenceDiagram
+    participant O as 운영자
+    participant V as 센트럴 1호기 VM
+    participant H as 공개 Helm 저장소
+    participant A as Artifact Registry
+    O->>V: Bash에서 수동 실행
+    V->>H: helm pull
+    H-->>V: jupyterhub-4.2.0.tgz
+    V->>A: helm registry login 및 helm push
+    V->>A: helm show chart로 버전 확인
+```
+
+### 센트럴 1호기에서 Helm 차트 수동 반입
+
+`vm-prod-edge-central-1`의 같은 Bash 창에서 실행합니다. 외부 Helm 저장소와 대상 AR에 접속할 수 있어야 합니다. `AR_ACCOUNT`에는 대상 저장소의 읽기·쓰기 권한을 가진 gcloud 로그인 계정을 사용합니다. 아래 대상은 현재 배포가 읽는 Sandbox AR입니다. Edge AR을 사용하려면 업로드 대상과 배포 환경의 `JUPYTER_CHART_URI`를 같은 저장소로 맞춥니다.
+
+**1. 외부 차트 다운로드**
+
+```bash
+CHART_VERSION=4.2.0
+CHART_DIR="$(mktemp -d)"
+
+helm pull jupyterhub --repo https://hub.jupyter.org/helm-chart/ \
+  --version "$CHART_VERSION" --destination "$CHART_DIR" &&
+  helm show chart "$CHART_DIR/jupyterhub-${CHART_VERSION}.tgz"
+```
+
+`name: jupyterhub`와 `version: 4.2.0`을 확인합니다.
+
+**2. AR 인증과 기존 차트 확인**
+
+```bash
+AR_HOST=asia-northeast3-docker.pkg.dev
+AR_REPO="oci://${AR_HOST}/gcp-sbx-edp-gke01/ar-sbxtest01-platform"
+AR_ACCOUNT=son@sonmap.net
+
+(
+  set -o pipefail
+  gcloud auth print-access-token --account="$AR_ACCOUNT" |
+    helm registry login "$AR_HOST" --username oauth2accesstoken --password-stdin
+) &&
+  helm show chart "$AR_REPO/jupyterhub" --version "$CHART_VERSION"
+```
+
+해당 버전이 조회되면 그대로 사용합니다. 인증·통신 오류가 나면 원인을 확인합니다. **해당 버전이 없다고 확인된 경우에만** 아래 명령으로 올립니다.
+
+**3. 업로드와 조회**
+
+```bash
+helm push "$CHART_DIR/jupyterhub-${CHART_VERSION}.tgz" "$AR_REPO" &&
+  helm show chart "$AR_REPO/jupyterhub" --version "$CHART_VERSION"
+```
+
+### Hub·Proxy·Notebook 기본 이미지 복사
+
 ```bash
 export SBX_GKE_PROJECT="gcp-sbx-edp-gke01"
 # 저장소 루트 GCP_SBX_Test01에서 실행합니다.
@@ -81,15 +153,11 @@ unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT
 
 export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"
 
-# 1. Chart를 내부 Artifact Registry로 복사합니다.
-gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-chart.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
-
-# 위 Build가 SUCCESS인 경우에만 다음 명령을 실행합니다.
-# 2. Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
+# Hub / Proxy / Notebook 기본 이미지를 내부 저장소로 복사합니다.
 gcloud builds submit --no-source --project="${SBX_GKE_PROJECT}" --region="${REGION}" --account="${ADMIN_ACCOUNT}" --impersonate-service-account="${TF_MANAGER}" --service-account="${TF_MANAGER_RESOURCE}" --config=03.cloudbuild/mirror-jupyterhub-images.yaml --substitutions="_AUTOMATION_IMAGE=${AUTOMATION_IMAGE}"
 ```
 
-두 Build 모두 SUCCESS여야 합니다. 외부 다운로드가 가능한 관리형 Build에서 실행합니다.
+기본 이미지 복사 Build가 SUCCESS인지 확인합니다. 외부 다운로드가 가능한 관리형 Build에서 실행합니다.
 
 ## 7. Notebook 표준 이미지 빌드
 
