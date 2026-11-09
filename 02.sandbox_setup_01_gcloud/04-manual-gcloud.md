@@ -83,12 +83,12 @@ sequenceDiagram
     B->>A: helm push
 ```
 
-**변경 · 센트럴 1호기에서 차트 반입**
+**변경 · infra-son01에서 차트 반입**
 
 ```mermaid
 sequenceDiagram
     participant O as 운영자
-    participant V as 센트럴 1호기 VM
+    participant V as 인프라 VM infra-son01
     participant H as 공개 Helm 저장소
     participant A as Artifact Registry
     O->>V: Bash에서 수동 실행
@@ -98,9 +98,9 @@ sequenceDiagram
     V->>A: helm show chart로 버전 확인
 ```
 
-### 센트럴 1호기에서 Helm 차트 수동 반입
+### infra-son01에서 Helm 차트 수동 반입
 
-`vm-prod-edge-central-1`의 같은 Bash 창에서 실행합니다. 외부 Helm 저장소와 대상 AR에 접속할 수 있어야 합니다. `AR_ACCOUNT`에는 대상 저장소의 읽기·쓰기 권한을 가진 gcloud 로그인 계정을 사용합니다. 아래 대상은 현재 배포가 읽는 Sandbox AR입니다. Edge AR을 사용하려면 업로드 대상과 배포 환경의 `JUPYTER_CHART_URI`를 같은 저장소로 맞춥니다.
+`infra-son01`에 로그인한 뒤 같은 Bash 창에서 실행합니다. VM에서 외부 Helm 저장소의 HTTPS 주소와 대상 AR에 접속할 수 있어야 합니다. Helm과 gcloud가 필요합니다. `AR_ACCOUNT`에는 대상 저장소의 읽기·쓰기 권한을 가진 gcloud 로그인 계정을 사용합니다. 아래 대상은 현재 배포가 읽는 Sandbox AR입니다. Edge AR을 사용하려면 업로드 대상과 배포 환경의 `JUPYTER_CHART_URI`를 같은 저장소로 맞춥니다.
 
 **1. 외부 차트 다운로드**
 

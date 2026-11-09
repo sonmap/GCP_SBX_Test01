@@ -200,7 +200,7 @@ jq '{release_id,git_commit,archive_uri,generation,sha256,runner_image,provisione
 
 ## 7. Chart와 기본 이미지 미러링
 
-먼저 [센트럴 1호기에서 Helm 차트 수동 반입](../../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#센트럴-1호기에서-helm-차트-수동-반입)을 완료합니다. 아래 명령은 tf-manager Build로 기본 이미지를 복사합니다.
+먼저 [infra-son01에서 Helm 차트 수동 반입](../../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#infra-son01에서-helm-차트-수동-반입)을 완료합니다. 아래 명령은 tf-manager Build로 기본 이미지를 복사합니다.
 
 ```bash
 export AUTOMATION_IMAGE="${REGION}-docker.pkg.dev/${SBX_GKE_PROJECT}/ar-sbxtest01-platform/sbxtest01-automation-runner:bootstrap"

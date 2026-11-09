@@ -60,7 +60,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     OP["02.sandbox_setup_01_gcloud/04-manual-gcloud.md"]
-    CH["센트럴 1호기 · 수동 Helm pull과 push"]
+    CH["infra-son01 · 수동 Helm pull과 push"]
     MI["03.cloudbuild/mirror-jupyterhub-images.yaml"]
     AR["Artifact Registry · Chart와 기본 이미지"]
     OP --> CH --> AR

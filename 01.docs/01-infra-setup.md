@@ -649,7 +649,7 @@ flowchart TD
       B --> A["ar-sbxtest01-platform"]
       A --> R["배포 도구 이미지"]
       A --> C["JupyterHub Chart와 Notebook 이미지"]
-      VM["센트럴 1호기 · Helm 수동 실행"] -->|차트 업로드| A
+      VM["infra-son01 · Helm 수동 실행"] -->|차트 업로드| A
     end
 ```
 
@@ -687,7 +687,7 @@ else
 fi
 ```
 
-**릴리스 Build가 성공하면 [센트럴 1호기에서 Helm 차트를 수동 반입](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#센트럴-1호기에서-helm-차트-수동-반입)합니다.** 차트가 AR에서 조회되면 아래 명령으로 기본 이미지를 복사합니다.
+**릴리스 Build가 성공하면 [infra-son01에서 Helm 차트를 수동 반입](../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#infra-son01에서-helm-차트-수동-반입)합니다.** 차트가 AR에서 조회되면 아래 명령으로 기본 이미지를 복사합니다.
 
 **[프로젝트소유 관리계정] · `son@sonmap.net`**
 

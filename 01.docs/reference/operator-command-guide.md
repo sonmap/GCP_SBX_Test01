@@ -32,7 +32,7 @@
 | [07](#step07) | 내부 ALB 네트워크 | 명령 안내 / VIP·규칙 실제 결과 재확인 필요 |
 | [08](#step08) | GKE 생성 | RUNNING·사설 API 10.253.3.2 확인 |
 | [09](#step09) | 별도 kubeconfig·접속 오류 해결 | kubectl 조회 성공, 사용자 GKE 정상 확인 |
-| [10](#step10) | 이미지·Helm 차트 준비 | 센트럴 수동 반입 후 AR 차트 조회 확인 |
+| [10](#step10) | 이미지·Helm 차트 준비 | infra-son01 수동 반입 후 AR 차트 조회 확인 |
 | [11](#step11) | Cloud Run API | 배포 성공·Service URL 확인 |
 | [12](#step12) | Workflows | 서비스 에이전트 오류 해결 명령·배포 명령 안내 / ACTIVE 출력 재확인 |
 | [13](#step13) | Terraform 번들 게시 | URI·generation·SHA-256·ZIP 경로 확인 |
@@ -954,7 +954,7 @@ gcloud builds submit 09.sandbox_gke_deployer --project=gcp-sbx-edp-gke01 --regio
 
 **명령 133 — Helm 차트 외부 반입**
 
-[센트럴 1호기에서 Helm 차트 수동 반입](../../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#센트럴-1호기에서-helm-차트-수동-반입)을 실행합니다.
+[infra-son01에서 Helm 차트 수동 반입](../../02.sandbox_setup_01_gcloud/04-manual-gcloud.md#infra-son01에서-helm-차트-수동-반입)을 실행합니다.
 
 **명령 134 — Hub·Proxy·Notebook 기본 이미지 외부 반입**
 
@@ -992,7 +992,7 @@ gcloud artifacts docker images list asia-northeast3-docker.pkg.dev/gcp-sbx-edp-g
 gcloud artifacts versions list --project=gcp-sbx-edp-gke01 --location=asia-northeast3 --repository=ar-sbxtest01-platform --package=jupyterhub --account=son@sonmap.net
 ```
 
-확인할 태그: runner:bootstrap, API:bootstrap, jupyterhub-k8s-hub:4.2.0, jupyterhub-configurable-http-proxy:4.6.3, jupyterhub-k8s-singleuser-sample:4.2.0, jupyterhub-k8s-singleuser-standard:4.2.0-r1-test. 차트 4.2.0과 Notebook 이미지 태그는 별개입니다. 차트는 센트럴 1호기에서 받고, 기본 이미지는 Build 컨테이너에서 받습니다.
+확인할 태그: runner:bootstrap, API:bootstrap, jupyterhub-k8s-hub:4.2.0, jupyterhub-configurable-http-proxy:4.6.3, jupyterhub-k8s-singleuser-sample:4.2.0, jupyterhub-k8s-singleuser-standard:4.2.0-r1-test. 차트 4.2.0과 Notebook 이미지 태그는 별개입니다. 차트는 infra-son01에서 받고, 기본 이미지는 Build 컨테이너에서 받습니다.
 
 ```mermaid
 flowchart TD
